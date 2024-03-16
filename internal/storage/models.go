@@ -10,3 +10,8 @@ type Food struct {
 	Carb100 float64
 	Comment string
 }
+
+type Weight struct {
+	Timestamp int64
+	Value     float64
+}
