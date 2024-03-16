@@ -9,7 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	bot "github.com/devldavydov/myfoodbot/internal/myfoodbot"
+	bot "github.com/devldavydov/myfood/internal/myfoodbot"
 )
 
 var (

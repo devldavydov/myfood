@@ -1,4 +1,4 @@
-module github.com/devldavydov/myfoodbot
+module github.com/devldavydov/myfood
 
 go 1.22.0
 

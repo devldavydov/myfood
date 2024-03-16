@@ -2,16 +2,25 @@ BUILD_DATE := $(shell date +'%d.%m.%Y %H:%M:%S')
 BUILD_COMMIT := $(shell git rev-parse --short HEAD)
 
 .PHONY: all
-all: clean build
+all: clean build_bot
 
-.PHONY: build
-build:
+.PHONY: build_bot
+build_bot:
 	@echo "\n### $@"
 	@mkdir -p ./bin
 	@cd cmd/myfoodbot && \
 	 go build \
 	 -ldflags "-X 'main.buildDate=$(BUILD_DATE)' -X main.buildCommit=$(BUILD_COMMIT)" \
 	 -o ../../bin/myfoodbot .
+
+.PHONY: build_server
+build_server:
+	@echo "\n### $@"
+	@mkdir -p ./bin
+	@cd cmd/myfoodserver && \
+	 go build \
+	 -ldflags "-X 'main.buildDate=$(BUILD_DATE)' -X main.buildCommit=$(BUILD_COMMIT)" \
+	 -o ../../bin/myfoodserver .	 
 
 .PHONY: clean
 clean:
