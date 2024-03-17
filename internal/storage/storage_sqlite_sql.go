@@ -25,4 +25,13 @@ const (
 		PRIMARY KEY (userid, timestamp)
 	) STRICT;	
 	`
+	_sqlCreateWeight = `
+	INSERT INTO weight(userid, timestamp, value)
+	VALUES($1, $2, $3)
+	`
+	_sqlFindWeight = `
+	SELECT timestamp, value
+	FROM weight
+	WHERE userid = $1 and timestamp = $2
+	`
 )

@@ -15,3 +15,7 @@ type Weight struct {
 	Timestamp int64
 	Value     float64
 }
+
+func (r *Weight) Validate() bool {
+	return r.Timestamp >= 0 && r.Value > 0
+}
