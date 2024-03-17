@@ -54,7 +54,7 @@ func (r *StorageSQLiteTestSuite) TestCreateAndGetWeight() {
 
 func (r *StorageSQLiteTestSuite) TestGetWeightList() {
 	r.Run("empty list", func() {
-		_, err := r.stg.GetWeightList(context.TODO(), 1, -1)
+		_, err := r.stg.GetWeightList(context.TODO(), 1, 0, 10)
 		r.ErrorIs(err, ErrWeightEmptyList)
 	})
 
@@ -67,7 +67,7 @@ func (r *StorageSQLiteTestSuite) TestGetWeightList() {
 	})
 
 	r.Run("get list for different users", func() {
-		lst, err := r.stg.GetWeightList(context.TODO(), 1, -1)
+		lst, err := r.stg.GetWeightList(context.TODO(), 1, 1, 3)
 		r.NoError(err)
 		r.Equal([]Weight{
 			{Timestamp: 3, Value: 3},
@@ -75,7 +75,7 @@ func (r *StorageSQLiteTestSuite) TestGetWeightList() {
 			{Timestamp: 1, Value: 1},
 		}, lst)
 
-		lst, err = r.stg.GetWeightList(context.TODO(), 2, -1)
+		lst, err = r.stg.GetWeightList(context.TODO(), 2, 4, 4)
 		r.NoError(err)
 		r.Equal([]Weight{
 			{Timestamp: 4, Value: 4},
@@ -83,12 +83,53 @@ func (r *StorageSQLiteTestSuite) TestGetWeightList() {
 	})
 
 	r.Run("get limited list", func() {
-		lst, err := r.stg.GetWeightList(context.TODO(), 1, 2)
+		lst, err := r.stg.GetWeightList(context.TODO(), 1, 2, 3)
 		r.NoError(err)
 		r.Equal([]Weight{
 			{Timestamp: 3, Value: 3},
 			{Timestamp: 2, Value: 2},
 		}, lst)
+	})
+}
+
+func (r *StorageSQLiteTestSuite) TestDeleteAndClearWeight() {
+	r.Run("add data", func() {
+		r.NoError(r.stg.CreateWeight(context.TODO(), 1, &Weight{Timestamp: 1, Value: 1}))
+		r.NoError(r.stg.CreateWeight(context.TODO(), 1, &Weight{Timestamp: 2, Value: 2}))
+		r.NoError(r.stg.CreateWeight(context.TODO(), 1, &Weight{Timestamp: 3, Value: 3}))
+
+		r.NoError(r.stg.CreateWeight(context.TODO(), 2, &Weight{Timestamp: 4, Value: 4}))
+	})
+
+	r.Run("delete with incorrect user", func() {
+		r.NoError(r.stg.DeleteWeight(context.TODO(), 2, 2))
+
+		// Data not changed
+		lst, err := r.stg.GetWeightList(context.TODO(), 1, 1, 3)
+		r.NoError(err)
+		r.Equal([]Weight{
+			{Timestamp: 3, Value: 3},
+			{Timestamp: 2, Value: 2},
+			{Timestamp: 1, Value: 1},
+		}, lst)
+
+		lst, err = r.stg.GetWeightList(context.TODO(), 2, 4, 4)
+		r.NoError(err)
+		r.Equal([]Weight{
+			{Timestamp: 4, Value: 4},
+		}, lst)
+	})
+
+	r.Run("delete weight for user", func() {
+		r.NoError(r.stg.DeleteWeight(context.TODO(), 2, 4))
+		_, err := r.stg.GetWeightList(context.TODO(), 2, 4, 4)
+		r.ErrorIs(err, ErrWeightEmptyList)
+	})
+
+	r.Run("clear weight for user", func() {
+		r.NoError(r.stg.ClearWeight(context.TODO(), 1))
+		_, err := r.stg.GetWeightList(context.TODO(), 1, 0, 10)
+		r.ErrorIs(err, ErrWeightEmptyList)
 	})
 }
 

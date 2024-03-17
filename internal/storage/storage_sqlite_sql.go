@@ -37,14 +37,19 @@ const (
 	_sqlWeightList = `
 	SELECT timestamp, value
 	FROM weight
-	WHERE userid = $1
+	WHERE userid = $1 AND 
+	    timestamp >= $2 AND
+		timestamp <= $3
 	ORDER BY timestamp DESC
 	`
-	_sqlWeightListLimited = `
-	SELECT timestamp, value
+	_sqlDeleteWeight = `
+	DELETE
+	FROM weight
+	WHERE userid = $1 AND timestamp = $2
+	`
+	_sqlClearWeight = `
+	DELETE
 	FROM weight
 	WHERE userid = $1
-	ORDER BY timestamp DESC
-	LIMIT $2
 	`
 )

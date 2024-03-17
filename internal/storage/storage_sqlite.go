@@ -43,16 +43,8 @@ func NewStorageSQLite(dbFilePath string, logger *zap.Logger) (*StorageSQLite, er
 // Weight
 //
 
-func (r *StorageSQLite) GetWeightList(ctx context.Context, userID int64, limit int) ([]Weight, error) {
-	var rows *sql.Rows
-	var err error
-
-	if limit == -1 {
-		rows, err = r.db.QueryContext(ctx, _sqlWeightList, userID)
-	} else {
-		rows, err = r.db.QueryContext(ctx, _sqlWeightListLimited, userID, limit)
-	}
-
+func (r *StorageSQLite) GetWeightList(ctx context.Context, userID int64, from, to int64) ([]Weight, error) {
+	rows, err := r.db.QueryContext(ctx, _sqlWeightList, userID, from, to)
 	if err != nil {
 		return nil, err
 	}
@@ -113,6 +105,16 @@ func (r *StorageSQLite) CreateWeight(ctx context.Context, userID int64, weight *
 	}
 
 	return nil
+}
+
+func (r *StorageSQLite) DeleteWeight(ctx context.Context, userID, timestamp int64) error {
+	_, err := r.db.ExecContext(ctx, _sqlDeleteWeight, userID, timestamp)
+	return err
+}
+
+func (r *StorageSQLite) ClearWeight(ctx context.Context, userID int64) error {
+	_, err := r.db.ExecContext(ctx, _sqlClearWeight, userID)
+	return err
 }
 
 //
