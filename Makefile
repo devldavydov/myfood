@@ -26,10 +26,7 @@ build_server:
 	-o ../../bin/myfoodserver .	 
 
 .PHONY: test
-test: test_units
-
-.PHONY: test_units
-test_units: 
+test:
 	@echo "\n### $@"
 	go test ./... -v --count 1
 

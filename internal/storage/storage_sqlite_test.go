@@ -54,7 +54,7 @@ func (r *StorageSQLiteTestSuite) TestCreateAndGetWeight() {
 
 func (r *StorageSQLiteTestSuite) TestGetWeightList() {
 	r.Run("empty list", func() {
-		_, err := r.stg.GetWeightList(context.Background(), 1, -1)
+		_, err := r.stg.GetWeightList(context.TODO(), 1, -1)
 		r.ErrorIs(err, ErrWeightEmptyList)
 	})
 
@@ -67,7 +67,7 @@ func (r *StorageSQLiteTestSuite) TestGetWeightList() {
 	})
 
 	r.Run("get list for different users", func() {
-		lst, err := r.stg.GetWeightList(context.Background(), 1, -1)
+		lst, err := r.stg.GetWeightList(context.TODO(), 1, -1)
 		r.NoError(err)
 		r.Equal([]Weight{
 			{Timestamp: 3, Value: 3},
@@ -75,7 +75,7 @@ func (r *StorageSQLiteTestSuite) TestGetWeightList() {
 			{Timestamp: 1, Value: 1},
 		}, lst)
 
-		lst, err = r.stg.GetWeightList(context.Background(), 2, -1)
+		lst, err = r.stg.GetWeightList(context.TODO(), 2, -1)
 		r.NoError(err)
 		r.Equal([]Weight{
 			{Timestamp: 4, Value: 4},
@@ -83,7 +83,7 @@ func (r *StorageSQLiteTestSuite) TestGetWeightList() {
 	})
 
 	r.Run("get limited list", func() {
-		lst, err := r.stg.GetWeightList(context.Background(), 1, 2)
+		lst, err := r.stg.GetWeightList(context.TODO(), 1, 2)
 		r.NoError(err)
 		r.Equal([]Weight{
 			{Timestamp: 3, Value: 3},
