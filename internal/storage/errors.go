@@ -10,5 +10,6 @@ var (
 	// Weight
 	ErrWeightNotFound      = errors.New("weight not found")
 	ErrWeightAlreadyExists = errors.New("weight already exists")
-	ErrInvalidWeight       = errors.New("invalid weight")
+	ErrWeightInvalid       = errors.New("invalid weight")
+	ErrWeightEmptyList     = errors.New("empty weight list")
 )

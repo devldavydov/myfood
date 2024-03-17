@@ -43,6 +43,43 @@ func NewStorageSQLite(dbFilePath string, logger *zap.Logger) (*StorageSQLite, er
 // Weight
 //
 
+func (r *StorageSQLite) GetWeightList(ctx context.Context, userID int64, limit int) ([]Weight, error) {
+	var rows *sql.Rows
+	var err error
+
+	if limit == -1 {
+		rows, err = r.db.QueryContext(ctx, _sqlWeightList, userID)
+	} else {
+		rows, err = r.db.QueryContext(ctx, _sqlWeightListLimited, userID, limit)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var list []Weight
+	for rows.Next() {
+		var w Weight
+		err = rows.Scan(&w.Timestamp, &w.Value)
+		if err != nil {
+			return nil, err
+		}
+
+		list = append(list, w)
+	}
+
+	if len(list) == 0 {
+		return nil, ErrWeightEmptyList
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return list, nil
+}
+
 func (r *StorageSQLite) GetWeight(ctx context.Context, userID int64, timestamp int64) (*Weight, error) {
 	var w Weight
 	err := r.db.QueryRowContext(ctx, _sqlFindWeight, userID, timestamp).Scan(&w.Timestamp, &w.Value)
@@ -58,7 +95,7 @@ func (r *StorageSQLite) GetWeight(ctx context.Context, userID int64, timestamp i
 
 func (r *StorageSQLite) CreateWeight(ctx context.Context, userID int64, weight *Weight) error {
 	if !weight.Validate() {
-		return ErrInvalidWeight
+		return ErrWeightInvalid
 	}
 
 	_, err := r.db.ExecContext(ctx, _sqlCreateWeight, userID, weight.Timestamp, weight.Value)

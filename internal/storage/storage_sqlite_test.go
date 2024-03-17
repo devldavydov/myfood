@@ -23,10 +23,10 @@ type StorageSQLiteTestSuite struct {
 func (r *StorageSQLiteTestSuite) TestCreateAndGetWeight() {
 	r.Run("create invalid weight", func() {
 		w := &Weight{Timestamp: -1, Value: 123}
-		r.ErrorIs(r.stg.CreateWeight(context.TODO(), 1, w), ErrInvalidWeight)
+		r.ErrorIs(r.stg.CreateWeight(context.TODO(), 1, w), ErrWeightInvalid)
 
 		w = &Weight{Timestamp: 0, Value: -1}
-		r.ErrorIs(r.stg.CreateWeight(context.TODO(), 1, w), ErrInvalidWeight)
+		r.ErrorIs(r.stg.CreateWeight(context.TODO(), 1, w), ErrWeightInvalid)
 	})
 
 	r.Run("create valid weight", func() {
@@ -49,6 +49,46 @@ func (r *StorageSQLiteTestSuite) TestCreateAndGetWeight() {
 	r.Run("get not existing weight", func() {
 		_, err := r.stg.GetWeight(context.TODO(), 111, 111)
 		r.ErrorIs(err, ErrWeightNotFound)
+	})
+}
+
+func (r *StorageSQLiteTestSuite) TestGetWeightList() {
+	r.Run("empty list", func() {
+		_, err := r.stg.GetWeightList(context.Background(), 1, -1)
+		r.ErrorIs(err, ErrWeightEmptyList)
+	})
+
+	r.Run("add data", func() {
+		r.NoError(r.stg.CreateWeight(context.TODO(), 1, &Weight{Timestamp: 1, Value: 1}))
+		r.NoError(r.stg.CreateWeight(context.TODO(), 1, &Weight{Timestamp: 2, Value: 2}))
+		r.NoError(r.stg.CreateWeight(context.TODO(), 1, &Weight{Timestamp: 3, Value: 3}))
+
+		r.NoError(r.stg.CreateWeight(context.TODO(), 2, &Weight{Timestamp: 4, Value: 4}))
+	})
+
+	r.Run("get list for different users", func() {
+		lst, err := r.stg.GetWeightList(context.Background(), 1, -1)
+		r.NoError(err)
+		r.Equal([]Weight{
+			{Timestamp: 3, Value: 3},
+			{Timestamp: 2, Value: 2},
+			{Timestamp: 1, Value: 1},
+		}, lst)
+
+		lst, err = r.stg.GetWeightList(context.Background(), 2, -1)
+		r.NoError(err)
+		r.Equal([]Weight{
+			{Timestamp: 4, Value: 4},
+		}, lst)
+	})
+
+	r.Run("get limited list", func() {
+		lst, err := r.stg.GetWeightList(context.Background(), 1, 2)
+		r.NoError(err)
+		r.Equal([]Weight{
+			{Timestamp: 3, Value: 3},
+			{Timestamp: 2, Value: 2},
+		}, lst)
 	})
 }
 

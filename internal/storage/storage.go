@@ -15,7 +15,7 @@ type Storage interface {
 	ClearFood(ctx context.Context, userID int64) error
 
 	// Weight
-	GetWeightList(ctx context.Context, userID int64) ([]Weight, error)
+	GetWeightList(ctx context.Context, userID int64, limit int) ([]Weight, error)
 	GetWeight(ctx context.Context, userID int64, timestamp int64) (*Weight, error)
 
 	CreateWeight(ctx context.Context, userID int64, weight *Weight) error

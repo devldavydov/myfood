@@ -34,4 +34,17 @@ const (
 	FROM weight
 	WHERE userid = $1 and timestamp = $2
 	`
+	_sqlWeightList = `
+	SELECT timestamp, value
+	FROM weight
+	WHERE userid = $1
+	ORDER BY timestamp DESC
+	`
+	_sqlWeightListLimited = `
+	SELECT timestamp, value
+	FROM weight
+	WHERE userid = $1
+	ORDER BY timestamp DESC
+	LIMIT $2
+	`
 )
