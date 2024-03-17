@@ -52,4 +52,14 @@ const (
 	FROM weight
 	WHERE userid = $1
 	`
+	_sqlUpdateWeight = `
+	UPDATE weight
+	SET value = $1
+	WHERE userid = $2 AND timestamp = $3
+	`
+	_sqlLockWeight = `
+	SELECT timestamp
+	FROM weight
+	WHERE userid = $1 AND timestamp = $2
+	`
 )

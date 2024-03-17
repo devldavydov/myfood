@@ -133,6 +133,32 @@ func (r *StorageSQLiteTestSuite) TestDeleteAndClearWeight() {
 	})
 }
 
+func (r *StorageSQLiteTestSuite) TestUpdateWeight() {
+	r.Run("add data", func() {
+		r.NoError(r.stg.CreateWeight(context.TODO(), 1, &Weight{Timestamp: 1, Value: 1}))
+	})
+
+	r.Run("update not existing", func() {
+		r.ErrorIs(
+			r.stg.UpdateWeight(context.TODO(), 1, &Weight{Timestamp: 2, Value: 2}),
+			ErrWeightNotFound,
+		)
+		r.ErrorIs(
+			r.stg.UpdateWeight(context.TODO(), 2, &Weight{Timestamp: 1, Value: 2}),
+			ErrWeightNotFound,
+		)
+	})
+
+	r.Run("update existing", func() {
+		r.NoError(r.stg.UpdateWeight(context.TODO(), 1, &Weight{Timestamp: 1, Value: 2}))
+
+		w, err := r.stg.GetWeight(context.TODO(), 1, 1)
+		r.NoError(err)
+		r.Equal(int64(1), w.Timestamp)
+		r.Equal(float64(2), w.Value)
+	})
+}
+
 //
 // Suite setup
 //

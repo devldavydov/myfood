@@ -107,6 +107,32 @@ func (r *StorageSQLite) CreateWeight(ctx context.Context, userID int64, weight *
 	return nil
 }
 
+func (r *StorageSQLite) UpdateWeight(ctx context.Context, userID int64, weight *Weight) error {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Lock
+	var ts int64
+	err = tx.QueryRowContext(ctx, _sqlLockWeight, userID, weight.Timestamp).Scan(&ts)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		return ErrWeightNotFound
+	case err != nil:
+		return err
+	}
+
+	// Update
+	_, err = tx.ExecContext(ctx, _sqlUpdateWeight, weight.Value, userID, weight.Timestamp)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
 func (r *StorageSQLite) DeleteWeight(ctx context.Context, userID, timestamp int64) error {
 	_, err := r.db.ExecContext(ctx, _sqlDeleteWeight, userID, timestamp)
 	return err
