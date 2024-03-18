@@ -9,7 +9,9 @@ import (
 	"os/signal"
 	"syscall"
 
+	_log "github.com/devldavydov/myfood/internal/common/log"
 	bot "github.com/devldavydov/myfood/internal/myfoodbot"
+	"go.uber.org/zap"
 )
 
 var (
@@ -29,12 +31,18 @@ func run() error {
 		return fmt.Errorf("failed to load configuration settings: %w", err)
 	}
 
+	logger, err := _log.NewLogger(config.LogLevel)
+	if err != nil {
+		return fmt.Errorf("failed to create logger: %w", err)
+	}
+	logger.Info("Started MyFoodBot", zap.String("buildDate", buildDate), zap.String("buildCommit", buildCommit))
+
 	serviceSettings, err := ServiceSettingsAdapt(config, buildCommit)
 	if err != nil {
 		return fmt.Errorf("failed to create bot service settings: %w", err)
 	}
 
-	service, err := bot.NewService(*serviceSettings)
+	service, err := bot.NewService(*serviceSettings, logger)
 	if err != nil {
 		return fmt.Errorf("failed to create bot service: %w", err)
 	}

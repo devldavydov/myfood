@@ -35,6 +35,8 @@ func NewStorageSQLite(dbFilePath string, logger *zap.Logger) (*StorageSQLite, er
 	return stg, nil
 }
 
+var _ Storage = (*StorageSQLite)(nil)
+
 //
 // Food
 //

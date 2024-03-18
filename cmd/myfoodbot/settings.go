@@ -12,17 +12,23 @@ import (
 const (
 	_defaultToken       = ""
 	_defaultPollTimeout = 10 * time.Second
+	_defaultDBFilePath  = ""
+	_defaultLogLevel    = "INFO"
 )
 
 type Config struct {
 	Token       string
 	PollTimeOut time.Duration
+	DBFilePath  string
+	LogLevel    string
 }
 
 func LoadConfig(flagSet flag.FlagSet, flags []string) (*Config, error) {
 	config := &Config{}
 
 	flagSet.StringVar(&config.Token, "t", _defaultToken, "Telegram API token (required)")
+	flagSet.StringVar(&config.DBFilePath, "d", _defaultDBFilePath, "DB file path")
+	flagSet.StringVar(&config.LogLevel, "l", _defaultLogLevel, "Log level")
 	flagSet.DurationVar(&config.PollTimeOut, "p", _defaultPollTimeout, "Telegram API poll timeout")
 
 	flagSet.Usage = func() {
@@ -39,9 +45,13 @@ func LoadConfig(flagSet flag.FlagSet, flags []string) (*Config, error) {
 		return nil, fmt.Errorf("invalid token")
 	}
 
+	if config.DBFilePath == _defaultDBFilePath {
+		return nil, fmt.Errorf("invalid token")
+	}
+
 	return config, nil
 }
 
 func ServiceSettingsAdapt(config *Config, buildCommit string) (*bot.ServiceSettings, error) {
-	return bot.NewServiceSettings(config.Token, config.PollTimeOut, buildCommit)
+	return bot.NewServiceSettings(config.Token, config.PollTimeOut, config.DBFilePath, buildCommit)
 }
