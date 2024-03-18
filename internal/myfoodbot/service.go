@@ -47,6 +47,5 @@ func (s *Service) Run(ctx context.Context) error {
 
 func (s *Service) setupRouting(b *tele.Bot) {
 	b.Handle("/start", s.onStart)
-	b.Handle("/help", s.onHelp)
 	b.Handle(tele.OnText, s.onText)
 }

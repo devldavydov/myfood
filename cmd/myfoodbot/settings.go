@@ -46,7 +46,7 @@ func LoadConfig(flagSet flag.FlagSet, flags []string) (*Config, error) {
 	}
 
 	if config.DBFilePath == _defaultDBFilePath {
-		return nil, fmt.Errorf("invalid token")
+		return nil, fmt.Errorf("invalid DB file path")
 	}
 
 	return config, nil

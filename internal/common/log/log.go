@@ -1,6 +1,11 @@
 package log
 
-import "go.uber.org/zap"
+import (
+	"time"
+
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+)
 
 func NewLogger(logLevel string) (*zap.Logger, error) {
 	cfg := zap.NewProductionConfig()
@@ -10,6 +15,7 @@ func NewLogger(logLevel string) (*zap.Logger, error) {
 		return nil, err
 	}
 	cfg.Level = lvl
+	cfg.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout(time.RFC3339)
 
 	return cfg.Build()
 }
