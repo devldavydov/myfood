@@ -6,7 +6,6 @@ import (
 	"errors"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/devldavydov/myfood/internal/storage"
 	"go.uber.org/zap"
@@ -31,7 +30,12 @@ func (r *cmdProcessor) process(c tele.Context, cmd string, userID int64) error {
 	}
 
 	if len(cmdParts) == 0 {
-		r.logger.Error("invalid command", zap.String("command", cmd), zap.Int64("userid", userID))
+		r.logger.Error(
+			"invalid command",
+			zap.String("reason", "empty command"),
+			zap.String("command", cmd),
+			zap.Int64("userid", userID),
+		)
 		return c.Send(msgErrInvalidCommand)
 	}
 
@@ -42,7 +46,12 @@ func (r *cmdProcessor) process(c tele.Context, cmd string, userID int64) error {
 		return r.processWeight(c, cmdParts[1:], userID)
 	}
 
-	r.logger.Error("invalid command", zap.String("command", cmd), zap.Int64("userid", userID))
+	r.logger.Error(
+		"invalid command",
+		zap.String("reason", "unknown command"),
+		zap.String("command", cmd),
+		zap.Int64("userid", userID),
+	)
 	return c.Send(msgErrInvalidCommand)
 }
 
@@ -60,16 +69,28 @@ func (r *cmdProcessor) helpCommand(c tele.Context) error {
 
 func (r *cmdProcessor) processWeight(c tele.Context, cmdParts []string, userID int64) error {
 	if len(cmdParts) == 0 {
-		r.logger.Error("invalid weight command", zap.Strings("command", cmdParts), zap.Int64("userid", userID))
+		r.logger.Error(
+			"invalid weight command",
+			zap.String("reason", "len parts"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+		)
 		return c.Send(msgErrInvalidCommand)
 	}
 
 	switch cmdParts[0] {
 	case "add":
 		return r.weightAddCommand(c, cmdParts[1:], userID)
+	case "del":
+		return r.weightDelCommand(c, cmdParts[1:], userID)
 	}
 
-	r.logger.Error("invalid weight command", zap.Strings("command", cmdParts), zap.Int64("userid", userID))
+	r.logger.Error(
+		"invalid weight command",
+		zap.String("reason", "unknown command"),
+		zap.Strings("command", cmdParts),
+		zap.Int64("userid", userID),
+	)
 	return c.Send(msgErrInvalidCommand)
 }
 
@@ -84,26 +105,17 @@ func (r *cmdProcessor) weightAddCommand(c tele.Context, cmdParts []string, userI
 		return c.Send(msgErrInvalidCommand)
 	}
 
-	var ts int64
-	var val float64
-
 	// Parse timestamp
-	if cmdParts[0] == "" {
-		t := time.Now()
-		ts = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location()).Unix()
-	} else {
-		t, err := time.Parse("02.01.2006", cmdParts[0])
-		if err != nil {
-			r.logger.Error(
-				"invalid weight add command",
-				zap.String("reason", "ts format"),
-				zap.Strings("command", cmdParts),
-				zap.Int64("userid", userID),
-				zap.Error(err),
-			)
-			return c.Send(msgErrInvalidCommand)
-		}
-		ts = t.Unix()
+	ts, err := parseTimestamp(cmdParts[0])
+	if err != nil {
+		r.logger.Error(
+			"invalid weight add command",
+			zap.String("reason", "ts format"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
+		return c.Send(msgErrInvalidCommand)
 	}
 
 	// Parse val
@@ -131,6 +143,44 @@ func (r *cmdProcessor) weightAddCommand(c tele.Context, cmdParts []string, userI
 		if errors.Is(err, storage.ErrWeightAlreadyExists) {
 			return c.Send(msgErrWeightAlreadyExists)
 		}
+
+		return c.Send(msgErrInternal)
+	}
+
+	return c.Send(msgOK)
+}
+
+func (r *cmdProcessor) weightDelCommand(c tele.Context, cmdParts []string, userID int64) error {
+	if len(cmdParts) != 1 {
+		r.logger.Error(
+			"invalid weight del command",
+			zap.String("reason", "len parts"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+		)
+		return c.Send(msgErrInvalidCommand)
+	}
+
+	// Parse timestamp
+	ts, err := parseTimestamp(cmdParts[0])
+	if err != nil {
+		r.logger.Error(
+			"invalid weight del command",
+			zap.String("reason", "ts format"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+		)
+		return c.Send(msgErrInvalidCommand)
+	}
+
+	// Delete from DB
+	if err := r.stg.DeleteWeight(context.Background(), userID, ts); err != nil {
+		r.logger.Error(
+			"weight del command DB error",
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
 
 		return c.Send(msgErrInternal)
 	}
