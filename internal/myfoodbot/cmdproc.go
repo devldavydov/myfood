@@ -7,10 +7,15 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/devldavydov/myfood/internal/storage"
 	"go.uber.org/zap"
 	tele "gopkg.in/telebot.v3"
+)
+
+var (
+	_stgOperationTimeout = 10 * time.Second
 )
 
 type cmdProcessor struct {
@@ -82,6 +87,8 @@ func (r *cmdProcessor) processWeight(c tele.Context, cmdParts []string, userID i
 	switch cmdParts[0] {
 	case "add":
 		return r.weightAddCommand(c, cmdParts[1:], userID)
+	case "upd":
+		return r.weightUpdCommand(c, cmdParts[1:], userID)
 	case "del":
 		return r.weightDelCommand(c, cmdParts[1:], userID)
 	case "list":
@@ -135,7 +142,14 @@ func (r *cmdProcessor) weightAddCommand(c tele.Context, cmdParts []string, userI
 	}
 
 	// Save in DB
-	if err := r.stg.CreateWeight(context.Background(), userID, &storage.Weight{Timestamp: ts, Value: val}); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout)
+	defer cancel()
+
+	if err := r.stg.CreateWeight(ctx, userID, &storage.Weight{Timestamp: ts, Value: val}); err != nil {
+		if errors.Is(err, storage.ErrWeightAlreadyExists) {
+			return c.Send(msgErrWeightAlreadyExists)
+		}
+
 		r.logger.Error(
 			"weight add command DB error",
 			zap.Strings("command", cmdParts),
@@ -143,9 +157,64 @@ func (r *cmdProcessor) weightAddCommand(c tele.Context, cmdParts []string, userI
 			zap.Error(err),
 		)
 
-		if errors.Is(err, storage.ErrWeightAlreadyExists) {
-			return c.Send(msgErrWeightAlreadyExists)
+		return c.Send(msgErrInternal)
+	}
+
+	return c.Send(msgOK)
+}
+
+func (r *cmdProcessor) weightUpdCommand(c tele.Context, cmdParts []string, userID int64) error {
+	if len(cmdParts) != 2 {
+		r.logger.Error(
+			"invalid weight upd command",
+			zap.String("reason", "len parts"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+		)
+		return c.Send(msgErrInvalidCommand)
+	}
+
+	// Parse timestamp
+	ts, err := parseTimestamp(cmdParts[0])
+	if err != nil {
+		r.logger.Error(
+			"invalid weight upd command",
+			zap.String("reason", "ts format"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
+		return c.Send(msgErrInvalidCommand)
+	}
+
+	// Parse val
+	val, err := strconv.ParseFloat(cmdParts[1], 64)
+	if err != nil {
+		r.logger.Error(
+			"invalid weight upd command",
+			zap.String("reason", "val format"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
+		return c.Send(msgErrInvalidCommand)
+	}
+
+	// Save in DB
+	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout)
+	defer cancel()
+
+	if err := r.stg.UpdateWeight(ctx, userID, &storage.Weight{Timestamp: ts, Value: val}); err != nil {
+		if errors.Is(err, storage.ErrWeightNotFound) {
+			return c.Send(msgErrWeightNotFound)
 		}
+
+		r.logger.Error(
+			"weight upd command DB error",
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
 
 		return c.Send(msgErrInternal)
 	}
@@ -177,7 +246,10 @@ func (r *cmdProcessor) weightDelCommand(c tele.Context, cmdParts []string, userI
 	}
 
 	// Delete from DB
-	if err := r.stg.DeleteWeight(context.Background(), userID, ts); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout)
+	defer cancel()
+
+	if err := r.stg.DeleteWeight(ctx, userID, ts); err != nil {
 		r.logger.Error(
 			"weight del command DB error",
 			zap.Strings("command", cmdParts),
@@ -226,7 +298,10 @@ func (r *cmdProcessor) weightListCommand(c tele.Context, cmdParts []string, user
 	}
 
 	// List from DB
-	lst, err := r.stg.GetWeightList(context.Background(), userID, tsFrom, tsTo)
+	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout)
+	defer cancel()
+
+	lst, err := r.stg.GetWeightList(ctx, userID, tsFrom, tsTo)
 	if err != nil {
 		if errors.Is(err, storage.ErrWeightEmptyList) {
 			return c.Send(msgErrWeightEmptyList)

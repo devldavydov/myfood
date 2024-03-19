@@ -40,15 +40,11 @@ func (r *StorageSQLiteTestSuite) TestCreateAndGetWeight() {
 	})
 
 	r.Run("get weight", func() {
-		w, err := r.stg.GetWeight(context.TODO(), 1, 123)
+		w, err := r.stg.GetWeightList(context.TODO(), 1, 123, 123)
 		r.NoError(err)
-		r.Equal(int64(123), w.Timestamp)
-		r.Equal(float64(456), w.Value)
-	})
-
-	r.Run("get not existing weight", func() {
-		_, err := r.stg.GetWeight(context.TODO(), 111, 111)
-		r.ErrorIs(err, ErrWeightNotFound)
+		r.Equal(1, len(w))
+		r.Equal(int64(123), w[0].Timestamp)
+		r.Equal(float64(456), w[0].Value)
 	})
 }
 
@@ -92,7 +88,7 @@ func (r *StorageSQLiteTestSuite) TestGetWeightList() {
 	})
 }
 
-func (r *StorageSQLiteTestSuite) TestDeleteAndClearWeight() {
+func (r *StorageSQLiteTestSuite) TestDeleteWeight() {
 	r.Run("add data", func() {
 		r.NoError(r.stg.CreateWeight(context.TODO(), 1, &Weight{Timestamp: 1, Value: 1}))
 		r.NoError(r.stg.CreateWeight(context.TODO(), 1, &Weight{Timestamp: 2, Value: 2}))
@@ -125,12 +121,6 @@ func (r *StorageSQLiteTestSuite) TestDeleteAndClearWeight() {
 		_, err := r.stg.GetWeightList(context.TODO(), 2, 4, 4)
 		r.ErrorIs(err, ErrWeightEmptyList)
 	})
-
-	r.Run("clear weight for user", func() {
-		r.NoError(r.stg.ClearWeight(context.TODO(), 1))
-		_, err := r.stg.GetWeightList(context.TODO(), 1, 0, 10)
-		r.ErrorIs(err, ErrWeightEmptyList)
-	})
 }
 
 func (r *StorageSQLiteTestSuite) TestUpdateWeight() {
@@ -152,10 +142,11 @@ func (r *StorageSQLiteTestSuite) TestUpdateWeight() {
 	r.Run("update existing", func() {
 		r.NoError(r.stg.UpdateWeight(context.TODO(), 1, &Weight{Timestamp: 1, Value: 2}))
 
-		w, err := r.stg.GetWeight(context.TODO(), 1, 1)
+		w, err := r.stg.GetWeightList(context.TODO(), 1, 1, 1)
 		r.NoError(err)
-		r.Equal(int64(1), w.Timestamp)
-		r.Equal(float64(2), w.Value)
+		r.Equal(1, len(w))
+		r.Equal(int64(1), w[0].Timestamp)
+		r.Equal(float64(2), w[0].Value)
 	})
 }
 

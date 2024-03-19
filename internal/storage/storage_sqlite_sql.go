@@ -29,11 +29,6 @@ const (
 	INSERT INTO weight(userid, timestamp, value)
 	VALUES($1, $2, $3)
 	`
-	_sqlFindWeight = `
-	SELECT timestamp, value
-	FROM weight
-	WHERE userid = $1 and timestamp = $2
-	`
 	_sqlWeightList = `
 	SELECT timestamp, value
 	FROM weight
@@ -46,11 +41,6 @@ const (
 	DELETE
 	FROM weight
 	WHERE userid = $1 AND timestamp = $2
-	`
-	_sqlClearWeight = `
-	DELETE
-	FROM weight
-	WHERE userid = $1
 	`
 	_sqlUpdateWeight = `
 	UPDATE weight
