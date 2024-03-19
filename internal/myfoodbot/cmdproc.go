@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/csv"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -83,6 +84,8 @@ func (r *cmdProcessor) processWeight(c tele.Context, cmdParts []string, userID i
 		return r.weightAddCommand(c, cmdParts[1:], userID)
 	case "del":
 		return r.weightDelCommand(c, cmdParts[1:], userID)
+	case "list":
+		return r.weightListCommand(c, cmdParts[1:], userID)
 	}
 
 	r.logger.Error(
@@ -186,4 +189,63 @@ func (r *cmdProcessor) weightDelCommand(c tele.Context, cmdParts []string, userI
 	}
 
 	return c.Send(msgOK)
+}
+
+func (r *cmdProcessor) weightListCommand(c tele.Context, cmdParts []string, userID int64) error {
+	if len(cmdParts) != 2 {
+		r.logger.Error(
+			"invalid weight list command",
+			zap.String("reason", "len parts"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+		)
+		return c.Send(msgErrInvalidCommand)
+	}
+
+	// Parse timestamp
+	tsFrom, err := parseTimestamp(cmdParts[0])
+	if err != nil {
+		r.logger.Error(
+			"invalid weight list command",
+			zap.String("reason", "ts from format"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+		)
+		return c.Send(msgErrInvalidCommand)
+	}
+
+	tsTo, err := parseTimestamp(cmdParts[1])
+	if err != nil {
+		r.logger.Error(
+			"invalid weight list command",
+			zap.String("reason", "ts to format"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+		)
+		return c.Send(msgErrInvalidCommand)
+	}
+
+	// List from DB
+	lst, err := r.stg.GetWeightList(context.Background(), userID, tsFrom, tsTo)
+	if err != nil {
+		if errors.Is(err, storage.ErrWeightEmptyList) {
+			return c.Send(msgErrWeightEmptyList)
+		}
+
+		r.logger.Error(
+			"weight list command DB error",
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
+
+		return c.Send(msgErrInternal)
+	}
+
+	var sb strings.Builder
+	for _, w := range lst {
+		sb.WriteString(fmt.Sprintf("%s: %4.1f\n", formatTimestamp(w.Timestamp), w.Value))
+	}
+
+	return c.Send(sb.String())
 }

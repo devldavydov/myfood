@@ -5,6 +5,7 @@ const (
 	msgErrInvalidCommand = "Invalid command"
 
 	msgErrWeightAlreadyExists = "Weight already exists"
+	msgErrWeightEmptyList     = "Weight empty list"
 
 	msgOK = "OK"
 )
