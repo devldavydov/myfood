@@ -1,6 +1,6 @@
 //go:generate go run ./gen/gen.go -in . -out help_generated.go
 
-package help
+package helpdoc
 
 import (
 	"bytes"

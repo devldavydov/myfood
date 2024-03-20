@@ -1,4 +1,4 @@
-package myfoodbot
+package cmdproc
 
 import (
 	"time"
