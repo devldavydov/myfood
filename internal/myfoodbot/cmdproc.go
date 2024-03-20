@@ -1,6 +1,7 @@
 package myfoodbot
 
 import (
+	"bytes"
 	"context"
 	"encoding/csv"
 	"errors"
@@ -12,6 +13,10 @@ import (
 	"github.com/devldavydov/myfood/internal/myfoodbot/help"
 	"github.com/devldavydov/myfood/internal/storage"
 	"go.uber.org/zap"
+	"gonum.org/v1/plot"
+	"gonum.org/v1/plot/plotter"
+	"gonum.org/v1/plot/plotutil"
+	"gonum.org/v1/plot/vg"
 	tele "gopkg.in/telebot.v3"
 )
 
@@ -77,7 +82,11 @@ func (r *cmdProcessor) helpCommand(c tele.Context) error {
 
 		return c.Send(msgErrInternal)
 	}
-	return c.Send(&tele.Document{File: tele.FromReader(docRd)})
+	return c.Send(&tele.Document{
+		File:     tele.FromReader(docRd),
+		MIME:     "text/html",
+		FileName: "help_ru.html",
+	})
 }
 
 //
@@ -104,6 +113,8 @@ func (r *cmdProcessor) processWeight(c tele.Context, cmdParts []string, userID i
 		return r.weightDelCommand(c, cmdParts[1:], userID)
 	case "list":
 		return r.weightListCommand(c, cmdParts[1:], userID)
+	case "graph":
+		return r.weightGraphCommand(c, cmdParts[1:], userID)
 	}
 
 	r.logger.Error(
@@ -315,7 +326,7 @@ func (r *cmdProcessor) weightListCommand(c tele.Context, cmdParts []string, user
 	lst, err := r.stg.GetWeightList(ctx, userID, tsFrom, tsTo)
 	if err != nil {
 		if errors.Is(err, storage.ErrWeightEmptyList) {
-			return c.Send(msgErrWeightEmptyList)
+			return c.Send(msgErrEmptyList)
 		}
 
 		r.logger.Error(
@@ -334,4 +345,118 @@ func (r *cmdProcessor) weightListCommand(c tele.Context, cmdParts []string, user
 	}
 
 	return c.Send(sb.String())
+}
+
+func (r *cmdProcessor) weightGraphCommand(c tele.Context, cmdParts []string, userID int64) error {
+	if len(cmdParts) != 2 {
+		r.logger.Error(
+			"invalid weight graph command",
+			zap.String("reason", "len parts"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+		)
+		return c.Send(msgErrInvalidCommand)
+	}
+
+	// Parse timestamp
+	tsFrom, err := parseTimestamp(cmdParts[0])
+	if err != nil {
+		r.logger.Error(
+			"invalid weight graph command",
+			zap.String("reason", "ts from format"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+		)
+		return c.Send(msgErrInvalidCommand)
+	}
+
+	tsTo, err := parseTimestamp(cmdParts[1])
+	if err != nil {
+		r.logger.Error(
+			"invalid weight graph command",
+			zap.String("reason", "ts to format"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+		)
+		return c.Send(msgErrInvalidCommand)
+	}
+
+	// List from DB
+	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout)
+	defer cancel()
+
+	lst, err := r.stg.GetWeightList(ctx, userID, tsFrom, tsTo)
+	if err != nil {
+		if errors.Is(err, storage.ErrWeightEmptyList) {
+			return c.Send(msgErrEmptyList)
+		}
+
+		r.logger.Error(
+			"weight graph command DB error",
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
+
+		return c.Send(msgErrInternal)
+	}
+
+	// Plot graph
+	p := plot.New()
+	p.Title.Text = "График Веса"
+	p.Y.Label.Text = "Вес"
+
+	vals := make(plotter.Values, len(lst))
+	nominals := make([]string, len(lst))
+	for i := range lst {
+		vals[i] = lst[i].Value
+		if i == 0 || i == len(lst)-1 {
+			nominals[i] = formatTimestamp(lst[i].Timestamp)
+			continue
+		}
+		nominals[i] = ""
+	}
+	p.NominalX(nominals...)
+
+	bars, err := plotter.NewBarChart(vals, vg.Points(20))
+	if err != nil {
+		r.logger.Error(
+			"weight graph command plot bars",
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
+
+		return c.Send(msgErrInternal)
+	}
+	bars.LineStyle.Width = vg.Length(0)
+	bars.Color = plotutil.Color(0)
+	p.Add(bars)
+
+	buf := bytes.NewBuffer([]byte{})
+	wr, err := p.WriterTo(vg.Points(640), vg.Points(480), "png")
+	if err != nil {
+		r.logger.Error(
+			"weight graph command plot create writer error",
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
+
+		return c.Send(msgErrInternal)
+	}
+
+	_, err = wr.WriteTo(buf)
+	if err != nil {
+		r.logger.Error(
+			"weight graph command plot writer error",
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
+
+		return c.Send(msgErrInternal)
+	}
+
+	return c.Send(&tele.Photo{File: tele.FromReader(buf)})
 }

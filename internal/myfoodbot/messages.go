@@ -1,12 +1,12 @@
 package myfoodbot
 
 const (
-	msgErrInternal       = "Internal command"
-	msgErrInvalidCommand = "Invalid command"
+	msgErrInternal       = "Внутренняя ошибка"
+	msgErrInvalidCommand = "Неправильная команда"
+	msgErrEmptyList      = "Пустой результат"
 
-	msgErrWeightAlreadyExists = "Weight already exists"
-	msgErrWeightNotFound      = "Weight not found"
-	msgErrWeightEmptyList     = "Weight empty list"
+	msgErrWeightAlreadyExists = "Вес уже существует в базе данных"
+	msgErrWeightNotFound      = "Вес не найден в базе данных"
 
 	msgOK = "OK"
 )

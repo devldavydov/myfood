@@ -9,7 +9,7 @@ import (
 func (s *Service) onStart(c tele.Context) error {
 	return c.Send(
 		fmt.Sprintf(
-			"Hello, %s!\nWelcome to MyFoodBot!\nBuild: %s\n\nEnter 'h' for help",
+			"Привет, %s!\nДобро пожаловать в MyFoodBot!\nСборка: %s\nОтправь 'h' для помощи",
 			c.Sender().Username,
 			s.settings.BuildCommit,
 		),
