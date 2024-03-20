@@ -35,7 +35,7 @@ const (
 	WHERE userid = $1 AND 
 	    timestamp >= $2 AND
 		timestamp <= $3
-	ORDER BY timestamp DESC
+	ORDER BY timestamp ASC
 	`
 	_sqlDeleteWeight = `
 	DELETE

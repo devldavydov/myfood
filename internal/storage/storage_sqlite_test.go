@@ -66,9 +66,9 @@ func (r *StorageSQLiteTestSuite) TestGetWeightList() {
 		lst, err := r.stg.GetWeightList(context.TODO(), 1, 1, 3)
 		r.NoError(err)
 		r.Equal([]Weight{
-			{Timestamp: 3, Value: 3},
-			{Timestamp: 2, Value: 2},
 			{Timestamp: 1, Value: 1},
+			{Timestamp: 2, Value: 2},
+			{Timestamp: 3, Value: 3},
 		}, lst)
 
 		lst, err = r.stg.GetWeightList(context.TODO(), 2, 4, 4)
@@ -82,8 +82,8 @@ func (r *StorageSQLiteTestSuite) TestGetWeightList() {
 		lst, err := r.stg.GetWeightList(context.TODO(), 1, 2, 3)
 		r.NoError(err)
 		r.Equal([]Weight{
-			{Timestamp: 3, Value: 3},
 			{Timestamp: 2, Value: 2},
+			{Timestamp: 3, Value: 3},
 		}, lst)
 	})
 }
@@ -104,9 +104,9 @@ func (r *StorageSQLiteTestSuite) TestDeleteWeight() {
 		lst, err := r.stg.GetWeightList(context.TODO(), 1, 1, 3)
 		r.NoError(err)
 		r.Equal([]Weight{
-			{Timestamp: 3, Value: 3},
-			{Timestamp: 2, Value: 2},
 			{Timestamp: 1, Value: 1},
+			{Timestamp: 2, Value: 2},
+			{Timestamp: 3, Value: 3},
 		}, lst)
 
 		lst, err = r.stg.GetWeightList(context.TODO(), 2, 4, 4)
