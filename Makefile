@@ -2,7 +2,12 @@ BUILD_DATE := $(shell date +'%d.%m.%Y %H:%M:%S')
 BUILD_COMMIT := $(shell git rev-parse --short HEAD)
 
 .PHONY: all
-all: clean build test
+all: clean generate build test
+
+.PHONY: generate
+generate:
+	@echo "\n### $@"
+	go generate ./...
 
 .PHONY: build
 build: build_bot # build_server

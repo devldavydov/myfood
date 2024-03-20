@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/devldavydov/myfood/internal/myfoodbot/help"
 	"github.com/devldavydov/myfood/internal/storage"
 	"go.uber.org/zap"
 	tele "gopkg.in/telebot.v3"
@@ -66,7 +67,17 @@ func (r *cmdProcessor) process(c tele.Context, cmd string, userID int64) error {
 //
 
 func (r *cmdProcessor) helpCommand(c tele.Context) error {
-	return c.Send("Help! I need somebody Help!")
+	docRd, err := help.GetHelpDocument("help_ru")
+	if err != nil {
+		r.logger.Error(
+			"help command error",
+			zap.Int64("userid", c.Sender().ID),
+			zap.Error(err),
+		)
+
+		return c.Send(msgErrInternal)
+	}
+	return c.Send(&tele.Document{File: tele.FromReader(docRd)})
 }
 
 //
