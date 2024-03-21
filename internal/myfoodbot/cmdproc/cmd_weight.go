@@ -83,24 +83,16 @@ func (r *CmdProcessor) weightAddCommand(c tele.Context, cmdParts []string, userI
 		return c.Send(msgErrInvalidCommand)
 	}
 
-	if val <= 0 {
-		r.logger.Error(
-			"invalid weight add command",
-			zap.String("reason", "val <= 0"),
-			zap.Strings("command", cmdParts),
-			zap.Int64("userid", userID),
-			zap.Error(err),
-		)
-		return c.Send(msgErrInvalidCommand)
-	}
-
 	// Save in DB
 	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout)
 	defer cancel()
 
 	if err := r.stg.CreateWeight(ctx, userID, &storage.Weight{Timestamp: ts, Value: val}); err != nil {
-		if errors.Is(err, storage.ErrWeightAlreadyExists) {
+		switch {
+		case errors.Is(err, storage.ErrWeightAlreadyExists):
 			return c.Send(msgErrWeightAlreadyExists)
+		case errors.Is(err, storage.ErrWeightInvalid):
+			return c.Send(msgErrInvalidCommand)
 		}
 
 		r.logger.Error(
@@ -153,24 +145,16 @@ func (r *CmdProcessor) weightUpdCommand(c tele.Context, cmdParts []string, userI
 		return c.Send(msgErrInvalidCommand)
 	}
 
-	if val <= 0 {
-		r.logger.Error(
-			"invalid weight add command",
-			zap.String("reason", "val <= 0"),
-			zap.Strings("command", cmdParts),
-			zap.Int64("userid", userID),
-			zap.Error(err),
-		)
-		return c.Send(msgErrInvalidCommand)
-	}
-
 	// Save in DB
 	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout)
 	defer cancel()
 
 	if err := r.stg.UpdateWeight(ctx, userID, &storage.Weight{Timestamp: ts, Value: val}); err != nil {
-		if errors.Is(err, storage.ErrWeightNotFound) {
+		switch {
+		case errors.Is(err, storage.ErrWeightNotFound):
 			return c.Send(msgErrWeightNotFound)
+		case errors.Is(err, storage.ErrWeightInvalid):
+			return c.Send(msgErrInvalidCommand)
 		}
 
 		r.logger.Error(

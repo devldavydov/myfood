@@ -97,6 +97,10 @@ func (r *StorageSQLite) CreateWeight(ctx context.Context, userID int64, weight *
 }
 
 func (r *StorageSQLite) UpdateWeight(ctx context.Context, userID int64, weight *Weight) error {
+	if !weight.Validate() {
+		return ErrWeightInvalid
+	}
+
 	tx, err := r.db.Begin()
 	if err != nil {
 		return err
