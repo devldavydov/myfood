@@ -9,6 +9,7 @@
             "program": "${workspaceFolder}/cmd/myfoodbot/",
             "args": [
                 "-t", "BOT_TOKEN",
+                "-d", "${workspaceFolder}/myfood.db"
             ]
         },
     ]

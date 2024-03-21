@@ -2,7 +2,9 @@ package graph
 
 import (
 	"bytes"
+	"fmt"
 	"io"
+	"math"
 
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/plotter"
@@ -15,31 +17,51 @@ type DataPoint struct {
 	Title string
 }
 
-func NewBarChart(title, ytitle string, points []DataPoint) (io.Reader, error) {
+func NewLine(title, xtitle, ytitle string, points []DataPoint) (io.Reader, error) {
 	p := plot.New()
 	p.Title.Text = title
+	p.X.Label.Text = xtitle
 	p.Y.Label.Text = ytitle
 
-	vals := make(plotter.Values, len(points))
+	vals := make(plotter.XYs, len(points))
 	nominals := make([]string, len(points))
+	min := math.MaxFloat64
+	max := float64(0)
+
 	for i := range points {
-		vals[i] = points[i].Value
+		vals[i].Y = points[i].Value
+		vals[i].X = float64(i)
+
 		if i == 0 || i == len(points)-1 {
 			nominals[i] = points[i].Title
-			continue
+		} else {
+			nominals[i] = ""
 		}
-		nominals[i] = ""
+
+		if points[i].Value > max {
+			max = points[i].Value
+		}
+		if points[i].Value < min {
+			min = points[i].Value
+		}
 	}
 	p.NominalX(nominals...)
 
-	bars, err := plotter.NewBarChart(vals, vg.Points(20))
+	ticks := []plot.Tick{
+		{Value: min, Label: fmt.Sprintf("%4.1f", min)},
+		{Value: max, Label: fmt.Sprintf("%4.1f", max)},
+	}
+	p.Y.Tick.Marker = plot.ConstantTicks(ticks)
+
+	// points
+	ln, pts, err := plotter.NewLinePoints(vals)
 	if err != nil {
 		return nil, err
 	}
+	ln.LineStyle.Width = vg.Length(1)
+	ln.Color = plotutil.Color(0)
 
-	bars.LineStyle.Width = vg.Length(0)
-	bars.Color = plotutil.Color(0)
-	p.Add(bars)
+	p.Add(ln, pts)
 
 	buf := bytes.NewBuffer([]byte{})
 	wr, err := p.WriterTo(vg.Points(640), vg.Points(480), "png")

@@ -83,6 +83,17 @@ func (r *CmdProcessor) weightAddCommand(c tele.Context, cmdParts []string, userI
 		return c.Send(msgErrInvalidCommand)
 	}
 
+	if val <= 0 {
+		r.logger.Error(
+			"invalid weight add command",
+			zap.String("reason", "val <= 0"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
+		return c.Send(msgErrInvalidCommand)
+	}
+
 	// Save in DB
 	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout)
 	defer cancel()
@@ -135,6 +146,17 @@ func (r *CmdProcessor) weightUpdCommand(c tele.Context, cmdParts []string, userI
 		r.logger.Error(
 			"invalid weight upd command",
 			zap.String("reason", "val format"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
+		return c.Send(msgErrInvalidCommand)
+	}
+
+	if val <= 0 {
+		r.logger.Error(
+			"invalid weight add command",
+			zap.String("reason", "val <= 0"),
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 			zap.Error(err),
@@ -330,7 +352,7 @@ func (r *CmdProcessor) weightGraphCommand(c tele.Context, cmdParts []string, use
 		})
 	}
 
-	rdr, err := graph.NewBarChart("График Веса", "Вес", points)
+	rdr, err := graph.NewLine("График Веса", "Дата", "Вес", points)
 	if err != nil {
 		r.logger.Error(
 			"weight graph command plot error",

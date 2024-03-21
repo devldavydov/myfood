@@ -1,7 +1,6 @@
 package cmdproc
 
 import (
-	"encoding/csv"
 	"strings"
 	"time"
 
@@ -24,11 +23,9 @@ func NewCmdProcessor(stg storage.Storage, logger *zap.Logger) *CmdProcessor {
 }
 
 func (r *CmdProcessor) Process(c tele.Context, cmd string, userID int64) error {
-	rd := csv.NewReader(strings.NewReader(cmd))
-	cmdParts, err := rd.Read()
-	if err != nil {
-		r.logger.Error("command parse error", zap.String("command", cmd), zap.Int64("userid", userID), zap.Error(err))
-		return c.Send(msgErrInternal)
+	cmdParts := []string{}
+	for _, part := range strings.Split(cmd, ",") {
+		cmdParts = append(cmdParts, strings.Trim(part, " "))
 	}
 
 	if len(cmdParts) == 0 {
