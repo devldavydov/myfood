@@ -12,4 +12,8 @@ var (
 	ErrWeightAlreadyExists = errors.New("weight already exists")
 	ErrWeightInvalid       = errors.New("invalid weight")
 	ErrWeightEmptyList     = errors.New("empty weight list")
+
+	// UserSettings
+	ErrUserSettingsNotFound = errors.New("user settings not found")
+	ErrUserSettingsInvalid  = errors.New("invalid user settings")
 )

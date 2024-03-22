@@ -45,6 +45,8 @@ func (r *CmdProcessor) Process(c tele.Context, cmd string, userID int64) error {
 		return r.processWeight(c, cmdParts[1:], userID)
 	case "cc":
 		return r.calcCalCommand(c, cmdParts[1:])
+	case "us":
+		return r.processUserSettings(c, cmdParts[1:], userID)
 	}
 
 	r.logger.Error(

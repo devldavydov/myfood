@@ -132,6 +132,36 @@ func (r *StorageSQLite) DeleteWeight(ctx context.Context, userID, timestamp int6
 }
 
 //
+// UserSettings
+//
+
+func (r *StorageSQLite) GetUserSettings(ctx context.Context, userID int64) (*UserSettings, error) {
+	var us UserSettings
+	err := r.db.QueryRowContext(ctx, _sqlGetUserSettings, userID).Scan(&us.CalLimit)
+	switch {
+	case err == sql.ErrNoRows:
+		return nil, ErrUserSettingsNotFound
+	case err != nil:
+		return nil, err
+	}
+
+	return &us, nil
+}
+
+func (r *StorageSQLite) SetUserSettings(ctx context.Context, userID int64, settings *UserSettings) error {
+	if !settings.Validate() {
+		return ErrUserSettingsInvalid
+	}
+
+	_, err := r.db.ExecContext(ctx, _sqlSetUserSettings, userID, settings.CalLimit)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+//
 //
 //
 
@@ -149,7 +179,7 @@ func (r *StorageSQLite) init() error {
 	ctx, cancel := context.WithTimeout(context.Background(), _databaseInitTimeout)
 	defer cancel()
 
-	for _, createTbl := range []string{_sqlCreateTableFood, _sqlCreateTableWeight} {
+	for _, createTbl := range []string{_sqlCreateTableFood, _sqlCreateTableWeight, _sqlCreateTableUserSettings} {
 		_, err := r.db.ExecContext(ctx, createTbl)
 		if err != nil {
 			return err

@@ -48,8 +48,8 @@ func NewLine(title, xtitle, ytitle string, points []DataPoint) (io.Reader, error
 	p.NominalX(nominals...)
 
 	ticks := []plot.Tick{
-		{Value: min, Label: fmt.Sprintf("%4.1f", min)},
-		{Value: max, Label: fmt.Sprintf("%4.1f", max)},
+		{Value: min, Label: fmt.Sprintf("%.1f", min)},
+		{Value: max, Label: fmt.Sprintf("%.1f", max)},
 	}
 	p.Y.Tick.Marker = plot.ConstantTicks(ticks)
 

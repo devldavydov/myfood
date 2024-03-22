@@ -19,3 +19,11 @@ type Weight struct {
 func (r *Weight) Validate() bool {
 	return r.Timestamp >= 0 && r.Value > 0
 }
+
+type UserSettings struct {
+	CalLimit float64
+}
+
+func (r *UserSettings) Validate() bool {
+	return r.CalLimit > 0
+}

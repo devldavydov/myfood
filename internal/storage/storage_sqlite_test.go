@@ -151,6 +151,42 @@ func (r *StorageSQLiteTestSuite) TestUpdateWeight() {
 }
 
 //
+// UserSettings
+//
+
+func (r *StorageSQLiteTestSuite) TestUserSettingsCRU() {
+	r.Run("get not exists settings", func() {
+		stgs, err := r.stg.GetUserSettings(context.TODO(), 1)
+		r.Nil(stgs)
+		r.ErrorIs(err, ErrUserSettingsNotFound)
+	})
+
+	r.Run("set invalid settings", func() {
+		r.ErrorIs(r.stg.SetUserSettings(context.TODO(), 1, &UserSettings{CalLimit: -1}), ErrUserSettingsInvalid)
+	})
+
+	r.Run("set valid settings and get", func() {
+		r.NoError(r.stg.SetUserSettings(context.TODO(), 1, &UserSettings{CalLimit: 100}))
+
+		stgs, err := r.stg.GetUserSettings(context.TODO(), 1)
+		r.NoError(err)
+		r.Equal(float64(100), stgs.CalLimit)
+	})
+
+	r.Run("update valid settings and get", func() {
+		stgs, err := r.stg.GetUserSettings(context.TODO(), 1)
+		r.NoError(err)
+		r.Equal(float64(100), stgs.CalLimit)
+
+		r.NoError(r.stg.SetUserSettings(context.TODO(), 1, &UserSettings{CalLimit: 200}))
+
+		stgs, err = r.stg.GetUserSettings(context.TODO(), 1)
+		r.NoError(err)
+		r.Equal(float64(200), stgs.CalLimit)
+	})
+}
+
+//
 // Suite setup
 //
 
