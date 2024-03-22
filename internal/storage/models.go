@@ -1,7 +1,7 @@
 package storage
 
 type Food struct {
-	ID      int64
+	Key     string
 	Name    string
 	Brand   string
 	Cal100  float64
@@ -9,6 +9,15 @@ type Food struct {
 	Fat100  float64
 	Carb100 float64
 	Comment string
+}
+
+func (r *Food) Validate() bool {
+	return r.Key != "" &&
+		r.Name != "" &&
+		r.Cal100 >= 0 &&
+		r.Prot100 >= 0 &&
+		r.Fat100 >= 0 &&
+		r.Carb100 >= 0
 }
 
 type Weight struct {

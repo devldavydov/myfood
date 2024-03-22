@@ -4,7 +4,7 @@ const (
 	// Food
 	_sqlCreateTableFood = `
 	CREATE TABLE IF NOT EXISTS food (
-		userid  INTEGER NOT NULL,
+		key     TEXT NOT NULL,
 		name    TEXT NOT NULL,
 		brand   TEXT,
 		cal100  REAL NOT NULL,
@@ -12,8 +12,40 @@ const (
 		fat100  REAL NOT NULL,
 		carb100 REAL NOT NULL,
 		comment TEXT,
-		PRIMARY KEY (userid, name, brand)
+		PRIMARY KEY (key)
 	) STRICT;
+	`
+	_sqlGetFood = `
+	SELECT key, name, brand, cal100, prot100, fat100, carb100, comment
+	FROM food
+	WHERE key = $1		
+	`
+	_sqlGetFoodList = `
+	SELECT key, name, brand, cal100, prot100, fat100, carb100, comment
+	FROM food
+	ORDER BY name
+	`
+	_sqFindFood = `
+	SELECT key, name, brand, cal100, prot100, fat100, carb100, comment
+	FROM food
+	WHERE
+	    UPPER(key) like '%' || $1 || '%' OR
+	    UPPER(name) like '%' || $1 || '%' OR
+		UPPER(brand) like '%' || $1 || '%' OR
+		UPPER(comment) like '%' || $1 || '%'
+	ORDER BY name
+	LIMIT 50
+	`
+	_sqlSetFood = `
+	INSERT INTO food(key, name, brand, cal100, prot100, fat100, carb100, comment)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+	ON CONFLICT (key) DO
+	UPDATE SET name = $2, brand = $3, cal100 = $4, prot100 = $5, fat100 = $6, carb100 = $7, comment = $8
+	`
+	_sqlDeleteFood = `
+	DELETE
+	FROM food
+	WHERE key = $1
 	`
 
 	// Weight
@@ -27,7 +59,7 @@ const (
 	`
 	_sqlSetWeight = `
 	INSERT into weight(userid, timestamp, value)
-	VALUES($1, $2, $3)
+	VALUES ($1, $2, $3)
 	ON CONFLICT (userid, timestamp) DO
 	UPDATE SET value = $3
 	`

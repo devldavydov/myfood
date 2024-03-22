@@ -4,15 +4,11 @@ import "context"
 
 type Storage interface {
 	// // Food
-	// GetFoodList(ctx context.Context, userID int64) ([]Food, error)
-	// GetFood(ctx context.Context, userID, id int64) (*Food, error)
-	// FindFood(ctx context.Context, userID int64, query string) ([]Food, error)
-
-	// CreateFood(ctx context.Context, userID int64, food *Food) (int64, error)
-	// UpdateFood(ctx context.Context, userID int64, food *Food) error
-
-	// DeleteFood(ctx context.Context, userID, id int64) error
-	// ClearFood(ctx context.Context, userID int64) error
+	GetFood(ctx context.Context, key string) (*Food, error)
+	SetFood(ctx context.Context, food *Food) error
+	GetFoodList(ctx context.Context) ([]Food, error)
+	FindFood(ctx context.Context, pattern string) ([]Food, error)
+	DeleteFood(ctx context.Context, key string) error
 
 	// Weight
 	GetWeightList(ctx context.Context, userID int64, from, to int64) ([]Weight, error)
