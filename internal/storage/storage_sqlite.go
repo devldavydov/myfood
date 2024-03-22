@@ -3,10 +3,9 @@ package storage
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"time"
 
-	gsql "github.com/mattn/go-sqlite3"
+	_ "github.com/mattn/go-sqlite3"
 	"go.uber.org/zap"
 )
 
@@ -74,56 +73,17 @@ func (r *StorageSQLite) GetWeightList(ctx context.Context, userID int64, from, t
 	return list, nil
 }
 
-func (r *StorageSQLite) CreateWeight(ctx context.Context, userID int64, weight *Weight) error {
+func (r *StorageSQLite) SetWeight(ctx context.Context, userID int64, weight *Weight) error {
 	if !weight.Validate() {
 		return ErrWeightInvalid
 	}
 
-	_, err := r.db.ExecContext(ctx, _sqlCreateWeight, userID, weight.Timestamp, weight.Value)
+	_, err := r.db.ExecContext(ctx, _sqlSetWeight, userID, weight.Timestamp, weight.Value)
 	if err != nil {
-		var dbErr gsql.Error
-		if !errors.As(err, &dbErr) {
-			return err
-		}
-
-		if dbErr.Error() == _constraintUniqueWeight {
-			return ErrWeightAlreadyExists
-		}
-
 		return err
 	}
 
 	return nil
-}
-
-func (r *StorageSQLite) UpdateWeight(ctx context.Context, userID int64, weight *Weight) error {
-	if !weight.Validate() {
-		return ErrWeightInvalid
-	}
-
-	tx, err := r.db.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	// Lock
-	var ts int64
-	err = tx.QueryRowContext(ctx, _sqlLockWeight, userID, weight.Timestamp).Scan(&ts)
-	switch {
-	case errors.Is(err, sql.ErrNoRows):
-		return ErrWeightNotFound
-	case err != nil:
-		return err
-	}
-
-	// Update
-	_, err = tx.ExecContext(ctx, _sqlUpdateWeight, weight.Value, userID, weight.Timestamp)
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
 }
 
 func (r *StorageSQLite) DeleteWeight(ctx context.Context, userID, timestamp int64) error {

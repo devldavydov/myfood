@@ -25,10 +25,8 @@ func (r *CmdProcessor) processWeight(c tele.Context, cmdParts []string, userID i
 	}
 
 	switch cmdParts[0] {
-	case "add":
-		return r.weightAddCommand(c, cmdParts[1:], userID)
-	case "upd":
-		return r.weightUpdCommand(c, cmdParts[1:], userID)
+	case "set":
+		return r.weightSetCommand(c, cmdParts[1:], userID)
 	case "del":
 		return r.weightDelCommand(c, cmdParts[1:], userID)
 	case "list":
@@ -46,10 +44,10 @@ func (r *CmdProcessor) processWeight(c tele.Context, cmdParts []string, userID i
 	return c.Send(msgErrInvalidCommand)
 }
 
-func (r *CmdProcessor) weightAddCommand(c tele.Context, cmdParts []string, userID int64) error {
+func (r *CmdProcessor) weightSetCommand(c tele.Context, cmdParts []string, userID int64) error {
 	if len(cmdParts) != 2 {
 		r.logger.Error(
-			"invalid weight add command",
+			"invalid weight set command",
 			zap.String("reason", "len parts"),
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
@@ -61,7 +59,7 @@ func (r *CmdProcessor) weightAddCommand(c tele.Context, cmdParts []string, userI
 	ts, err := parseTimestamp(cmdParts[0])
 	if err != nil {
 		r.logger.Error(
-			"invalid weight add command",
+			"invalid weight set command",
 			zap.String("reason", "ts format"),
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
@@ -74,7 +72,7 @@ func (r *CmdProcessor) weightAddCommand(c tele.Context, cmdParts []string, userI
 	val, err := strconv.ParseFloat(cmdParts[1], 64)
 	if err != nil {
 		r.logger.Error(
-			"invalid weight add command",
+			"invalid weight set command",
 			zap.String("reason", "val format"),
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
@@ -87,78 +85,13 @@ func (r *CmdProcessor) weightAddCommand(c tele.Context, cmdParts []string, userI
 	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout)
 	defer cancel()
 
-	if err := r.stg.CreateWeight(ctx, userID, &storage.Weight{Timestamp: ts, Value: val}); err != nil {
-		switch {
-		case errors.Is(err, storage.ErrWeightAlreadyExists):
-			return c.Send(msgErrWeightAlreadyExists)
-		case errors.Is(err, storage.ErrWeightInvalid):
+	if err := r.stg.SetWeight(ctx, userID, &storage.Weight{Timestamp: ts, Value: val}); err != nil {
+		if errors.Is(err, storage.ErrWeightInvalid) {
 			return c.Send(msgErrInvalidCommand)
 		}
 
 		r.logger.Error(
-			"weight add command DB error",
-			zap.Strings("command", cmdParts),
-			zap.Int64("userid", userID),
-			zap.Error(err),
-		)
-
-		return c.Send(msgErrInternal)
-	}
-
-	return c.Send(msgOK)
-}
-
-func (r *CmdProcessor) weightUpdCommand(c tele.Context, cmdParts []string, userID int64) error {
-	if len(cmdParts) != 2 {
-		r.logger.Error(
-			"invalid weight upd command",
-			zap.String("reason", "len parts"),
-			zap.Strings("command", cmdParts),
-			zap.Int64("userid", userID),
-		)
-		return c.Send(msgErrInvalidCommand)
-	}
-
-	// Parse timestamp
-	ts, err := parseTimestamp(cmdParts[0])
-	if err != nil {
-		r.logger.Error(
-			"invalid weight upd command",
-			zap.String("reason", "ts format"),
-			zap.Strings("command", cmdParts),
-			zap.Int64("userid", userID),
-			zap.Error(err),
-		)
-		return c.Send(msgErrInvalidCommand)
-	}
-
-	// Parse val
-	val, err := strconv.ParseFloat(cmdParts[1], 64)
-	if err != nil {
-		r.logger.Error(
-			"invalid weight upd command",
-			zap.String("reason", "val format"),
-			zap.Strings("command", cmdParts),
-			zap.Int64("userid", userID),
-			zap.Error(err),
-		)
-		return c.Send(msgErrInvalidCommand)
-	}
-
-	// Save in DB
-	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout)
-	defer cancel()
-
-	if err := r.stg.UpdateWeight(ctx, userID, &storage.Weight{Timestamp: ts, Value: val}); err != nil {
-		switch {
-		case errors.Is(err, storage.ErrWeightNotFound):
-			return c.Send(msgErrWeightNotFound)
-		case errors.Is(err, storage.ErrWeightInvalid):
-			return c.Send(msgErrInvalidCommand)
-		}
-
-		r.logger.Error(
-			"weight upd command DB error",
+			"weight set command DB error",
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 			zap.Error(err),

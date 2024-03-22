@@ -16,8 +16,7 @@ type Storage interface {
 
 	// Weight
 	GetWeightList(ctx context.Context, userID int64, from, to int64) ([]Weight, error)
-	CreateWeight(ctx context.Context, userID int64, weight *Weight) error
-	UpdateWeight(ctx context.Context, userID int64, weight *Weight) error
+	SetWeight(ctx context.Context, userID int64, weight *Weight) error
 	DeleteWeight(ctx context.Context, userID, timestamp int64) error
 
 	// UserSettings
