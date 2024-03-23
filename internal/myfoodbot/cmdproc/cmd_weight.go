@@ -200,10 +200,10 @@ func (r *CmdProcessor) weightListCommand(c tele.Context, cmdParts []string, user
 
 	var sb strings.Builder
 	for _, w := range lst {
-		sb.WriteString(fmt.Sprintf("%s: %.1f\n", formatTimestamp(w.Timestamp), w.Value))
+		sb.WriteString(fmt.Sprintf("<b>%s:</b> %.1f\n", formatTimestamp(w.Timestamp), w.Value))
 	}
 
-	return c.Send(sb.String())
+	return c.Send(sb.String(), &tele.SendOptions{ParseMode: tele.ModeHTML})
 }
 
 func (r *CmdProcessor) weightGraphCommand(c tele.Context, cmdParts []string, userID int64) error {

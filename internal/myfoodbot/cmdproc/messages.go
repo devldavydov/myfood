@@ -5,8 +5,7 @@ const (
 	msgErrInvalidCommand = "Неправильная команда"
 	msgErrEmptyList      = "Пустой результат"
 
-	msgErrWeightAlreadyExists = "Вес уже существует в базе данных"
-	msgErrWeightNotFound      = "Вес не найден в базе данных"
+	msgErrFoodNotFound = "Еда не найдена в базе данных"
 
 	msgErrUserSettingsNotFound = "Не найдены пользовательские настройки"
 

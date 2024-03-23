@@ -29,10 +29,10 @@ const (
 	SELECT key, name, brand, cal100, prot100, fat100, carb100, comment
 	FROM food
 	WHERE
-	    UPPER(key) like '%' || $1 || '%' OR
-	    UPPER(name) like '%' || $1 || '%' OR
-		UPPER(brand) like '%' || $1 || '%' OR
-		UPPER(comment) like '%' || $1 || '%'
+	    key like '%' || $1 || '%' OR
+	    name like '%' || $1 || '%' OR
+		brand like '%' || $1 || '%' OR
+		comment like '%' || $1 || '%'
 	ORDER BY name
 	LIMIT 50
 	`

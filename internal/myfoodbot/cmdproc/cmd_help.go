@@ -20,6 +20,6 @@ func (r *CmdProcessor) helpCommand(c tele.Context) error {
 	return c.Send(&tele.Document{
 		File:     tele.FromReader(docRd),
 		MIME:     "text/html",
-		FileName: "help_ru.html",
+		FileName: "help.html",
 	})
 }

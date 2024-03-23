@@ -62,7 +62,7 @@ func (r *StorageSQLite) SetFood(ctx context.Context, food *Food) error {
 	}
 
 	_, err := r.db.ExecContext(ctx, _sqlSetFood,
-		food.Key,
+		strings.ToLower(food.Key),
 		food.Name,
 		food.Brand,
 		food.Cal100,
@@ -108,7 +108,7 @@ func (r *StorageSQLite) GetFoodList(ctx context.Context) ([]Food, error) {
 }
 
 func (r *StorageSQLite) FindFood(ctx context.Context, pattern string) ([]Food, error) {
-	rows, err := r.db.QueryContext(ctx, _sqFindFood, strings.ToUpper(pattern))
+	rows, err := r.db.QueryContext(ctx, _sqFindFood, strings.ToLower(pattern))
 	if err != nil {
 		return nil, err
 	}

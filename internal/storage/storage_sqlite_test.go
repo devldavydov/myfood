@@ -278,7 +278,7 @@ func (r *StorageSQLiteTestSuite) TestFoodList() {
 func (r *StorageSQLiteTestSuite) TestFindFood() {
 	r.Run("add food", func() {
 		r.NoError(r.stg.SetFood(context.TODO(), &Food{
-			Key: "kfind", Name: "bbb", Brand: "Brand1", Cal100: 1, Prot100: 2, Fat100: 3, Carb100: 4, Comment: "Comment1",
+			Key: "kFind", Name: "bbb", Brand: "Brand1", Cal100: 1, Prot100: 2, Fat100: 3, Carb100: 4, Comment: "Comment1",
 		}))
 		r.NoError(r.stg.SetFood(context.TODO(), &Food{
 			Key: "Key2", Name: "nfind", Brand: "Brand2", Cal100: 4, Prot100: 5, Fat100: 6, Carb100: 7, Comment: "Comment2",
@@ -300,10 +300,10 @@ func (r *StorageSQLiteTestSuite) TestFindFood() {
 	})
 
 	r.Run("find by name", func() {
-		lst, err := r.stg.FindFood(context.TODO(), "nfind")
+		lst, err := r.stg.FindFood(context.TODO(), "Nfind")
 		r.NoError(err)
 		r.Equal([]Food{
-			{Key: "Key2", Name: "nfind", Brand: "Brand2", Cal100: 4, Prot100: 5, Fat100: 6, Carb100: 7, Comment: "Comment2"},
+			{Key: "key2", Name: "nfind", Brand: "Brand2", Cal100: 4, Prot100: 5, Fat100: 6, Carb100: 7, Comment: "Comment2"},
 		}, lst)
 	})
 
@@ -311,7 +311,7 @@ func (r *StorageSQLiteTestSuite) TestFindFood() {
 		lst, err := r.stg.FindFood(context.TODO(), "bfind")
 		r.NoError(err)
 		r.Equal([]Food{
-			{Key: "Key3", Name: "ccc", Brand: "bfind", Cal100: 8, Prot100: 9, Fat100: 10, Carb100: 11, Comment: "Comment3"},
+			{Key: "key3", Name: "ccc", Brand: "bfind", Cal100: 8, Prot100: 9, Fat100: 10, Carb100: 11, Comment: "Comment3"},
 		}, lst)
 	})
 
@@ -319,7 +319,7 @@ func (r *StorageSQLiteTestSuite) TestFindFood() {
 		lst, err := r.stg.FindFood(context.TODO(), "cfind")
 		r.NoError(err)
 		r.Equal([]Food{
-			{Key: "Key4", Name: "ddd", Brand: "Brand3", Cal100: 8, Prot100: 9, Fat100: 10, Carb100: 11, Comment: "cfind"},
+			{Key: "key4", Name: "ddd", Brand: "Brand3", Cal100: 8, Prot100: 9, Fat100: 10, Carb100: 11, Comment: "cfind"},
 		}, lst)
 	})
 
@@ -328,9 +328,9 @@ func (r *StorageSQLiteTestSuite) TestFindFood() {
 		r.NoError(err)
 		r.Equal([]Food{
 			{Key: "kfind", Name: "bbb", Brand: "Brand1", Cal100: 1, Prot100: 2, Fat100: 3, Carb100: 4, Comment: "Comment1"},
-			{Key: "Key3", Name: "ccc", Brand: "bfind", Cal100: 8, Prot100: 9, Fat100: 10, Carb100: 11, Comment: "Comment3"},
-			{Key: "Key4", Name: "ddd", Brand: "Brand3", Cal100: 8, Prot100: 9, Fat100: 10, Carb100: 11, Comment: "cfind"},
-			{Key: "Key2", Name: "nfind", Brand: "Brand2", Cal100: 4, Prot100: 5, Fat100: 6, Carb100: 7, Comment: "Comment2"},
+			{Key: "key3", Name: "ccc", Brand: "bfind", Cal100: 8, Prot100: 9, Fat100: 10, Carb100: 11, Comment: "Comment3"},
+			{Key: "key4", Name: "ddd", Brand: "Brand3", Cal100: 8, Prot100: 9, Fat100: 10, Carb100: 11, Comment: "cfind"},
+			{Key: "key2", Name: "nfind", Brand: "Brand2", Cal100: 4, Prot100: 5, Fat100: 6, Carb100: 7, Comment: "Comment2"},
 		}, lst)
 	})
 }
