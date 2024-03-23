@@ -289,13 +289,16 @@ func (r *StorageSQLiteTestSuite) TestFindFood() {
 		r.NoError(r.stg.SetFood(context.TODO(), &Food{
 			Key: "Key4", Name: "ddd", Brand: "Brand3", Cal100: 8, Prot100: 9, Fat100: 10, Carb100: 11, Comment: "cfind",
 		}))
+		r.NoError(r.stg.SetFood(context.TODO(), &Food{
+			Key: "едрус", Name: "Еда Русская", Brand: "Brand3", Cal100: 8, Prot100: 9, Fat100: 10, Carb100: 11, Comment: "руСКом",
+		}))
 	})
 
 	r.Run("find by key", func() {
 		lst, err := r.stg.FindFood(context.TODO(), "kfind")
 		r.NoError(err)
 		r.Equal([]Food{
-			{Key: "kfind", Name: "bbb", Brand: "Brand1", Cal100: 1, Prot100: 2, Fat100: 3, Carb100: 4, Comment: "Comment1"},
+			{Key: "kFind", Name: "bbb", Brand: "Brand1", Cal100: 1, Prot100: 2, Fat100: 3, Carb100: 4, Comment: "Comment1"},
 		}, lst)
 	})
 
@@ -303,7 +306,7 @@ func (r *StorageSQLiteTestSuite) TestFindFood() {
 		lst, err := r.stg.FindFood(context.TODO(), "Nfind")
 		r.NoError(err)
 		r.Equal([]Food{
-			{Key: "key2", Name: "nfind", Brand: "Brand2", Cal100: 4, Prot100: 5, Fat100: 6, Carb100: 7, Comment: "Comment2"},
+			{Key: "Key2", Name: "nfind", Brand: "Brand2", Cal100: 4, Prot100: 5, Fat100: 6, Carb100: 7, Comment: "Comment2"},
 		}, lst)
 	})
 
@@ -311,7 +314,7 @@ func (r *StorageSQLiteTestSuite) TestFindFood() {
 		lst, err := r.stg.FindFood(context.TODO(), "bfind")
 		r.NoError(err)
 		r.Equal([]Food{
-			{Key: "key3", Name: "ccc", Brand: "bfind", Cal100: 8, Prot100: 9, Fat100: 10, Carb100: 11, Comment: "Comment3"},
+			{Key: "Key3", Name: "ccc", Brand: "bfind", Cal100: 8, Prot100: 9, Fat100: 10, Carb100: 11, Comment: "Comment3"},
 		}, lst)
 	})
 
@@ -319,19 +322,29 @@ func (r *StorageSQLiteTestSuite) TestFindFood() {
 		lst, err := r.stg.FindFood(context.TODO(), "cfind")
 		r.NoError(err)
 		r.Equal([]Food{
-			{Key: "key4", Name: "ddd", Brand: "Brand3", Cal100: 8, Prot100: 9, Fat100: 10, Carb100: 11, Comment: "cfind"},
+			{Key: "Key4", Name: "ddd", Brand: "Brand3", Cal100: 8, Prot100: 9, Fat100: 10, Carb100: 11, Comment: "cfind"},
 		}, lst)
 	})
 
-	r.Run("find all", func() {
+	r.Run("find all k", func() {
 		lst, err := r.stg.FindFood(context.TODO(), "k")
 		r.NoError(err)
 		r.Equal([]Food{
-			{Key: "kfind", Name: "bbb", Brand: "Brand1", Cal100: 1, Prot100: 2, Fat100: 3, Carb100: 4, Comment: "Comment1"},
-			{Key: "key3", Name: "ccc", Brand: "bfind", Cal100: 8, Prot100: 9, Fat100: 10, Carb100: 11, Comment: "Comment3"},
-			{Key: "key4", Name: "ddd", Brand: "Brand3", Cal100: 8, Prot100: 9, Fat100: 10, Carb100: 11, Comment: "cfind"},
-			{Key: "key2", Name: "nfind", Brand: "Brand2", Cal100: 4, Prot100: 5, Fat100: 6, Carb100: 7, Comment: "Comment2"},
+			{Key: "kFind", Name: "bbb", Brand: "Brand1", Cal100: 1, Prot100: 2, Fat100: 3, Carb100: 4, Comment: "Comment1"},
+			{Key: "Key3", Name: "ccc", Brand: "bfind", Cal100: 8, Prot100: 9, Fat100: 10, Carb100: 11, Comment: "Comment3"},
+			{Key: "Key4", Name: "ddd", Brand: "Brand3", Cal100: 8, Prot100: 9, Fat100: 10, Carb100: 11, Comment: "cfind"},
+			{Key: "Key2", Name: "nfind", Brand: "Brand2", Cal100: 4, Prot100: 5, Fat100: 6, Carb100: 7, Comment: "Comment2"},
 		}, lst)
+	})
+
+	r.Run("find non latin", func() {
+		for _, pattern := range []string{"рус", "ЕДА", "еДа", "сК"} {
+			lst, err := r.stg.FindFood(context.TODO(), pattern)
+			r.NoError(err)
+			r.Equal([]Food{
+				{Key: "едрус", Name: "Еда Русская", Brand: "Brand3", Cal100: 8, Prot100: 9, Fat100: 10, Carb100: 11, Comment: "руСКом"},
+			}, lst)
+		}
 	})
 }
 

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
+	gsql "github.com/mattn/go-sqlite3"
 	"go.uber.org/zap"
 )
 
@@ -21,8 +21,21 @@ type StorageSQLite struct {
 	logger *zap.Logger
 }
 
+func go_upper(str string) string {
+	return strings.ToUpper(str)
+}
+
 func NewStorageSQLite(dbFilePath string, logger *zap.Logger) (*StorageSQLite, error) {
-	db, err := sql.Open("sqlite3", dbFilePath)
+	sql.Register("sqlite3_custom", &gsql.SQLiteDriver{
+		ConnectHook: func(conn *gsql.SQLiteConn) error {
+			if err := conn.RegisterFunc("go_upper", go_upper, false); err != nil {
+				return err
+			}
+			return nil
+		},
+	})
+
+	db, err := sql.Open("sqlite3_custom", dbFilePath)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +75,7 @@ func (r *StorageSQLite) SetFood(ctx context.Context, food *Food) error {
 	}
 
 	_, err := r.db.ExecContext(ctx, _sqlSetFood,
-		strings.ToLower(food.Key),
+		food.Key,
 		food.Name,
 		food.Brand,
 		food.Cal100,
@@ -108,7 +121,7 @@ func (r *StorageSQLite) GetFoodList(ctx context.Context) ([]Food, error) {
 }
 
 func (r *StorageSQLite) FindFood(ctx context.Context, pattern string) ([]Food, error) {
-	rows, err := r.db.QueryContext(ctx, _sqFindFood, strings.ToLower(pattern))
+	rows, err := r.db.QueryContext(ctx, _sqFindFood, strings.ToUpper(pattern))
 	if err != nil {
 		return nil, err
 	}
