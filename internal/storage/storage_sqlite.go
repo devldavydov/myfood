@@ -13,7 +13,7 @@ import (
 const (
 	_databaseInitTimeout = 10 * time.Second
 
-	_constraintUniqueWeight = "UNIQUE constraint failed: weight.userid, weight.timestamp"
+	_customDriverName = "sqlite3_custom"
 )
 
 type StorageSQLite struct {
@@ -26,16 +26,26 @@ func go_upper(str string) string {
 }
 
 func NewStorageSQLite(dbFilePath string, logger *zap.Logger) (*StorageSQLite, error) {
-	sql.Register("sqlite3_custom", &gsql.SQLiteDriver{
-		ConnectHook: func(conn *gsql.SQLiteConn) error {
-			if err := conn.RegisterFunc("go_upper", go_upper, false); err != nil {
-				return err
-			}
-			return nil
-		},
-	})
+	//
+	// Driver register (check registration twice).
+	//
 
-	db, err := sql.Open("sqlite3_custom", dbFilePath)
+	if !isDriverRegistered(_customDriverName) {
+		sql.Register(_customDriverName, &gsql.SQLiteDriver{
+			ConnectHook: func(conn *gsql.SQLiteConn) error {
+				if err := conn.RegisterFunc("go_upper", go_upper, false); err != nil {
+					return err
+				}
+				return nil
+			},
+		})
+	}
+
+	//
+	// Open DB.
+	//
+
+	db, err := sql.Open(_customDriverName, dbFilePath)
 	if err != nil {
 		return nil, err
 	}

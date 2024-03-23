@@ -166,27 +166,6 @@ func (r *StorageSQLiteTestSuite) TestUserSettingsCRU() {
 }
 
 //
-// Suite setup
-//
-
-func (r *StorageSQLiteTestSuite) SetupTest() {
-	var err error
-
-	f, err := os.CreateTemp("", "testdb")
-	require.NoError(r.T(), err)
-	r.dbFile = f.Name()
-	f.Close()
-
-	r.stg, err = NewStorageSQLite(r.dbFile, nil)
-	require.NoError(r.T(), err)
-}
-
-func (r *StorageSQLiteTestSuite) TearDownTest() {
-	r.stg.Close()
-	require.NoError(r.T(), os.Remove(r.dbFile))
-}
-
-//
 // Food
 //
 
@@ -375,6 +354,27 @@ func (r *StorageSQLiteTestSuite) TestDeleteFood() {
 		_, err = r.stg.GetFood(context.TODO(), "Key1")
 		r.ErrorIs(err, ErrFoodNotFound)
 	})
+}
+
+//
+// Suite setup
+//
+
+func (r *StorageSQLiteTestSuite) SetupTest() {
+	var err error
+
+	f, err := os.CreateTemp("", "testdb")
+	require.NoError(r.T(), err)
+	r.dbFile = f.Name()
+	f.Close()
+
+	r.stg, err = NewStorageSQLite(r.dbFile, nil)
+	require.NoError(r.T(), err)
+}
+
+func (r *StorageSQLiteTestSuite) TearDownTest() {
+	r.stg.Close()
+	require.NoError(r.T(), os.Remove(r.dbFile))
 }
 
 func TestStorageSQLite(t *testing.T) {
