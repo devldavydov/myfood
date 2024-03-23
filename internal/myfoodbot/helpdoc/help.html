@@ -14018,13 +14018,39 @@
       <div class="accordion-item">
         <h2 class="accordion-header">
           <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-            data-bs-target="#collapseTODO" aria-expanded="false" aria-controls="collapseTODO">
-            TODO
+            data-bs-target="#collapseFood" aria-expanded="false" aria-controls="collapseFood">
+            <b>Управление едой (f)</b>
           </button>
         </h2>
-        <div id="collapseTODO" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+        <div id="collapseFood" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
           <div class="accordion-body">
-            TODO
+            <p>Команды для управления едой начинаются с: <code>f</code></p>
+            <div class="alert alert-primary" role="alert">
+              Установка еды
+            </div>
+            <p>Команда: <code>f,set,&lt;Ключ&gt;,&lt;Наименование&gt;,&lt;Бренд&gt;,&lt;ККал100&gt;,&lt;Бел100&gt;,&lt;Жир100&gt;,&lt;Угл100&gt;,&lt;Комментарий&gt;</code></p>
+            <p>Ключ - уникальная строка для данной записи</p>
+            <p>Наименование - название еды</p>
+            <p>Бренд - производитель еды (необязательное поле)</p>
+            <p>ККал100 - значение ккал в 100г.</p>
+            <p>Бел100 - значение белков в 100г.</p>
+            <p>Жир100 - значение жиров в 100г.</p>
+            <p>Угл100 - значение углеводов в 100г.</p>
+            <p>Комментарий (необязательное поле)</p>
+            <div class="alert alert-primary" role="alert">
+              Поиск еды
+            </div>
+            <p>Команда: <code>f,find,&lt;Шаблон&gt;</code></p>
+            <p>Осуществляется поиск записей еды по совпадению шаблона в полях Ключ, Наименование, Бренд и Комментарий</p>
+            <p>Выводится не более 10 записей</p>
+            <div class="alert alert-primary" role="alert">
+              Весь список еды
+            </div>
+            <p>Команда: <code>f,list</code></p>
+            <div class="alert alert-primary" role="alert">
+              Удаление еды
+            </div>
+            <p>Команда: <code>f,del,&lt;Ключ&gt;</code></p>
           </div>
         </div>
       </div>

@@ -34,7 +34,7 @@ const (
 		go_upper(brand) like '%' || $1 || '%' OR
 		go_upper(comment) like '%' || $1 || '%'
 	ORDER BY name
-	LIMIT 50
+	LIMIT 10
 	`
 	_sqlSetFood = `
 	INSERT INTO food(key, name, brand, cal100, prot100, fat100, carb100, comment)
