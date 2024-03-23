@@ -7,7 +7,7 @@ import (
 )
 
 func (r *CmdProcessor) helpCommand(c tele.Context) error {
-	docRd, err := helpdoc.GetHelpDocument("help_ru")
+	docRd, err := helpdoc.GetHelpDocument("help")
 	if err != nil {
 		r.logger.Error(
 			"help command error",
