@@ -263,7 +263,11 @@ func (r *StorageSQLite) init() error {
 	ctx, cancel := context.WithTimeout(context.Background(), _databaseInitTimeout)
 	defer cancel()
 
-	for _, createTbl := range []string{_sqlCreateTableFood, _sqlCreateTableWeight, _sqlCreateTableUserSettings} {
+	for _, createTbl := range []string{
+		_sqlCreateTableFood,
+		_sqlCreateTableJournal,
+		_sqlCreateTableWeight,
+		_sqlCreateTableUserSettings} {
 		_, err := r.db.ExecContext(ctx, createTbl)
 		if err != nil {
 			return err

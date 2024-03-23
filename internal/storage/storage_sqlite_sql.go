@@ -48,6 +48,22 @@ const (
 	WHERE key = $1
 	`
 
+	// Journal
+	_sqlCreateTableJournal = `
+	CREATE TABLE IF NOT EXISTS journal (
+		timestamp INTEGER NOT NULL
+		meal      INTEGER NOT NULL
+		foodkey   TEXT NOT NULL,
+		foodlbl   TEXT NOT NULL,
+        weight    REAL NOT NULL,
+		cal       REAL NOT NULL,
+		prot      REAL NOT NULL,
+		fat       REAL NOT NULL,
+		carb      REAL NOT NULL,
+		PRIMARY KEY (timestamp, meal, foodkey)
+	) STRICT;	
+	`
+
 	// Weight
 	_sqlCreateTableWeight = `
 	CREATE TABLE IF NOT EXISTS weight (

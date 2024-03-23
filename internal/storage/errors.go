@@ -8,6 +8,9 @@ var (
 	ErrFoodInvalid   = errors.New("invalid food")
 	ErrFoodEmptyList = errors.New("empty food list")
 
+	// Meal
+	ErrWrongMeal = errors.New("wrong meal")
+
 	// Weight
 	ErrWeightNotFound  = errors.New("weight not found")
 	ErrWeightInvalid   = errors.New("invalid weight")
