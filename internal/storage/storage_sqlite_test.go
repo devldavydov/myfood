@@ -397,44 +397,44 @@ func (r *StorageSQLiteTestSuite) TestJournalCRUD() {
 	r.Run("set journal for different timestamps and users", func() {
 		// user 1, timestamp 1
 		r.NoError(r.stg.SetJournal(context.TODO(), 1, &Journal{
-			Timestamp: 1, Meal: Meal(0), FoodKey: "food_b", FoodWeight: 1,
+			Timestamp: 1, Meal: Meal(0), FoodKey: "food_b", FoodWeight: 100,
 		}))
 		r.NoError(r.stg.SetJournal(context.TODO(), 1, &Journal{
-			Timestamp: 1, Meal: Meal(1), FoodKey: "food_a", FoodWeight: 2,
+			Timestamp: 1, Meal: Meal(1), FoodKey: "food_a", FoodWeight: 200,
 		}))
 		r.NoError(r.stg.SetJournal(context.TODO(), 1, &Journal{
-			Timestamp: 1, Meal: Meal(2), FoodKey: "food_c", FoodWeight: 3,
+			Timestamp: 1, Meal: Meal(2), FoodKey: "food_c", FoodWeight: 300,
 		}))
 
 		// user 1, timestamp 2
 		r.NoError(r.stg.SetJournal(context.TODO(), 1, &Journal{
-			Timestamp: 2, Meal: Meal(0), FoodKey: "food_b", FoodWeight: 3,
+			Timestamp: 2, Meal: Meal(0), FoodKey: "food_b", FoodWeight: 300,
 		}))
 		r.NoError(r.stg.SetJournal(context.TODO(), 1, &Journal{
-			Timestamp: 2, Meal: Meal(1), FoodKey: "food_a", FoodWeight: 2,
+			Timestamp: 2, Meal: Meal(1), FoodKey: "food_a", FoodWeight: 200,
 		}))
 		r.NoError(r.stg.SetJournal(context.TODO(), 1, &Journal{
-			Timestamp: 2, Meal: Meal(1), FoodKey: "food_c", FoodWeight: 1,
+			Timestamp: 2, Meal: Meal(1), FoodKey: "food_c", FoodWeight: 100,
 		}))
 		r.NoError(r.stg.SetJournal(context.TODO(), 1, &Journal{
-			Timestamp: 2, Meal: Meal(2), FoodKey: "food_c", FoodWeight: 4,
+			Timestamp: 2, Meal: Meal(2), FoodKey: "food_c", FoodWeight: 400,
 		}))
 		r.NoError(r.stg.SetJournal(context.TODO(), 1, &Journal{
-			Timestamp: 2, Meal: Meal(2), FoodKey: "food_a", FoodWeight: 5,
+			Timestamp: 2, Meal: Meal(2), FoodKey: "food_a", FoodWeight: 500,
 		}))
 
 		// user 2, timestamp 3
 		r.NoError(r.stg.SetJournal(context.TODO(), 2, &Journal{
-			Timestamp: 3, Meal: Meal(0), FoodKey: "food_b", FoodWeight: 3,
+			Timestamp: 3, Meal: Meal(0), FoodKey: "food_b", FoodWeight: 300,
 		}))
 		r.NoError(r.stg.SetJournal(context.TODO(), 2, &Journal{
-			Timestamp: 3, Meal: Meal(1), FoodKey: "food_a", FoodWeight: 2,
+			Timestamp: 3, Meal: Meal(1), FoodKey: "food_a", FoodWeight: 200,
 		}))
 		r.NoError(r.stg.SetJournal(context.TODO(), 2, &Journal{
-			Timestamp: 3, Meal: Meal(1), FoodKey: "food_c", FoodWeight: 1,
+			Timestamp: 3, Meal: Meal(1), FoodKey: "food_c", FoodWeight: 100,
 		}))
 		r.NoError(r.stg.SetJournal(context.TODO(), 2, &Journal{
-			Timestamp: 3, Meal: Meal(1), FoodKey: "food_b", FoodWeight: 4,
+			Timestamp: 3, Meal: Meal(1), FoodKey: "food_b", FoodWeight: 400,
 		}))
 	})
 
@@ -447,22 +447,22 @@ func (r *StorageSQLiteTestSuite) TestJournalCRUD() {
 		rep, err := r.stg.GetJournalForPeriod(context.TODO(), 1, 1, 2)
 		r.NoError(err)
 		r.Equal([]JournalReport{
-			{Timestamp: 1, Meal: Meal(0), FoodName: "bbb", FoodBrand: "brand b",
-				FoodWeight: 1, Cal: 5, Prot: 6, Fat: 7, Carb: 8},
-			{Timestamp: 1, Meal: Meal(1), FoodName: "aaa", FoodBrand: "brand a",
-				FoodWeight: 2, Cal: 2, Prot: 4, Fat: 6, Carb: 8},
-			{Timestamp: 1, Meal: Meal(2), FoodName: "ccc", FoodBrand: "brand c",
-				FoodWeight: 3, Cal: 3, Prot: 3, Fat: 3, Carb: 3},
-			{Timestamp: 2, Meal: Meal(0), FoodName: "bbb", FoodBrand: "brand b",
-				FoodWeight: 3, Cal: 15, Prot: 18, Fat: 21, Carb: 24},
-			{Timestamp: 2, Meal: Meal(1), FoodName: "aaa", FoodBrand: "brand a",
-				FoodWeight: 2, Cal: 2, Prot: 4, Fat: 6, Carb: 8},
-			{Timestamp: 2, Meal: Meal(1), FoodName: "ccc", FoodBrand: "brand c",
-				FoodWeight: 1, Cal: 1, Prot: 1, Fat: 1, Carb: 1},
-			{Timestamp: 2, Meal: Meal(2), FoodName: "aaa", FoodBrand: "brand a",
-				FoodWeight: 5, Cal: 5, Prot: 10, Fat: 15, Carb: 20},
-			{Timestamp: 2, Meal: Meal(2), FoodName: "ccc", FoodBrand: "brand c",
-				FoodWeight: 4, Cal: 4, Prot: 4, Fat: 4, Carb: 4},
+			{Timestamp: 1, Meal: Meal(0), FoodKey: "food_b", FoodName: "bbb", FoodBrand: "brand b",
+				FoodWeight: 100, Cal: 5, Prot: 6, Fat: 7, Carb: 8},
+			{Timestamp: 1, Meal: Meal(1), FoodKey: "food_a", FoodName: "aaa", FoodBrand: "brand a",
+				FoodWeight: 200, Cal: 2, Prot: 4, Fat: 6, Carb: 8},
+			{Timestamp: 1, Meal: Meal(2), FoodKey: "food_c", FoodName: "ccc", FoodBrand: "brand c",
+				FoodWeight: 300, Cal: 3, Prot: 3, Fat: 3, Carb: 3},
+			{Timestamp: 2, Meal: Meal(0), FoodKey: "food_b", FoodName: "bbb", FoodBrand: "brand b",
+				FoodWeight: 300, Cal: 15, Prot: 18, Fat: 21, Carb: 24},
+			{Timestamp: 2, Meal: Meal(1), FoodKey: "food_a", FoodName: "aaa", FoodBrand: "brand a",
+				FoodWeight: 200, Cal: 2, Prot: 4, Fat: 6, Carb: 8},
+			{Timestamp: 2, Meal: Meal(1), FoodKey: "food_c", FoodName: "ccc", FoodBrand: "brand c",
+				FoodWeight: 100, Cal: 1, Prot: 1, Fat: 1, Carb: 1},
+			{Timestamp: 2, Meal: Meal(2), FoodKey: "food_a", FoodName: "aaa", FoodBrand: "brand a",
+				FoodWeight: 500, Cal: 5, Prot: 10, Fat: 15, Carb: 20},
+			{Timestamp: 2, Meal: Meal(2), FoodKey: "food_c", FoodName: "ccc", FoodBrand: "brand c",
+				FoodWeight: 400, Cal: 4, Prot: 4, Fat: 4, Carb: 4},
 		}, rep)
 	})
 
@@ -471,28 +471,28 @@ func (r *StorageSQLiteTestSuite) TestJournalCRUD() {
 		rep, err := r.stg.GetJournalForPeriod(context.TODO(), 2, 1, 3)
 		r.NoError(err)
 		r.Equal([]JournalReport{
-			{Timestamp: 3, Meal: Meal(0), FoodName: "bbb", FoodBrand: "brand b",
-				FoodWeight: 3, Cal: 15, Prot: 18, Fat: 21, Carb: 24},
-			{Timestamp: 3, Meal: Meal(1), FoodName: "aaa", FoodBrand: "brand a",
-				FoodWeight: 2, Cal: 2, Prot: 4, Fat: 6, Carb: 8},
-			{Timestamp: 3, Meal: Meal(1), FoodName: "bbb", FoodBrand: "brand b",
-				FoodWeight: 4, Cal: 20, Prot: 24, Fat: 28, Carb: 32},
-			{Timestamp: 3, Meal: Meal(1), FoodName: "ccc", FoodBrand: "brand c",
-				FoodWeight: 1, Cal: 1, Prot: 1, Fat: 1, Carb: 1},
+			{Timestamp: 3, Meal: Meal(0), FoodKey: "food_b", FoodName: "bbb", FoodBrand: "brand b",
+				FoodWeight: 300, Cal: 15, Prot: 18, Fat: 21, Carb: 24},
+			{Timestamp: 3, Meal: Meal(1), FoodKey: "food_a", FoodName: "aaa", FoodBrand: "brand a",
+				FoodWeight: 200, Cal: 2, Prot: 4, Fat: 6, Carb: 8},
+			{Timestamp: 3, Meal: Meal(1), FoodKey: "food_b", FoodName: "bbb", FoodBrand: "brand b",
+				FoodWeight: 400, Cal: 20, Prot: 24, Fat: 28, Carb: 32},
+			{Timestamp: 3, Meal: Meal(1), FoodKey: "food_c", FoodName: "ccc", FoodBrand: "brand c",
+				FoodWeight: 100, Cal: 1, Prot: 1, Fat: 1, Carb: 1},
 		}, rep)
 	})
 
 	r.Run("update and delete for user 1", func() {
 		r.NoError(r.stg.DeleteJournal(context.TODO(), 1, 1, Meal(0), "food_b"))
-		r.NoError(r.stg.SetJournal(context.TODO(), 1, &Journal{Timestamp: 1, Meal: Meal(1), FoodKey: "food_a", FoodWeight: 3}))
+		r.NoError(r.stg.SetJournal(context.TODO(), 1, &Journal{Timestamp: 1, Meal: Meal(1), FoodKey: "food_a", FoodWeight: 300}))
 
 		rep, err := r.stg.GetJournalForPeriod(context.TODO(), 1, 1, 1)
 		r.NoError(err)
 		r.Equal([]JournalReport{
-			{Timestamp: 1, Meal: Meal(1), FoodName: "aaa", FoodBrand: "brand a",
-				FoodWeight: 3, Cal: 3, Prot: 6, Fat: 9, Carb: 12},
-			{Timestamp: 1, Meal: Meal(2), FoodName: "ccc", FoodBrand: "brand c",
-				FoodWeight: 3, Cal: 3, Prot: 3, Fat: 3, Carb: 3},
+			{Timestamp: 1, Meal: Meal(1), FoodKey: "food_a", FoodName: "aaa", FoodBrand: "brand a",
+				FoodWeight: 300, Cal: 3, Prot: 6, Fat: 9, Carb: 12},
+			{Timestamp: 1, Meal: Meal(2), FoodKey: "food_c", FoodName: "ccc", FoodBrand: "brand c",
+				FoodWeight: 300, Cal: 3, Prot: 3, Fat: 3, Carb: 3},
 		}, rep)
 	})
 
