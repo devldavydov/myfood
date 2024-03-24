@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"strings"
 	"time"
 
@@ -14,6 +15,7 @@ const (
 	_databaseInitTimeout = 10 * time.Second
 
 	_customDriverName = "sqlite3_custom"
+	_errForeignKey    = "FOREIGN KEY constraint failed"
 )
 
 type StorageSQLite struct {
@@ -45,7 +47,7 @@ func NewStorageSQLite(dbFilePath string, logger *zap.Logger) (*StorageSQLite, er
 	// Open DB.
 	//
 
-	db, err := sql.Open(_customDriverName, dbFilePath)
+	db, err := sql.Open(_customDriverName, dbFilePath+"?_foreign_keys=1")
 	if err != nil {
 		return nil, err
 	}
@@ -213,6 +215,79 @@ func (r *StorageSQLite) SetWeight(ctx context.Context, userID int64, weight *Wei
 func (r *StorageSQLite) DeleteWeight(ctx context.Context, userID, timestamp int64) error {
 	_, err := r.db.ExecContext(ctx, _sqlDeleteWeight, userID, timestamp)
 	return err
+}
+
+//
+// Journal
+//
+
+func (r *StorageSQLite) SetJournal(ctx context.Context, userID int64, journal *Journal) error {
+	if !journal.Validate() {
+		return ErrJournalInvalid
+	}
+
+	_, err := r.db.ExecContext(ctx, _sqlSetJournal, userID, journal.Timestamp, journal.Meal, journal.FoodKey, journal.FoodWeight)
+	if err != nil {
+		var errSql gsql.Error
+		if errors.As(err, &errSql) && errSql.Error() == _errForeignKey {
+			return ErrJournalInvalidFood
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (r *StorageSQLite) DeleteJournal(ctx context.Context, userID int64, timestamp int64, meal Meal, foodkey string) error {
+	_, err := r.db.ExecContext(ctx, _sqlDeleteJournal, userID, timestamp, meal, foodkey)
+	return err
+}
+
+func (r *StorageSQLite) GetJournalForPeriod(ctx context.Context, userID int64, from, to int64) ([]JournalReport, error) {
+	return r.processJournalReport(ctx, _sqlGetJournalForPeriod, userID, from, to)
+}
+
+func (r *StorageSQLite) GetJournalForPeriodAndMeal(ctx context.Context, userID int64, from, to int64, meal Meal) ([]JournalReport, error) {
+	return r.processJournalReport(ctx, _sqlGetJournalForPeriodAndMeal, userID, from, to, meal)
+}
+
+func (r *StorageSQLite) processJournalReport(ctx context.Context, query string, args ...any) ([]JournalReport, error) {
+	rows, err := r.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var list []JournalReport
+	for rows.Next() {
+		var jd JournalReport
+		err = rows.Scan(
+			&jd.Timestamp,
+			&jd.Meal,
+			&jd.FoodName,
+			&jd.FoodBrand,
+			&jd.FoodWeight,
+			&jd.Cal,
+			&jd.Prot,
+			&jd.Fat,
+			&jd.Carb,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		list = append(list, jd)
+	}
+
+	if len(list) == 0 {
+		return nil, ErrJournalReportEmpty
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return list, nil
 }
 
 //

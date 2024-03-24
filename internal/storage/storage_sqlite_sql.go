@@ -51,17 +51,67 @@ const (
 	// Journal
 	_sqlCreateTableJournal = `
 	CREATE TABLE IF NOT EXISTS journal (
-		timestamp INTEGER NOT NULL
-		meal      INTEGER NOT NULL
-		foodkey   TEXT NOT NULL,
-		foodlbl   TEXT NOT NULL,
-        weight    REAL NOT NULL,
-		cal       REAL NOT NULL,
-		prot      REAL NOT NULL,
-		fat       REAL NOT NULL,
-		carb      REAL NOT NULL,
-		PRIMARY KEY (timestamp, meal, foodkey)
+		userid     INTEGER NOT NULL,
+		timestamp  INTEGER NOT NULL,
+		meal       INTEGER NOT NULL,
+		foodkey    TEXT NOT NULL,
+		foodweight REAL NOT NULL,
+		PRIMARY KEY (userid, timestamp, meal, foodkey),
+		FOREIGN KEY (foodkey) REFERENCES food(key) ON DELETE RESTRICT
 	) STRICT;	
+	`
+	_sqlSetJournal = `
+	INSERT INTO journal(userid, timestamp, meal, foodkey, foodweight)
+	VALUES ($1, $2, $3, $4, $5)
+	ON CONFLICT (userid, timestamp, meal, foodkey) DO
+	UPDATE SET foodweight = $5
+	`
+	_sqlDeleteJournal = `
+	DELETE from journal
+	WHERE userid = $1 AND timestamp = $2 AND meal = $3 AND foodkey = $4
+	`
+	_sqlGetJournalForPeriod = `
+	SELECT
+		j.timestamp,
+		j.meal,
+		f.name AS foodname,
+		f.brand AS foodbrand,
+		j.foodweight,
+		j.foodweight * f.cal100 AS cal,
+		j.foodweight * f.prot100 AS prot,
+		j.foodweight * f.fat100 AS fat,
+		j.foodweight * f.carb100 AS carb
+	FROM
+		journal j, food f
+	WHERE
+		j.foodkey = f.key AND
+		j.userid = $1 AND
+		j.timestamp >= $2 AND
+		j.timestamp <= $3
+	ORDER BY
+		j.timestamp ASC, j.meal ASC, f.name ASC
+	`
+	_sqlGetJournalForPeriodAndMeal = `
+	SELECT
+		j.timestamp,
+		j.meal,
+		f.name AS foodname,
+		f.brand AS foodbrand,
+		j.foodweight,
+		j.foodweight * f.cal100 AS cal,
+		j.foodweight * f.prot100 AS prot,
+		j.foodweight * f.fat100 AS fat,
+		j.foodweight * f.carb100 AS carb
+	FROM
+		journal j, food f
+	WHERE
+		j.foodkey = f.key AND
+		j.userid = $1 AND
+		j.timestamp >= $2 AND
+		j.timestamp <= $3 AND
+		j.meal = $4
+	ORDER BY
+		j.timestamp ASC, j.meal ASC, f.name ASC
 	`
 
 	// Weight
@@ -74,7 +124,7 @@ const (
 	) STRICT;	
 	`
 	_sqlSetWeight = `
-	INSERT into weight(userid, timestamp, value)
+	INSERT INTO weight(userid, timestamp, value)
 	VALUES ($1, $2, $3)
 	ON CONFLICT (userid, timestamp) DO
 	UPDATE SET value = $3

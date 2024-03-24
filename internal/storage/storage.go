@@ -15,6 +15,12 @@ type Storage interface {
 	SetWeight(ctx context.Context, userID int64, weight *Weight) error
 	DeleteWeight(ctx context.Context, userID, timestamp int64) error
 
+	// Journal
+	SetJournal(ctx context.Context, userID int64, journal *Journal) error
+	DeleteJournal(ctx context.Context, userID int64, timestamp int64, meal Meal, foodkey string) error
+	GetJournalForPeriod(ctx context.Context, userID int64, from, to int64) ([]JournalReport, error)
+	GetJournalForPeriodAndMeal(ctx context.Context, userID int64, from, to int64, meal Meal) ([]JournalReport, error)
+
 	// UserSettings
 	GetUserSettings(ctx context.Context, userID int64) (*UserSettings, error)
 	SetUserSettings(ctx context.Context, userID int64, settings *UserSettings) error
