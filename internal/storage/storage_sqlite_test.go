@@ -439,32 +439,12 @@ func (r *StorageSQLiteTestSuite) TestJournalCRUD() {
 	})
 
 	r.Run("get empty report", func() {
-		_, err := r.stg.GetJournalForPeriodAndMeal(context.TODO(), 1, 10, 20, Meal(0))
-		r.ErrorIs(err, ErrJournalReportEmpty)
-		_, err = r.stg.GetJournalForPeriod(context.TODO(), 1, 10, 20)
+		_, err := r.stg.GetJournalForPeriod(context.TODO(), 1, 10, 20)
 		r.ErrorIs(err, ErrJournalReportEmpty)
 	})
 
 	r.Run("get journal reports for user 1", func() {
-		// report for period and meal
-		rep, err := r.stg.GetJournalForPeriodAndMeal(context.TODO(), 1, 1, 1, Meal(1))
-		r.NoError(err)
-		r.Equal([]JournalReport{
-			{Timestamp: 1, Meal: Meal(1), FoodName: "aaa", FoodBrand: "brand a",
-				FoodWeight: 2, Cal: 2, Prot: 4, Fat: 6, Carb: 8},
-		}, rep)
-
-		rep, err = r.stg.GetJournalForPeriodAndMeal(context.TODO(), 1, 2, 2, Meal(2))
-		r.NoError(err)
-		r.Equal([]JournalReport{
-			{Timestamp: 2, Meal: Meal(2), FoodName: "aaa", FoodBrand: "brand a",
-				FoodWeight: 5, Cal: 5, Prot: 10, Fat: 15, Carb: 20},
-			{Timestamp: 2, Meal: Meal(2), FoodName: "ccc", FoodBrand: "brand c",
-				FoodWeight: 4, Cal: 4, Prot: 4, Fat: 4, Carb: 4},
-		}, rep)
-
-		// report for period
-		rep, err = r.stg.GetJournalForPeriod(context.TODO(), 1, 1, 2)
+		rep, err := r.stg.GetJournalForPeriod(context.TODO(), 1, 1, 2)
 		r.NoError(err)
 		r.Equal([]JournalReport{
 			{Timestamp: 1, Meal: Meal(0), FoodName: "bbb", FoodBrand: "brand b",
@@ -514,6 +494,10 @@ func (r *StorageSQLiteTestSuite) TestJournalCRUD() {
 			{Timestamp: 1, Meal: Meal(2), FoodName: "ccc", FoodBrand: "brand c",
 				FoodWeight: 3, Cal: 3, Prot: 3, Fat: 3, Carb: 3},
 		}, rep)
+	})
+
+	r.Run("try delete used food", func() {
+		r.ErrorIs(r.stg.DeleteFood(context.TODO(), "food_a"), ErrFoodIsUsed)
 	})
 }
 

@@ -6,6 +6,7 @@ const (
 	msgErrEmptyList      = "Пустой результат"
 
 	msgErrFoodNotFound = "Еда не найдена в базе данных"
+	msgErrFoodIsUsed   = "Еда уже используется в дневнике приема пищи"
 
 	msgErrUserSettingsNotFound = "Не найдены пользовательские настройки"
 

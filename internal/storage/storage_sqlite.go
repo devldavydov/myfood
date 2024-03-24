@@ -163,7 +163,14 @@ func (r *StorageSQLite) FindFood(ctx context.Context, pattern string) ([]Food, e
 
 func (r *StorageSQLite) DeleteFood(ctx context.Context, key string) error {
 	_, err := r.db.ExecContext(ctx, _sqlDeleteFood, key)
-	return err
+	if err != nil {
+		var errSql gsql.Error
+		if errors.As(err, &errSql) && errSql.Error() == _errForeignKey {
+			return ErrFoodIsUsed
+		}
+		return err
+	}
+	return nil
 }
 
 //
@@ -244,15 +251,7 @@ func (r *StorageSQLite) DeleteJournal(ctx context.Context, userID int64, timesta
 }
 
 func (r *StorageSQLite) GetJournalForPeriod(ctx context.Context, userID int64, from, to int64) ([]JournalReport, error) {
-	return r.processJournalReport(ctx, _sqlGetJournalForPeriod, userID, from, to)
-}
-
-func (r *StorageSQLite) GetJournalForPeriodAndMeal(ctx context.Context, userID int64, from, to int64, meal Meal) ([]JournalReport, error) {
-	return r.processJournalReport(ctx, _sqlGetJournalForPeriodAndMeal, userID, from, to, meal)
-}
-
-func (r *StorageSQLite) processJournalReport(ctx context.Context, query string, args ...any) ([]JournalReport, error) {
-	rows, err := r.db.QueryContext(ctx, query, args...)
+	rows, err := r.db.QueryContext(ctx, _sqlGetJournalForPeriod, userID, from, to)
 	if err != nil {
 		return nil, err
 	}

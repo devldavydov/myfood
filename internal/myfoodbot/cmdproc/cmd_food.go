@@ -205,6 +205,10 @@ func (r *CmdProcessor) foodDelCommand(c tele.Context, cmdParts []string, userID 
 	defer cancel()
 
 	if err := r.stg.DeleteFood(ctx, cmdParts[0]); err != nil {
+		if errors.Is(err, storage.ErrFoodIsUsed) {
+			return c.Send(msgErrFoodIsUsed)
+		}
+
 		r.logger.Error(
 			"food del command DB error",
 			zap.Strings("command", cmdParts),

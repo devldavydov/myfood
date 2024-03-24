@@ -77,10 +77,10 @@ const (
 		f.name AS foodname,
 		f.brand AS foodbrand,
 		j.foodweight,
-		j.foodweight * f.cal100 AS cal,
-		j.foodweight * f.prot100 AS prot,
-		j.foodweight * f.fat100 AS fat,
-		j.foodweight * f.carb100 AS carb
+		j.foodweight / 100 * f.cal100 AS cal,
+		j.foodweight / 100 * f.prot100 AS prot,
+		j.foodweight / 100 * f.fat100 AS fat,
+		j.foodweight / 100 * f.carb100 AS carb
 	FROM
 		journal j, food f
 	WHERE
@@ -98,10 +98,10 @@ const (
 		f.name AS foodname,
 		f.brand AS foodbrand,
 		j.foodweight,
-		j.foodweight * f.cal100 AS cal,
-		j.foodweight * f.prot100 AS prot,
-		j.foodweight * f.fat100 AS fat,
-		j.foodweight * f.carb100 AS carb
+		j.foodweight / 100 * f.cal100 AS cal,
+		j.foodweight / 100 * f.prot100 AS prot,
+		j.foodweight / 100 * f.fat100 AS fat,
+		j.foodweight / 100 * f.carb100 AS carb
 	FROM
 		journal j, food f
 	WHERE

@@ -7,6 +7,7 @@ var (
 	ErrFoodNotFound  = errors.New("food not found")
 	ErrFoodInvalid   = errors.New("invalid food")
 	ErrFoodEmptyList = errors.New("empty food list")
+	ErrFoodIsUsed    = errors.New("food is used")
 
 	// Journal
 	ErrJournalInvalid     = errors.New("journal invalid")
