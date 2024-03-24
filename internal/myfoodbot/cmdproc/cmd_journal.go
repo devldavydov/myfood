@@ -115,7 +115,44 @@ func (r *CmdProcessor) journalSetCommand(c tele.Context, cmdParts []string, user
 }
 
 func (r *CmdProcessor) journalDelCommand(c tele.Context, cmdParts []string, userID int64) error {
-	return nil
+	if len(cmdParts) != 3 {
+		r.logger.Error(
+			"invalid journal del command",
+			zap.String("reason", "len parts"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+		)
+		return c.Send(msgErrInvalidCommand)
+	}
+
+	// Parse timestamp
+	ts, err := parseTimestamp(cmdParts[0])
+	if err != nil {
+		r.logger.Error(
+			"invalid journal del command",
+			zap.String("reason", "ts format"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+		)
+		return c.Send(msgErrInvalidCommand)
+	}
+
+	// Delete from DB
+	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout)
+	defer cancel()
+
+	if err := r.stg.DeleteJournal(ctx, userID, ts, storage.NewMealFromString(cmdParts[1]), cmdParts[2]); err != nil {
+		r.logger.Error(
+			"weight journal command DB error",
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
+
+		return c.Send(msgErrInternal)
+	}
+
+	return c.Send(msgOK)
 }
 
 func (r *CmdProcessor) journalReportDayCommand(c tele.Context, cmdParts []string, userID int64) error {
@@ -162,7 +199,7 @@ func (r *CmdProcessor) journalReportDayCommand(c tele.Context, cmdParts []string
 		return c.Send(msgErrInternal)
 	}
 
-	// Prepare report
+	// Report table
 	var sb strings.Builder
 
 	sb.WriteString("<html>")
@@ -177,46 +214,63 @@ func (r *CmdProcessor) journalReportDayCommand(c tele.Context, cmdParts []string
 	</tr>`)
 
 	var totalCal, totalProt, totalFat, totalCarb float64
-	lastMeal := ""
-	for _, j := range lst {
-		ml := j.Meal.ToString()
-		if ml != lastMeal {
-			sb.WriteString(fmt.Sprintf(`<tr><td colspan="6" align="center"><b>%s</b><tr>`, ml))
-			lastMeal = ml
+	var subTotalCal, subTotalProt, subTotalFat, subTotalCarb float64
+	lastMeal := storage.Meal(-1)
+	for i := 0; i < len(lst); i++ {
+		j := lst[i]
+
+		// Add meal divider
+		if j.Meal != lastMeal {
+			sb.WriteString(fmt.Sprintf(`<tr><td colspan="6" align="center"><b>%s</b><tr>`, j.Meal.ToString()))
+			lastMeal = j.Meal
 		}
 
-		foobLbl := j.FoodName
+		// Add meal rows
+		foodLbl := j.FoodName
 		if j.FoodBrand != "" {
-			foobLbl = fmt.Sprintf("%s (%s)", foobLbl, j.FoodBrand)
+			foodLbl = fmt.Sprintf("%s - %s", foodLbl, j.FoodBrand)
 		}
+		foodLbl = fmt.Sprintf("%s [%s]", foodLbl, j.FoodKey)
+
 		sb.WriteString(
-			fmt.Sprintf("<tr><td>%s</td><td>%.1f</td><td>%.1f</td><td>%.1f</td><td>%.1f</td><td>%.1f</td></tr>",
-				foobLbl,
-				j.FoodWeight,
-				j.Cal,
-				j.Prot,
-				j.Fat,
-				j.Carb))
+			fmt.Sprintf("<tr><td>%s</td><td>%.1f</td><td>%.2f</td><td>%.2f</td><td>%.2f</td><td>%.2f</td></tr>",
+				foodLbl, j.FoodWeight, j.Cal, j.Prot, j.Fat, j.Carb))
 
 		totalCal += j.Cal
 		totalProt += j.Prot
 		totalFat += j.Fat
 		totalCarb += j.Carb
+
+		subTotalCal += j.Cal
+		subTotalProt += j.Prot
+		subTotalFat += j.Fat
+		subTotalCarb += j.Carb
+
+		// Add subtotal row
+		if i == len(lst)-1 || lst[i+1].Meal != j.Meal {
+			sb.WriteString(fmt.Sprintf(`<tr>
+			<td align="right" colspan="2"><b>Всего</b></td>
+			<td>%.2f</td>
+			<td>%.2f</td>
+			<td>%.2f</td>
+			<td>%.2f</td>
+			</tr>`, subTotalCal, subTotalProt, subTotalFat, subTotalCarb))
+			subTotalCal, subTotalProt, subTotalFat, subTotalCarb = 0, 0, 0, 0
+		}
 	}
 
-	totalPFC := totalProt + totalFat + totalCarb
-
+	// Footer
 	sb.WriteString("</table>")
-	sb.WriteString(fmt.Sprintf("<p><b>Всего, ккал: </b>%.1f</p>", totalCal))
-
+	sb.WriteString(fmt.Sprintf("<p><b>Всего, ккал: </b>%.2f</p>", totalCal))
+	totalPFC := totalProt + totalFat + totalCarb
 	if totalPFC != 0 {
-		sb.WriteString(fmt.Sprintf("<p><b>Всего, Б: </b>%.1f (%.1f %%)</p>", totalProt, totalProt/totalPFC*100))
-		sb.WriteString(fmt.Sprintf("<p><b>Всего, Ж: </b>%.1f (%.1f %%)</p>", totalFat, totalFat/totalPFC*100))
-		sb.WriteString(fmt.Sprintf("<p><b>Всего, У: </b>%.1f (%.1f %%)</p>", totalCarb, totalCarb/totalPFC*100))
+		sb.WriteString(fmt.Sprintf("<p><b>Всего, Б: </b>%.2f (%.2f %%)</p>", totalProt, totalProt/totalPFC*100))
+		sb.WriteString(fmt.Sprintf("<p><b>Всего, Ж: </b>%.2f (%.2f %%)</p>", totalFat, totalFat/totalPFC*100))
+		sb.WriteString(fmt.Sprintf("<p><b>Всего, У: </b>%.2f (%.2f %%)</p>", totalCarb, totalCarb/totalPFC*100))
 	} else {
-		sb.WriteString(fmt.Sprintf("<p><b>Всего, Б: </b>%.1f</p>", totalProt))
-		sb.WriteString(fmt.Sprintf("<p><b>Всего, Ж: </b>%.1f</p>", totalFat))
-		sb.WriteString(fmt.Sprintf("<p><b>Всего, У: </b>%.1f</p>", totalCarb))
+		sb.WriteString(fmt.Sprintf("<p><b>Всего, Б: </b>%.2f</p>", totalProt))
+		sb.WriteString(fmt.Sprintf("<p><b>Всего, Ж: </b>%.2f</p>", totalFat))
+		sb.WriteString(fmt.Sprintf("<p><b>Всего, У: </b>%.2f</p>", totalCarb))
 	}
 
 	return c.Send(&tele.Document{

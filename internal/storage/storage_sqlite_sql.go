@@ -74,6 +74,7 @@ const (
 	SELECT
 		j.timestamp,
 		j.meal,
+		j.foodkey,
 		f.name AS foodname,
 		f.brand AS foodbrand,
 		j.foodweight,
@@ -88,28 +89,6 @@ const (
 		j.userid = $1 AND
 		j.timestamp >= $2 AND
 		j.timestamp <= $3
-	ORDER BY
-		j.timestamp ASC, j.meal ASC, f.name ASC
-	`
-	_sqlGetJournalForPeriodAndMeal = `
-	SELECT
-		j.timestamp,
-		j.meal,
-		f.name AS foodname,
-		f.brand AS foodbrand,
-		j.foodweight,
-		j.foodweight / 100 * f.cal100 AS cal,
-		j.foodweight / 100 * f.prot100 AS prot,
-		j.foodweight / 100 * f.fat100 AS fat,
-		j.foodweight / 100 * f.carb100 AS carb
-	FROM
-		journal j, food f
-	WHERE
-		j.foodkey = f.key AND
-		j.userid = $1 AND
-		j.timestamp >= $2 AND
-		j.timestamp <= $3 AND
-		j.meal = $4
 	ORDER BY
 		j.timestamp ASC, j.meal ASC, f.name ASC
 	`

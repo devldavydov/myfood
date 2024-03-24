@@ -263,6 +263,7 @@ func (r *StorageSQLite) GetJournalForPeriod(ctx context.Context, userID int64, f
 		err = rows.Scan(
 			&jd.Timestamp,
 			&jd.Meal,
+			&jd.FoodKey,
 			&jd.FoodName,
 			&jd.FoodBrand,
 			&jd.FoodWeight,

@@ -175,10 +175,10 @@ func (r *CmdProcessor) foodFindCommand(c tele.Context, cmdParts []string, userID
 		sb.WriteString(fmt.Sprintf("<b>Ключ:</b> %s\n", food.Key))
 		sb.WriteString(fmt.Sprintf("<b>Наименование:</b> %s\n", food.Name))
 		sb.WriteString(fmt.Sprintf("<b>Бренд:</b> %s\n", food.Brand))
-		sb.WriteString(fmt.Sprintf("<b>ККал100:</b> %.1f\n", food.Cal100))
-		sb.WriteString(fmt.Sprintf("<b>Бел100:</b> %.1f\n", food.Prot100))
-		sb.WriteString(fmt.Sprintf("<b>Жир100:</b> %.1f\n", food.Fat100))
-		sb.WriteString(fmt.Sprintf("<b>Угл100:</b> %.1f\n", food.Carb100))
+		sb.WriteString(fmt.Sprintf("<b>ККал100:</b> %.2f\n", food.Cal100))
+		sb.WriteString(fmt.Sprintf("<b>Бел100:</b> %.2f\n", food.Prot100))
+		sb.WriteString(fmt.Sprintf("<b>Жир100:</b> %.2f\n", food.Fat100))
+		sb.WriteString(fmt.Sprintf("<b>Угл100:</b> %.2f\n", food.Carb100))
 		sb.WriteString(fmt.Sprintf("<b>Комментарий:</b> %s\n", food.Comment))
 
 		if i != len(foodLst)-1 {
