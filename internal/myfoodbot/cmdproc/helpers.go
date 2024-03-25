@@ -21,3 +21,7 @@ func formatTimestamp(tsUnix int64) string {
 	ts := time.Unix(tsUnix, 0)
 	return ts.Format("02.01.2006")
 }
+
+func isStartOfWeek(tsUnix int64) bool {
+	return time.Unix(tsUnix, 0).Weekday() == time.Monday
+}

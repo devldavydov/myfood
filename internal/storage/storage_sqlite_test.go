@@ -439,12 +439,12 @@ func (r *StorageSQLiteTestSuite) TestJournalCRUD() {
 	})
 
 	r.Run("get empty report", func() {
-		_, err := r.stg.GetJournalForPeriod(context.TODO(), 1, 10, 20)
+		_, err := r.stg.GetJournalReport(context.TODO(), 1, 10, 20)
 		r.ErrorIs(err, ErrJournalReportEmpty)
 	})
 
 	r.Run("get journal reports for user 1", func() {
-		rep, err := r.stg.GetJournalForPeriod(context.TODO(), 1, 1, 2)
+		rep, err := r.stg.GetJournalReport(context.TODO(), 1, 1, 2)
 		r.NoError(err)
 		r.Equal([]JournalReport{
 			{Timestamp: 1, Meal: Meal(0), FoodKey: "food_b", FoodName: "bbb", FoodBrand: "brand b",
@@ -468,7 +468,7 @@ func (r *StorageSQLiteTestSuite) TestJournalCRUD() {
 
 	r.Run("check that user 2 gets his data", func() {
 		// report for
-		rep, err := r.stg.GetJournalForPeriod(context.TODO(), 2, 1, 3)
+		rep, err := r.stg.GetJournalReport(context.TODO(), 2, 1, 3)
 		r.NoError(err)
 		r.Equal([]JournalReport{
 			{Timestamp: 3, Meal: Meal(0), FoodKey: "food_b", FoodName: "bbb", FoodBrand: "brand b",
@@ -486,7 +486,7 @@ func (r *StorageSQLiteTestSuite) TestJournalCRUD() {
 		r.NoError(r.stg.DeleteJournal(context.TODO(), 1, 1, Meal(0), "food_b"))
 		r.NoError(r.stg.SetJournal(context.TODO(), 1, &Journal{Timestamp: 1, Meal: Meal(1), FoodKey: "food_a", FoodWeight: 300}))
 
-		rep, err := r.stg.GetJournalForPeriod(context.TODO(), 1, 1, 1)
+		rep, err := r.stg.GetJournalReport(context.TODO(), 1, 1, 1)
 		r.NoError(err)
 		r.Equal([]JournalReport{
 			{Timestamp: 1, Meal: Meal(1), FoodKey: "food_a", FoodName: "aaa", FoodBrand: "brand a",

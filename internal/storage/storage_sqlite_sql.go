@@ -70,7 +70,7 @@ const (
 	DELETE from journal
 	WHERE userid = $1 AND timestamp = $2 AND meal = $3 AND foodkey = $4
 	`
-	_sqlGetJournalForPeriod = `
+	_sqlGetJournalReport = `
 	SELECT
 		j.timestamp,
 		j.meal,
@@ -91,6 +91,25 @@ const (
 		j.timestamp <= $3
 	ORDER BY
 		j.timestamp ASC, j.meal ASC, f.name ASC
+	`
+	_sqlGetJournalStats = `
+	SELECT
+		j.timestamp,
+		sum(j.foodweight / 100 * f.cal100) AS totalCal,
+		sum(j.foodweight / 100 * f.prot100) AS totalProt,
+		sum(j.foodweight / 100 * f.fat100) AS totalFat,
+		sum(j.foodweight / 100 * f.carb100) AS totalCarb
+	FROM
+		journal j, food f
+	WHERE
+		j.foodkey = f.key AND
+		j.userid = $1 AND
+		j.timestamp >= $2 AND
+		j.timestamp <= $3
+	GROUP BY
+		j.timestamp
+	ORDER BY
+		j.timestamp ASC
 	`
 
 	// Weight

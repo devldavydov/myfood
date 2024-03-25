@@ -5,8 +5,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/devldavydov/myfood/internal/storage"
 	"go.uber.org/zap"
@@ -158,7 +160,7 @@ func (r *CmdProcessor) journalDelCommand(c tele.Context, cmdParts []string, user
 func (r *CmdProcessor) journalReportDayCommand(c tele.Context, cmdParts []string, userID int64) error {
 	if len(cmdParts) != 1 {
 		r.logger.Error(
-			"invalid journal rdm command",
+			"invalid journal rd command",
 			zap.String("reason", "len parts"),
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
@@ -198,7 +200,7 @@ func (r *CmdProcessor) journalReportDayCommand(c tele.Context, cmdParts []string
 		}
 	}
 
-	lst, err := r.stg.GetJournalForPeriod(ctx, userID, ts, ts)
+	lst, err := r.stg.GetJournalReport(ctx, userID, ts, ts)
 	if err != nil {
 		if errors.Is(err, storage.ErrJournalReportEmpty) {
 			return c.Send(msgErrEmptyList)
@@ -220,16 +222,21 @@ func (r *CmdProcessor) journalReportDayCommand(c tele.Context, cmdParts []string
 	sb.WriteString("<html>")
 	sb.WriteString(fmt.Sprintf(`<link href="%s" rel="stylesheet">`, _styleURL))
 	sb.WriteString(`<div class="container">`)
-	sb.WriteString(`<table class="table table-bordered">`)
-	sb.WriteString(`<thead><tr>
-		<th>Наименование</th>
-		<th>Вес</th>
-		<th>ККал</th>
-		<th>Белки</th>
-		<th>Жиры</th>
-		<th>Углеводы</th>
-	</tr></thead>`)
+	sb.WriteString(fmt.Sprintf(`<h5 align="center">Журнал приема пищи за %s</h5>`, tsStr))
+	sb.WriteString(`<table class="table table-bordered table-hover">`)
+	sb.WriteString(`<thead class="table-light">
+		<tr>
+			<th>Наименование</th>
+			<th>Вес</th>
+			<th>ККал</th>
+			<th>Белки</th>
+			<th>Жиры</th>
+			<th>Углеводы</th>
+		</tr>
+	</thead>`)
 
+	// Body
+	sb.WriteString("<tbody>")
 	var totalCal, totalProt, totalFat, totalCarb float64
 	var subTotalCal, subTotalProt, subTotalFat, subTotalCarb float64
 	lastMeal := storage.Meal(-1)
@@ -275,26 +282,16 @@ func (r *CmdProcessor) journalReportDayCommand(c tele.Context, cmdParts []string
 			subTotalCal, subTotalProt, subTotalFat, subTotalCarb = 0, 0, 0, 0
 		}
 	}
+	sb.WriteString("</tbody>")
 
 	// Footer
 	sb.WriteString("<tfoot>")
-	if us == nil {
-		sb.WriteString(fmt.Sprintf(`<tr><td colspan="6"><b>Всего, ккал: </b>%.2f</td></tr>`, totalCal))
-	} else {
-		sb.WriteString(fmt.Sprintf(`<tr><td colspan="6"><b>Всего, ккал: </b>%.2f</td></tr>`, totalCal))
-		sb.WriteString(fmt.Sprintf(`<tr><td colspan="6"><b>Остаток дневного лимита, ккал: </b>%.2f</td></tr>`, us.CalLimit-totalCal))
-	}
+	sb.WriteString(fmt.Sprintf(`<tr><td colspan="6"><b>Всего, ккал: </b>%s</td></tr>`, calDiffSnippet(us, totalCal)))
 
 	totalPFC := totalProt + totalFat + totalCarb
-	if totalPFC != 0 {
-		sb.WriteString(fmt.Sprintf(`<tr><td colspan="6"><b>Всего, Б: </b>%.2f (%.2f %%)</td></tr>`, totalProt, totalProt/totalPFC*100))
-		sb.WriteString(fmt.Sprintf(`<tr><td colspan="6"><b>Всего, Ж: </b>%.2f (%.2f %%)</td></tr>`, totalFat, totalFat/totalPFC*100))
-		sb.WriteString(fmt.Sprintf(`<tr><td colspan="6"><b>Всего, У: </b>%.2f (%.2f %%)</p>`, totalCarb, totalCarb/totalPFC*100))
-	} else {
-		sb.WriteString(fmt.Sprintf(`<tr><td colspan="6"><b>Всего, Б: </b>%.2f</td></tr>`, totalProt))
-		sb.WriteString(fmt.Sprintf(`<tr><td colspan="6"><b>Всего, Ж: </b>%.2f</td></tr>`, totalFat))
-		sb.WriteString(fmt.Sprintf(`<tr><td colspan="6"><b>Всего, У: </b>%.2f</td></tr>`, totalCarb))
-	}
+	sb.WriteString(fmt.Sprintf(`<tr><td colspan="6"><b>Всего, Б: </b>%s</td></tr>`, pfcSnippet(totalProt, totalPFC)))
+	sb.WriteString(fmt.Sprintf(`<tr><td colspan="6"><b>Всего, Ж: </b>%s</td></tr>`, pfcSnippet(totalFat, totalPFC)))
+	sb.WriteString(fmt.Sprintf(`<tr><td colspan="6"><b>Всего, У: </b>%s</td></tr>`, pfcSnippet(totalCarb, totalPFC)))
 	sb.WriteString("</tfoot>")
 
 	// End
@@ -303,10 +300,157 @@ func (r *CmdProcessor) journalReportDayCommand(c tele.Context, cmdParts []string
 	return c.Send(&tele.Document{
 		File:     tele.FromReader(bytes.NewBufferString(sb.String())),
 		MIME:     "text/html",
-		FileName: fmt.Sprintf("journal_%s.html", tsStr),
+		FileName: fmt.Sprintf("report_%s.html", tsStr),
 	})
 }
 
 func (r *CmdProcessor) journalReportWeek(c tele.Context, cmdParts []string, userID int64) error {
-	return nil
+	if len(cmdParts) != 1 {
+		r.logger.Error(
+			"invalid journal rw command",
+			zap.String("reason", "len parts"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+		)
+		return c.Send(msgErrInvalidCommand)
+	}
+
+	tsStartStr := cmdParts[0]
+	tsStart, err := parseTimestamp(tsStartStr)
+	if err != nil {
+		r.logger.Error(
+			"invalid journal rw command",
+			zap.String("reason", "ts format"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
+		return c.Send(msgErrInvalidCommand)
+	}
+
+	if !isStartOfWeek(tsStart) {
+		return c.Send(msgErrJournalNotStartOfWeek)
+	}
+
+	tsEnd := time.Unix(tsStart, 0).Add(6 * 24 * time.Hour).Unix()
+	tsEndStr := formatTimestamp(tsEnd)
+
+	// Get list from DB and user settings
+	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout*2)
+	defer cancel()
+
+	var us *storage.UserSettings
+	us, err = r.stg.GetUserSettings(ctx, userID)
+	if err != nil {
+		if !errors.Is(err, storage.ErrUserSettingsNotFound) {
+			r.logger.Error(
+				"journal rw command DB error for user settings",
+				zap.Strings("command", cmdParts),
+				zap.Int64("userid", userID),
+				zap.Error(err),
+			)
+
+			return c.Send(msgErrInternal)
+		}
+	}
+
+	lst, err := r.stg.GetJournalStats(ctx, userID, tsStart, tsEnd)
+	if err != nil {
+		if errors.Is(err, storage.ErrJournalStatsEmpty) {
+			return c.Send(msgErrEmptyList)
+		}
+
+		r.logger.Error(
+			"journal rw command DB error",
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
+
+		return c.Send(msgErrInternal)
+	}
+
+	// Stat table
+	var sb strings.Builder
+
+	sb.WriteString("<html>")
+	sb.WriteString(fmt.Sprintf(`<link href="%s" rel="stylesheet">`, _styleURL))
+	sb.WriteString(`<div class="container">`)
+	sb.WriteString(fmt.Sprintf(`<h5 align="center">Статистика приема пищи за %s - %s</h5>`, tsStartStr, tsEndStr))
+	sb.WriteString(`<table class="table table-bordered table-hover">`)
+	sb.WriteString(`<thead class="table-light">
+		<tr>
+			<th>Дата</th>
+			<th>Итого, ккал</th>
+			<th>Итого, белки</th>
+			<th>Итого, жиры</th>
+			<th>Итого углеводы</th>
+		</tr>
+	</thead>`)
+
+	// Body
+	sb.WriteString("<tbody>")
+	var totalCal, totalProt, totalFat, totalCarb float64
+	for _, j := range lst {
+		sb.WriteString(
+			fmt.Sprintf(
+				"<tr><td>%s</td><td>%s</td><td>%.2f</td><td>%.2f</td><td>%.2f</td></tr>",
+				formatTimestamp(j.Timestamp),
+				calDiffSnippet(us, j.TotalCal),
+				j.TotalProt,
+				j.TotalFat,
+				j.TotalCarb))
+
+		totalCal += j.TotalCal
+		totalProt += j.TotalProt
+		totalFat += j.TotalFat
+		totalCarb += j.TotalCarb
+	}
+	sb.WriteString("</tbody>")
+
+	lLst := float64(len(lst))
+	avgCal, avgProt, avgFat, avgCarb := totalCal/lLst, totalProt/lLst, totalFat/lLst, totalCarb/lLst
+
+	// Footer
+	sb.WriteString("<tfoot>")
+	sb.WriteString(fmt.Sprintf(`<tr><td colspan="5"><b>Среднее, ккал: </b>%.2f</td></tr>`, avgCal))
+
+	totalAvgPFC := avgProt + avgFat + avgCarb
+	sb.WriteString(fmt.Sprintf(`<tr><td colspan="5"><b>Среднее, Б: </b>%s</td></tr>`, pfcSnippet(avgProt, totalAvgPFC)))
+	sb.WriteString(fmt.Sprintf(`<tr><td colspan="5"><b>Среднее, Ж: </b>%s</td></tr>`, pfcSnippet(avgFat, totalAvgPFC)))
+	sb.WriteString(fmt.Sprintf(`<tr><td colspan="5"><b>Среднее, У: </b>%s</td></tr>`, pfcSnippet(avgCarb, totalAvgPFC)))
+	sb.WriteString("</tfoot>")
+
+	// End
+	sb.WriteString("</table></div></html>")
+
+	return c.Send(&tele.Document{
+		File:     tele.FromReader(bytes.NewBufferString(sb.String())),
+		MIME:     "text/html",
+		FileName: fmt.Sprintf("stats_%s_%s.html", tsStartStr, tsEndStr),
+	})
+}
+
+func calDiffSnippet(us *storage.UserSettings, cal float64) string {
+	if us == nil {
+		return fmt.Sprintf("%.2f", cal)
+	} else {
+		diff := us.CalLimit - cal
+		switch {
+		case diff < 0 && math.Abs(diff) > 0.01:
+			return fmt.Sprintf(`%.2f (<b class="text-danger">%+.2f</b>)`, cal, diff)
+		case diff > 0 && math.Abs(diff) > 0.01:
+			return fmt.Sprintf(`%.2f (<b class="text-success">%+.2f</b>)`, cal, diff)
+		default:
+			return fmt.Sprintf("%.2f", cal)
+		}
+	}
+}
+
+func pfcSnippet(val, totalVal float64) string {
+	if totalVal == 0 {
+		return fmt.Sprintf("%.2f", val)
+	}
+
+	return fmt.Sprintf("%.2f (%.2f%%)", val, val/totalVal*100)
 }

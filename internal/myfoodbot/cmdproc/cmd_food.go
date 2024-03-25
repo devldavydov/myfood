@@ -246,29 +246,34 @@ func (r *CmdProcessor) foodListCommand(c tele.Context, userID int64) error {
 <html>
 	<link href="%s" rel="stylesheet">
 	<div class="container">
-	<table class="table table-bordered">
-		<tr>
-			<th>Ключ</th>
-			<th>Наименование</th>
-			<th>Бренд</th>
-			<th>ККал в 100г.</th>
-			<th>Белки в 100г.</th>
-			<th>Жиры в 100г.</th>
-			<th>Углеводы в 100г.</th>
-			<th>Комментарий</th>
-		</tr>
-		{{ range . }}
-		<tr>
-			<td>{{.Key}}</td>
-			<td>{{.Name}}</td>
-			<td>{{.Brand}}</td>
-			<td>{{.Cal100}}</td>
-			<td>{{.Prot100}}</td>
-			<td>{{.Fat100}}</td>
-			<td>{{.Carb100}}</td>
-			<td>{{.Comment}}</td>
-		</tr>
-		{{ end }}
+	<h5 align="center">Список продуктов и энергетической ценности</h5>
+	<table class="table table-bordered table-hover">
+		<thead class="table-light">		
+			<tr>
+				<th>Ключ</th>
+				<th>Наименование</th>
+				<th>Бренд</th>
+				<th>ККал в 100г.</th>
+				<th>Белки в 100г.</th>
+				<th>Жиры в 100г.</th>
+				<th>Углеводы в 100г.</th>
+				<th>Комментарий</th>
+			</tr>
+		</thead>
+		<tbody>
+			{{ range . }}
+			<tr>
+				<td>{{.Key}}</td>
+				<td>{{.Name}}</td>
+				<td>{{.Brand}}</td>
+				<td>{{.Cal100}}</td>
+				<td>{{.Prot100}}</td>
+				<td>{{.Fat100}}</td>
+				<td>{{.Carb100}}</td>
+				<td>{{.Comment}}</td>
+			</tr>
+			{{ end }}
+		<tbody>
 	</table>
 	</div>
 <html>	

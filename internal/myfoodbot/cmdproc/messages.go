@@ -10,5 +10,7 @@ const (
 
 	msgErrUserSettingsNotFound = "Не найдены пользовательские настройки"
 
+	msgErrJournalNotStartOfWeek = "Дата не является началом недели"
+
 	msgOK = "OK"
 )

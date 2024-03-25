@@ -87,6 +87,14 @@ type JournalReport struct {
 	Carb       float64
 }
 
+type JournalStats struct {
+	Timestamp int64
+	TotalCal  float64
+	TotalProt float64
+	TotalFat  float64
+	TotalCarb float64
+}
+
 type Weight struct {
 	Timestamp int64
 	Value     float64

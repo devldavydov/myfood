@@ -12,6 +12,7 @@ var (
 	// Journal
 	ErrJournalInvalid     = errors.New("journal invalid")
 	ErrJournalReportEmpty = errors.New("empty journal report")
+	ErrJournalStatsEmpty  = errors.New("empty journal stats")
 	ErrJournalInvalidFood = errors.New("journal invalid food")
 
 	// Weight

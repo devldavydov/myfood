@@ -250,8 +250,8 @@ func (r *StorageSQLite) DeleteJournal(ctx context.Context, userID int64, timesta
 	return err
 }
 
-func (r *StorageSQLite) GetJournalForPeriod(ctx context.Context, userID int64, from, to int64) ([]JournalReport, error) {
-	rows, err := r.db.QueryContext(ctx, _sqlGetJournalForPeriod, userID, from, to)
+func (r *StorageSQLite) GetJournalReport(ctx context.Context, userID int64, from, to int64) ([]JournalReport, error) {
+	rows, err := r.db.QueryContext(ctx, _sqlGetJournalReport, userID, from, to)
 	if err != nil {
 		return nil, err
 	}
@@ -281,6 +281,41 @@ func (r *StorageSQLite) GetJournalForPeriod(ctx context.Context, userID int64, f
 
 	if len(list) == 0 {
 		return nil, ErrJournalReportEmpty
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return list, nil
+}
+
+func (r *StorageSQLite) GetJournalStats(ctx context.Context, userID int64, from, to int64) ([]JournalStats, error) {
+	rows, err := r.db.QueryContext(ctx, _sqlGetJournalStats, userID, from, to)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var list []JournalStats
+	for rows.Next() {
+		var js JournalStats
+		err = rows.Scan(
+			&js.Timestamp,
+			&js.TotalCal,
+			&js.TotalProt,
+			&js.TotalFat,
+			&js.TotalCarb,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		list = append(list, js)
+	}
+
+	if len(list) == 0 {
+		return nil, ErrJournalStatsEmpty
 	}
 
 	if err = rows.Err(); err != nil {

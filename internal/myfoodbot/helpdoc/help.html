@@ -166,6 +166,40 @@
           </div>
         </div>
       </div>
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+            data-bs-target="#collapseJournal" aria-expanded="false" aria-controls="collapseJournal">
+            <b>Управление журналом приема пищи (j)</b>
+          </button>
+        </h2>
+        <div id="collapseJournal" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+          <div class="accordion-body">
+            <p>Команды для управления журналом приема пищи с: <code>j</code></p>
+            <div class="alert alert-primary" role="alert">
+              Установка записи приема пищи
+            </div>
+            <p>Команда: <code>j,set,&lt;Дата MM.DD.YYYY&gt;,&lt;Прием пищи&gt;,&lt;Ключ еды&gt;,&lt;Вес гр.&gt;</code></p>
+            <p>Варианты приема пищи: Завтрак, До обеда, Обед, Полдник, До ужина, Ужин, Перекус</p>
+            <p>Ключ еды - значение ключа из списка еды</p>
+            <div class="alert alert-primary" role="alert">
+              Удаление записи приема пищи
+            </div>
+            <p>Команда: <code>j,del,&lt;Дата MM.DD.YYYY&gt;,&lt;Прием пищи&gt;,&lt;Ключ еды&gt;</code></p>
+            <p>Варианты приема пищи: Завтрак, До обеда, Обед, Полдник, До ужина, Ужин, Перекус</p>
+            <p>Ключ еды - значение ключа из списка еды</p>
+            <div class="alert alert-primary" role="alert">
+              Ежедневный отчет
+            </div>
+            <p>Команда: <code>j,rd,&lt;Дата MM.DD.YYYY&gt;</code></p>
+            <div class="alert alert-primary" role="alert">
+              Еженедельный отчет
+            </div>
+            <p>Команда: <code>j,rw,&lt;Дата MM.DD.YYYY&gt;</code></p>
+            <p>Дата - начало недели</p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
