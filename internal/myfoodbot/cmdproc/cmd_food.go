@@ -242,9 +242,11 @@ func (r *CmdProcessor) foodListCommand(c tele.Context, userID int64) error {
 		return c.Send(msgErrInternal)
 	}
 
-	tmpl := template.Must(template.New("").Parse(`
+	tmpl := template.Must(template.New("").Parse(fmt.Sprintf(`
 <html>
-	<table border="1" width="100%">
+	<link href="%s" rel="stylesheet">
+	<div class="container">
+	<table class="table table-bordered">
 		<tr>
 			<th>Ключ</th>
 			<th>Наименование</th>
@@ -268,8 +270,9 @@ func (r *CmdProcessor) foodListCommand(c tele.Context, userID int64) error {
 		</tr>
 		{{ end }}
 	</table>
+	</div>
 <html>	
-	`))
+	`, _styleURL)))
 
 	buf := bytes.NewBuffer([]byte{})
 	if err = tmpl.Execute(buf, foodList); err != nil {

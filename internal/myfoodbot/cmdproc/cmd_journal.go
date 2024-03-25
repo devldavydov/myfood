@@ -218,15 +218,17 @@ func (r *CmdProcessor) journalReportDayCommand(c tele.Context, cmdParts []string
 	var sb strings.Builder
 
 	sb.WriteString("<html>")
-	sb.WriteString("<table border=\"1\" width=\"100%\">")
-	sb.WriteString(`<tr>
+	sb.WriteString(fmt.Sprintf(`<link href="%s" rel="stylesheet">`, _styleURL))
+	sb.WriteString(`<div class="container">`)
+	sb.WriteString(`<table class="table table-bordered">`)
+	sb.WriteString(`<thead><tr>
 		<th>Наименование</th>
 		<th>Вес</th>
 		<th>ККал</th>
 		<th>Белки</th>
 		<th>Жиры</th>
 		<th>Углеводы</th>
-	</tr>`)
+	</tr></thead>`)
 
 	var totalCal, totalProt, totalFat, totalCarb float64
 	var subTotalCal, subTotalProt, subTotalFat, subTotalCarb float64
@@ -275,24 +277,28 @@ func (r *CmdProcessor) journalReportDayCommand(c tele.Context, cmdParts []string
 	}
 
 	// Footer
-	sb.WriteString("</table>")
+	sb.WriteString("<tfoot>")
 	if us == nil {
-		sb.WriteString(fmt.Sprintf("<p><b>Всего, ккал: </b>%.2f</p>", totalCal))
+		sb.WriteString(fmt.Sprintf(`<tr><td colspan="6"><b>Всего, ккал: </b>%.2f</td></tr>`, totalCal))
 	} else {
-		sb.WriteString(fmt.Sprintf("<p><b>Всего, ккал: </b>%.2f</p>", totalCal))
-		sb.WriteString(fmt.Sprintf("<p><b>Остаток дневного лимита, ккал: </b>%.2f</p>", us.CalLimit-totalCal))
+		sb.WriteString(fmt.Sprintf(`<tr><td colspan="6"><b>Всего, ккал: </b>%.2f</td></tr>`, totalCal))
+		sb.WriteString(fmt.Sprintf(`<tr><td colspan="6"><b>Остаток дневного лимита, ккал: </b>%.2f</td></tr>`, us.CalLimit-totalCal))
 	}
 
 	totalPFC := totalProt + totalFat + totalCarb
 	if totalPFC != 0 {
-		sb.WriteString(fmt.Sprintf("<p><b>Всего, Б: </b>%.2f (%.2f %%)</p>", totalProt, totalProt/totalPFC*100))
-		sb.WriteString(fmt.Sprintf("<p><b>Всего, Ж: </b>%.2f (%.2f %%)</p>", totalFat, totalFat/totalPFC*100))
-		sb.WriteString(fmt.Sprintf("<p><b>Всего, У: </b>%.2f (%.2f %%)</p>", totalCarb, totalCarb/totalPFC*100))
+		sb.WriteString(fmt.Sprintf(`<tr><td colspan="6"><b>Всего, Б: </b>%.2f (%.2f %%)</td></tr>`, totalProt, totalProt/totalPFC*100))
+		sb.WriteString(fmt.Sprintf(`<tr><td colspan="6"><b>Всего, Ж: </b>%.2f (%.2f %%)</td></tr>`, totalFat, totalFat/totalPFC*100))
+		sb.WriteString(fmt.Sprintf(`<tr><td colspan="6"><b>Всего, У: </b>%.2f (%.2f %%)</p>`, totalCarb, totalCarb/totalPFC*100))
 	} else {
-		sb.WriteString(fmt.Sprintf("<p><b>Всего, Б: </b>%.2f</p>", totalProt))
-		sb.WriteString(fmt.Sprintf("<p><b>Всего, Ж: </b>%.2f</p>", totalFat))
-		sb.WriteString(fmt.Sprintf("<p><b>Всего, У: </b>%.2f</p>", totalCarb))
+		sb.WriteString(fmt.Sprintf(`<tr><td colspan="6"><b>Всего, Б: </b>%.2f</td></tr>`, totalProt))
+		sb.WriteString(fmt.Sprintf(`<tr><td colspan="6"><b>Всего, Ж: </b>%.2f</td></tr>`, totalFat))
+		sb.WriteString(fmt.Sprintf(`<tr><td colspan="6"><b>Всего, У: </b>%.2f</td></tr>`, totalCarb))
 	}
+	sb.WriteString("</tfoot>")
+
+	// End
+	sb.WriteString("</table></div></html>")
 
 	return c.Send(&tele.Document{
 		File:     tele.FromReader(bytes.NewBufferString(sb.String())),
