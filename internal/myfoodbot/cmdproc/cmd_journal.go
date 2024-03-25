@@ -179,9 +179,24 @@ func (r *CmdProcessor) journalReportDayCommand(c tele.Context, cmdParts []string
 		return c.Send(msgErrInvalidCommand)
 	}
 
-	// List from DB
-	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout)
+	// Get list from DB and user settings
+	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout*2)
 	defer cancel()
+
+	var us *storage.UserSettings
+	us, err = r.stg.GetUserSettings(ctx, userID)
+	if err != nil {
+		if !errors.Is(err, storage.ErrUserSettingsNotFound) {
+			r.logger.Error(
+				"journal rd command DB error for user settings",
+				zap.Strings("command", cmdParts),
+				zap.Int64("userid", userID),
+				zap.Error(err),
+			)
+
+			return c.Send(msgErrInternal)
+		}
+	}
 
 	lst, err := r.stg.GetJournalForPeriod(ctx, userID, ts, ts)
 	if err != nil {
@@ -261,7 +276,13 @@ func (r *CmdProcessor) journalReportDayCommand(c tele.Context, cmdParts []string
 
 	// Footer
 	sb.WriteString("</table>")
-	sb.WriteString(fmt.Sprintf("<p><b>Всего, ккал: </b>%.2f</p>", totalCal))
+	if us == nil {
+		sb.WriteString(fmt.Sprintf("<p><b>Всего, ккал: </b>%.2f</p>", totalCal))
+	} else {
+		sb.WriteString(fmt.Sprintf("<p><b>Всего, ккал: </b>%.2f</p>", totalCal))
+		sb.WriteString(fmt.Sprintf("<p><b>Остаток дневного лимита, ккал: </b>%.2f</p>", us.CalLimit-totalCal))
+	}
+
 	totalPFC := totalProt + totalFat + totalCarb
 	if totalPFC != 0 {
 		sb.WriteString(fmt.Sprintf("<p><b>Всего, Б: </b>%.2f (%.2f %%)</p>", totalProt, totalProt/totalPFC*100))
