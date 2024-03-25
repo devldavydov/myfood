@@ -464,6 +464,13 @@ func (r *StorageSQLiteTestSuite) TestJournalCRUD() {
 			{Timestamp: 2, Meal: Meal(2), FoodKey: "food_c", FoodName: "ccc", FoodBrand: "brand c",
 				FoodWeight: 400, Cal: 4, Prot: 4, Fat: 4, Carb: 4},
 		}, rep)
+
+		stats, err := r.stg.GetJournalStats(context.TODO(), 1, 1, 2)
+		r.NoError(err)
+		r.Equal([]JournalStats{
+			{Timestamp: 1, TotalCal: 10, TotalProt: 13, TotalFat: 16, TotalCarb: 19},
+			{Timestamp: 2, TotalCal: 27, TotalProt: 37, TotalFat: 47, TotalCarb: 57},
+		}, stats)
 	})
 
 	r.Run("check that user 2 gets his data", func() {
