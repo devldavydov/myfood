@@ -218,22 +218,26 @@ func (r *CmdProcessor) journalReportDayCommand(c tele.Context, cmdParts []string
 
 	// Report table
 	var sb strings.Builder
-
-	sb.WriteString("<html>")
-	sb.WriteString(fmt.Sprintf(`<link href="%s" rel="stylesheet">`, _cssBotstrapURL))
-	sb.WriteString(`<div class="container">`)
-	sb.WriteString(fmt.Sprintf(`<h5 align="center">Журнал приема пищи за %s</h5>`, tsStr))
-	sb.WriteString(`<table class="table table-bordered table-hover">`)
-	sb.WriteString(`<thead class="table-light">
-		<tr>
-			<th>Наименование</th>
-			<th>Вес</th>
-			<th>ККал</th>
-			<th>Белки</th>
-			<th>Жиры</th>
-			<th>Углеводы</th>
-		</tr>
-	</thead>`)
+	sb.WriteString(fmt.Sprintf(`
+	<html>
+	<link href="%s" rel="stylesheet">
+	<body>
+	<div class="container">
+		<h5 align="center">Журнал приема пищи за %s</h5>
+		<table class="table table-bordered table-hover">
+			<thead class="table-light">
+				<tr>
+					<th>Наименование</th>
+					<th>Вес</th>
+					<th>ККал</th>
+					<th>Белки</th>
+					<th>Жиры</th>
+					<th>Углеводы</th>
+				</tr>
+			</thead>
+	`,
+		_cssBotstrapURL,
+		tsStr))
 
 	// Body
 	sb.WriteString("<tbody>")
@@ -245,7 +249,7 @@ func (r *CmdProcessor) journalReportDayCommand(c tele.Context, cmdParts []string
 
 		// Add meal divider
 		if j.Meal != lastMeal {
-			sb.WriteString(fmt.Sprintf(`<tr><td colspan="6" align="center"><b>%s</b><tr>`, j.Meal.ToString()))
+			sb.WriteString(fmt.Sprintf(`<tr class="table-active"><td colspan="6" align="center"><b>%s</b><tr>`, j.Meal.ToString()))
 			lastMeal = j.Meal
 		}
 
@@ -272,30 +276,40 @@ func (r *CmdProcessor) journalReportDayCommand(c tele.Context, cmdParts []string
 
 		// Add subtotal row
 		if i == len(lst)-1 || lst[i+1].Meal != j.Meal {
-			sb.WriteString(fmt.Sprintf(`<tr>
-			<td align="right" colspan="2"><b>Всего</b></td>
-			<td>%.2f</td>
-			<td>%.2f</td>
-			<td>%.2f</td>
-			<td>%.2f</td>
-			</tr>`, subTotalCal, subTotalProt, subTotalFat, subTotalCarb))
+			sb.WriteString(fmt.Sprintf(`
+			<tr>
+				<td align="right" colspan="2"><b>Всего</b></td>
+				<td>%.2f</td>
+				<td>%.2f</td>
+				<td>%.2f</td>
+				<td>%.2f</td>
+			</tr>`,
+				subTotalCal, subTotalProt, subTotalFat, subTotalCarb))
+
 			subTotalCal, subTotalProt, subTotalFat, subTotalCarb = 0, 0, 0, 0
 		}
 	}
 	sb.WriteString("</tbody>")
 
 	// Footer
-	sb.WriteString("<tfoot>")
-	sb.WriteString(fmt.Sprintf(`<tr><td colspan="6"><b>Всего, ккал: </b>%s</td></tr>`, calDiffSnippet(us, totalCal)))
-
 	totalPFC := totalProt + totalFat + totalCarb
-	sb.WriteString(fmt.Sprintf(`<tr><td colspan="6"><b>Всего, Б: </b>%s</td></tr>`, pfcSnippet(totalProt, totalPFC)))
-	sb.WriteString(fmt.Sprintf(`<tr><td colspan="6"><b>Всего, Ж: </b>%s</td></tr>`, pfcSnippet(totalFat, totalPFC)))
-	sb.WriteString(fmt.Sprintf(`<tr><td colspan="6"><b>Всего, У: </b>%s</td></tr>`, pfcSnippet(totalCarb, totalPFC)))
-	sb.WriteString("</tfoot>")
 
-	// End
-	sb.WriteString("</table></div></html>")
+	sb.WriteString(fmt.Sprintf(`
+			<tfoot>
+				<tr><td colspan="6"><b>Всего, ккал: </b>%s</td></tr>
+				<tr><td colspan="6"><b>Всего, Б: </b>%s</td></tr>
+				<tr><td colspan="6"><b>Всего, Ж: </b>%s</td></tr>
+				<tr><td colspan="6"><b>Всего, У: </b>%s</td></tr>
+			</tfoot>
+		</table>
+	</div>
+	</body>
+	</html>
+	`,
+		calDiffSnippet(us, totalCal),
+		pfcSnippet(totalProt, totalPFC),
+		pfcSnippet(totalFat, totalPFC),
+		pfcSnippet(totalCarb, totalPFC)))
 
 	return c.Send(&tele.Document{
 		File:     tele.FromReader(bytes.NewBufferString(sb.String())),
@@ -380,6 +394,7 @@ func (r *CmdProcessor) journalReportWeek(c tele.Context, cmdParts []string, user
 	sb.WriteString(fmt.Sprintf(`
 	<html>
 	<link href="%s" rel="stylesheet">
+	<body>
 	<div class="container">
 		<h5 align="center">Статистика приема пищи за %s - %s</h5>
 		<div class="row">
@@ -415,7 +430,7 @@ func (r *CmdProcessor) journalReportWeek(c tele.Context, cmdParts []string, user
 		totalFat += j.TotalFat
 		totalCarb += j.TotalCarb
 
-		dataRange[(j.Timestamp-tsStart)%7] = j.TotalCal
+		dataRange[(j.Timestamp-tsStart)/24/3600%7] = j.TotalCal
 	}
 	sb.WriteString("</tbody>")
 
@@ -442,7 +457,7 @@ func (r *CmdProcessor) journalReportWeek(c tele.Context, cmdParts []string, user
 	// Chart
 	data := &ChardData{
 		XLabels: tsRangeStr,
-		Data:    dataRange[:],
+		Data:    dataRange,
 		Label:   "ККал",
 		Type:    "bar",
 	}
@@ -463,6 +478,7 @@ func (r *CmdProcessor) journalReportWeek(c tele.Context, cmdParts []string, user
 			<canvas id="chart"></canvas>
 		</div>
 	</div>
+	</body>
 	%s
 	</html>
 	`, chartSnip))
