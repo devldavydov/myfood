@@ -277,7 +277,7 @@ func (r *CmdProcessor) foodListCommand(c tele.Context, userID int64) error {
 	</table>
 	</div>
 <html>	
-	`, _styleURL)))
+	`, _cssBotstrapURL)))
 
 	buf := bytes.NewBuffer([]byte{})
 	if err = tmpl.Execute(buf, foodList); err != nil {

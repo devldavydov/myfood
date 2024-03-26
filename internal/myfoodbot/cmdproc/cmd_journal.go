@@ -220,7 +220,7 @@ func (r *CmdProcessor) journalReportDayCommand(c tele.Context, cmdParts []string
 	var sb strings.Builder
 
 	sb.WriteString("<html>")
-	sb.WriteString(fmt.Sprintf(`<link href="%s" rel="stylesheet">`, _styleURL))
+	sb.WriteString(fmt.Sprintf(`<link href="%s" rel="stylesheet">`, _cssBotstrapURL))
 	sb.WriteString(`<div class="container">`)
 	sb.WriteString(fmt.Sprintf(`<h5 align="center">Журнал приема пищи за %s</h5>`, tsStr))
 	sb.WriteString(`<table class="table table-bordered table-hover">`)
@@ -332,6 +332,10 @@ func (r *CmdProcessor) journalReportWeek(c tele.Context, cmdParts []string, user
 		return c.Send(msgErrJournalNotStartOfWeek)
 	}
 
+	tsRangeStr := make([]string, 7)
+	for i := 0; i < 7; i++ {
+		tsRangeStr[i] = formatTimestamp(time.Unix(tsStart, 0).Add(time.Duration(i) * 24 * time.Hour).Unix())
+	}
 	tsEnd := time.Unix(tsStart, 0).Add(6 * 24 * time.Hour).Unix()
 	tsEndStr := formatTimestamp(tsEnd)
 
@@ -373,24 +377,29 @@ func (r *CmdProcessor) journalReportWeek(c tele.Context, cmdParts []string, user
 	// Stat table
 	var sb strings.Builder
 
-	sb.WriteString("<html>")
-	sb.WriteString(fmt.Sprintf(`<link href="%s" rel="stylesheet">`, _styleURL))
-	sb.WriteString(`<div class="container">`)
-	sb.WriteString(fmt.Sprintf(`<h5 align="center">Статистика приема пищи за %s - %s</h5>`, tsStartStr, tsEndStr))
-	sb.WriteString(`<table class="table table-bordered table-hover">`)
-	sb.WriteString(`<thead class="table-light">
-		<tr>
-			<th>Дата</th>
-			<th>Итого, ккал</th>
-			<th>Итого, белки</th>
-			<th>Итого, жиры</th>
-			<th>Итого углеводы</th>
-		</tr>
-	</thead>`)
+	sb.WriteString(fmt.Sprintf(`
+	<html>
+	<link href="%s" rel="stylesheet">
+	<div class="container">
+		<h5 align="center">Статистика приема пищи за %s - %s</h5>
+		<div class="row">
+			<div class="col">
+			<table class="table table-bordered table-hover">
+				<thead class="table-light">
+					<tr>
+						<th>Дата</th>
+						<th>Итого, ккал</th>
+						<th>Итого, белки</th>
+						<th>Итого, жиры</th>
+						<th>Итого углеводы</th>
+					</tr>
+				</thead>
+	`, _cssBotstrapURL, tsStartStr, tsEndStr))
 
 	// Body
 	sb.WriteString("<tbody>")
 	var totalCal, totalProt, totalFat, totalCarb float64
+	dataRange := make([]float64, 7)
 	for _, j := range lst {
 		sb.WriteString(
 			fmt.Sprintf(
@@ -405,24 +414,58 @@ func (r *CmdProcessor) journalReportWeek(c tele.Context, cmdParts []string, user
 		totalProt += j.TotalProt
 		totalFat += j.TotalFat
 		totalCarb += j.TotalCarb
+
+		dataRange[(j.Timestamp-tsStart)%7] = j.TotalCal
 	}
 	sb.WriteString("</tbody>")
 
 	lLst := float64(len(lst))
 	avgCal, avgProt, avgFat, avgCarb := totalCal/lLst, totalProt/lLst, totalFat/lLst, totalCarb/lLst
-
-	// Footer
-	sb.WriteString("<tfoot>")
-	sb.WriteString(fmt.Sprintf(`<tr><td colspan="5"><b>Среднее, ккал: </b>%.2f</td></tr>`, avgCal))
-
 	totalAvgPFC := avgProt + avgFat + avgCarb
-	sb.WriteString(fmt.Sprintf(`<tr><td colspan="5"><b>Среднее, Б: </b>%s</td></tr>`, pfcSnippet(avgProt, totalAvgPFC)))
-	sb.WriteString(fmt.Sprintf(`<tr><td colspan="5"><b>Среднее, Ж: </b>%s</td></tr>`, pfcSnippet(avgFat, totalAvgPFC)))
-	sb.WriteString(fmt.Sprintf(`<tr><td colspan="5"><b>Среднее, У: </b>%s</td></tr>`, pfcSnippet(avgCarb, totalAvgPFC)))
-	sb.WriteString("</tfoot>")
 
-	// End
-	sb.WriteString("</table></div></html>")
+	// Footer and end table
+	sb.WriteString(fmt.Sprintf(`
+				<tfoot>
+					<tr><td colspan="5"><b>Среднее, ккал: </b>%.2f</td></tr>
+					<tr><td colspan="5"><b>Среднее, Б: </b>%s</td></tr>
+					<tr><td colspan="5"><b>Среднее, Ж: </b>%s</td></tr>
+					<tr><td colspan="5"><b>Среднее, У: </b>%s</td></tr>
+				</tfoot>
+			</table>
+		</div>
+	`,
+		avgCal,
+		pfcSnippet(avgProt, totalAvgPFC),
+		pfcSnippet(avgFat, totalAvgPFC),
+		pfcSnippet(avgCarb, totalAvgPFC)))
+
+	// Chart
+	data := &ChardData{
+		XLabels: tsRangeStr,
+		Data:    dataRange[:],
+		Label:   "ККал",
+		Type:    "bar",
+	}
+	chartSnip, err := GetChartSnippet(data)
+	if err != nil {
+		r.logger.Error(
+			"journal rw command chart error",
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
+
+		return c.Send(msgErrInternal)
+	}
+
+	sb.WriteString(fmt.Sprintf(`
+		<div class="col">
+			<canvas id="chart"></canvas>
+		</div>
+	</div>
+	%s
+	</html>
+	`, chartSnip))
 
 	return c.Send(&tele.Document{
 		File:     tele.FromReader(bytes.NewBufferString(sb.String())),
