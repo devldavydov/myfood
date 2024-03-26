@@ -1,13 +1,13 @@
 package cmdproc
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 
-	"github.com/devldavydov/myfood/internal/myfoodbot/cmdproc/graph"
 	"github.com/devldavydov/myfood/internal/storage"
 	"go.uber.org/zap"
 	tele "gopkg.in/telebot.v3"
@@ -31,8 +31,6 @@ func (r *CmdProcessor) processWeight(c tele.Context, cmdParts []string, userID i
 		return r.weightDelCommand(c, cmdParts[1:], userID)
 	case "list":
 		return r.weightListCommand(c, cmdParts[1:], userID)
-	case "graph":
-		return r.weightGraphCommand(c, cmdParts[1:], userID)
 	}
 
 	r.logger.Error(
@@ -198,60 +196,54 @@ func (r *CmdProcessor) weightListCommand(c tele.Context, cmdParts []string, user
 		return c.Send(msgErrInternal)
 	}
 
+	// Report table
+	tsFromStr, tsToStr := formatTimestamp(tsFrom), formatTimestamp(tsTo)
+
 	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf(`
+	<html>
+	<link href="%s" rel="stylesheet">
+	<body>
+	<div class="container">
+		<h5 align="center">График веса за %s - %s</h5>
+		<div class="row">
+			<div class="col">
+				<table class="table table-bordered table-hover">
+					<thead class="table-light">
+						<tr>
+							<th>Дата</th>
+							<th>Вес</th>
+						</tr>
+					</thead>
+	`,
+		_cssBotstrapURL,
+		tsFromStr,
+		tsToStr))
+
+	sb.WriteString("<tbody>")
+	xlabels := make([]string, 0, len(lst))
+	data := make([]float64, 0, len(lst))
 	for _, w := range lst {
-		sb.WriteString(fmt.Sprintf("<b>%s:</b> %.1f\n", formatTimestamp(w.Timestamp), w.Value))
+		sb.WriteString(fmt.Sprintf("<tr><td>%s</td><td>%.1f</td>", formatTimestamp(w.Timestamp), w.Value))
+		xlabels = append(xlabels, formatTimestamp(w.Timestamp))
+		data = append(data, w.Value)
 	}
+	sb.WriteString(`
+					</tbody>
+				</table>
+			</div>
+	`)
 
-	return c.Send(sb.String(), &tele.SendOptions{ParseMode: tele.ModeHTML})
-}
-
-func (r *CmdProcessor) weightGraphCommand(c tele.Context, cmdParts []string, userID int64) error {
-	if len(cmdParts) != 2 {
-		r.logger.Error(
-			"invalid weight graph command",
-			zap.String("reason", "len parts"),
-			zap.Strings("command", cmdParts),
-			zap.Int64("userid", userID),
-		)
-		return c.Send(msgErrInvalidCommand)
-	}
-
-	// Parse timestamp
-	tsFrom, err := parseTimestamp(cmdParts[0])
+	// Chart
+	chartSnip, err := GetChartSnippet(&ChardData{
+		XLabels: xlabels,
+		Data:    data,
+		Label:   "Вес",
+		Type:    "line",
+	})
 	if err != nil {
 		r.logger.Error(
-			"invalid weight graph command",
-			zap.String("reason", "ts from format"),
-			zap.Strings("command", cmdParts),
-			zap.Int64("userid", userID),
-		)
-		return c.Send(msgErrInvalidCommand)
-	}
-
-	tsTo, err := parseTimestamp(cmdParts[1])
-	if err != nil {
-		r.logger.Error(
-			"invalid weight graph command",
-			zap.String("reason", "ts to format"),
-			zap.Strings("command", cmdParts),
-			zap.Int64("userid", userID),
-		)
-		return c.Send(msgErrInvalidCommand)
-	}
-
-	// List from DB
-	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout)
-	defer cancel()
-
-	lst, err := r.stg.GetWeightList(ctx, userID, tsFrom, tsTo)
-	if err != nil {
-		if errors.Is(err, storage.ErrWeightEmptyList) {
-			return c.Send(msgErrEmptyList)
-		}
-
-		r.logger.Error(
-			"weight graph command DB error",
+			"weight list command chart error",
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 			zap.Error(err),
@@ -260,26 +252,19 @@ func (r *CmdProcessor) weightGraphCommand(c tele.Context, cmdParts []string, use
 		return c.Send(msgErrInternal)
 	}
 
-	// Plot graph
-	points := make([]graph.DataPoint, 0, len(lst))
-	for _, item := range lst {
-		points = append(points, graph.DataPoint{
-			Title: formatTimestamp(item.Timestamp),
-			Value: item.Value,
-		})
-	}
+	sb.WriteString(fmt.Sprintf(`
+		<div class="col">
+			<canvas id="chart"></canvas>
+		</div>
+	</div>
+	</body>
+	%s
+	</html>
+	`, chartSnip))
 
-	rdr, err := graph.NewLine("График Веса", "Дата", "Вес", points)
-	if err != nil {
-		r.logger.Error(
-			"weight graph command plot error",
-			zap.Strings("command", cmdParts),
-			zap.Int64("userid", userID),
-			zap.Error(err),
-		)
-
-		return c.Send(msgErrInternal)
-	}
-
-	return c.Send(&tele.Photo{File: tele.FromReader(rdr)})
+	return c.Send(&tele.Document{
+		File:     tele.FromReader(bytes.NewBufferString(sb.String())),
+		MIME:     "text/html",
+		FileName: fmt.Sprintf("weight_%s_%s.html", tsFromStr, tsToStr),
+	})
 }
