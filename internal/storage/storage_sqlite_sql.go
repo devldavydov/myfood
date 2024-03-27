@@ -42,6 +42,16 @@ const (
 	ON CONFLICT (key) DO
 	UPDATE SET name = $2, brand = $3, cal100 = $4, prot100 = $5, fat100 = $6, carb100 = $7, comment = $8
 	`
+	_sqlSetFoodComment = `
+	UPDATE food
+	SET comment = $1
+	WHERE key = $2
+	`
+	_sqlFoodRowid = `
+	SELECT rowid
+	FROM food
+	WHERE key = $1
+	`
 	_sqlDeleteFood = `
 	DELETE
 	FROM food

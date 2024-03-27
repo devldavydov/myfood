@@ -6,6 +6,7 @@ type Storage interface {
 	// // Food
 	GetFood(ctx context.Context, key string) (*Food, error)
 	SetFood(ctx context.Context, food *Food) error
+	SetFoodComment(ctx context.Context, key, comment string) error
 	GetFoodList(ctx context.Context) ([]Food, error)
 	FindFood(ctx context.Context, pattern string) ([]Food, error)
 	DeleteFood(ctx context.Context, key string) error

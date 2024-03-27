@@ -356,6 +356,30 @@ func (r *StorageSQLiteTestSuite) TestDeleteFood() {
 	})
 }
 
+func (r *StorageSQLiteTestSuite) TestFoodSetComment() {
+	r.Run("set comment for not exists food", func() {
+		r.ErrorIs(r.stg.SetFoodComment(context.TODO(), "key", "comment"), ErrFoodNotFound)
+	})
+
+	r.Run("add food", func() {
+		r.NoError(r.stg.SetFood(context.TODO(), &Food{
+			Key: "Key1", Name: "bbb", Brand: "Brand1", Cal100: 1, Prot100: 2, Fat100: 3, Carb100: 4, Comment: "",
+		}))
+	})
+
+	r.Run("check and set comment", func() {
+		f, err := r.stg.GetFood(context.TODO(), "Key1")
+		r.NoError(err)
+		r.Equal("", f.Comment)
+
+		r.NoError(r.stg.SetFoodComment(context.TODO(), "Key1", "FooBar"))
+
+		f, err = r.stg.GetFood(context.TODO(), "Key1")
+		r.NoError(err)
+		r.Equal("FooBar", f.Comment)
+	})
+}
+
 //
 // Journal
 //

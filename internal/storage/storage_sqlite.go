@@ -103,6 +103,32 @@ func (r *StorageSQLite) SetFood(ctx context.Context, food *Food) error {
 	return nil
 }
 
+func (r *StorageSQLite) SetFoodComment(ctx context.Context, key, comment string) error {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Get rowid to check existence
+	var rowid int64
+	err = tx.QueryRowContext(ctx, _sqlFoodRowid, key).Scan(&rowid)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		return ErrFoodNotFound
+	case err != nil:
+		return err
+	}
+
+	// Update
+	_, err = tx.ExecContext(ctx, _sqlSetFoodComment, comment, key)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
 func (r *StorageSQLite) GetFoodList(ctx context.Context) ([]Food, error) {
 	rows, err := r.db.QueryContext(ctx, _sqlGetFoodList)
 	if err != nil {

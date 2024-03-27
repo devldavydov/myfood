@@ -28,6 +28,8 @@ func (r *CmdProcessor) processFood(c tele.Context, cmdParts []string, userID int
 	switch cmdParts[0] {
 	case "set":
 		return r.foodSetCommand(c, cmdParts[1:], userID)
+	case "sc":
+		return r.foodSetCommentCommand(c, cmdParts[1:], userID)
 	case "find":
 		return r.foodFindCommand(c, cmdParts[1:], userID)
 	case "list":
@@ -127,6 +129,39 @@ func (r *CmdProcessor) foodSetCommand(c tele.Context, cmdParts []string, userID 
 
 		r.logger.Error(
 			"food set command DB error",
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
+
+		return c.Send(msgErrInternal)
+	}
+
+	return c.Send(msgOK)
+}
+
+func (r *CmdProcessor) foodSetCommentCommand(c tele.Context, cmdParts []string, userID int64) error {
+	if len(cmdParts) != 2 {
+		r.logger.Error(
+			"invalid food set comment command",
+			zap.String("reason", "len parts"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+		)
+		return c.Send(msgErrInvalidCommand)
+	}
+
+	// Save in DB
+	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout)
+	defer cancel()
+
+	if err := r.stg.SetFoodComment(ctx, cmdParts[0], cmdParts[1]); err != nil {
+		if errors.Is(err, storage.ErrFoodNotFound) {
+			return c.Send(msgErrFoodNotFound)
+		}
+
+		r.logger.Error(
+			"food set comment command DB error",
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 			zap.Error(err),
