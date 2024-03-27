@@ -37,9 +37,7 @@ func (s *Service) Run(ctx context.Context) error {
 		return err
 	}
 
-	b.Use(middleware.Whitelist(s.settings.AllowedUserIDs...))
-
-	s.setupRouting(b)
+	s.setupRouting(b, s.settings.AllowedUserIDs)
 	go b.Start()
 
 	select {
@@ -50,9 +48,12 @@ func (s *Service) Run(ctx context.Context) error {
 	return nil
 }
 
-func (s *Service) setupRouting(b *tele.Bot) {
+func (s *Service) setupRouting(b *tele.Bot, allowedUserIDs []int64) {
 	b.Handle("/start", s.onStart)
-	b.Handle(tele.OnText, s.onText)
+
+	allowedGroup := b.Group()
+	allowedGroup.Use(middleware.Whitelist(allowedUserIDs...))
+	allowedGroup.Handle(tele.OnText, s.onText)
 }
 
 func (s *Service) onStart(c tele.Context) error {
