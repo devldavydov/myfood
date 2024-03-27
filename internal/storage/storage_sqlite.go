@@ -23,6 +23,8 @@ type StorageSQLite struct {
 	logger *zap.Logger
 }
 
+var _ Storage = (*StorageSQLite)(nil)
+
 func go_upper(str string) string {
 	return strings.ToUpper(str)
 }
@@ -59,8 +61,6 @@ func NewStorageSQLite(dbFilePath string, logger *zap.Logger) (*StorageSQLite, er
 
 	return stg, nil
 }
-
-var _ Storage = (*StorageSQLite)(nil)
 
 //
 // Food
