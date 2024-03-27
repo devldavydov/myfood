@@ -8,6 +8,7 @@ import (
 	"github.com/devldavydov/myfood/internal/storage"
 	"go.uber.org/zap"
 	tele "gopkg.in/telebot.v3"
+	"gopkg.in/telebot.v3/middleware"
 )
 
 type Service struct {
@@ -36,6 +37,8 @@ func (s *Service) Run(ctx context.Context) error {
 		return err
 	}
 
+	b.Use(middleware.Whitelist(s.settings.AllowedUserIDs...))
+
 	s.setupRouting(b)
 	go b.Start()
 
@@ -55,9 +58,9 @@ func (s *Service) setupRouting(b *tele.Bot) {
 func (s *Service) onStart(c tele.Context) error {
 	return c.Send(
 		fmt.Sprintf(
-			"Привет, %s!\nДобро пожаловать в MyFoodBot!\nСборка: %s\nОтправь 'h' для помощи",
+			"Привет, %s [%d]!\nДобро пожаловать в MyFoodBot!\nОтправь 'h' для помощи",
 			c.Sender().Username,
-			s.settings.BuildCommit,
+			c.Sender().ID,
 		),
 	)
 }
