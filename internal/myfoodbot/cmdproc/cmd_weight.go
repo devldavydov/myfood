@@ -205,16 +205,23 @@ func (r *CmdProcessor) weightListCommand(c tele.Context, cmdParts []string, user
 	<link href="%s" rel="stylesheet">
 	<body>
 	<div class="container">
-		<h5 align="center">График веса за %s - %s</h5>
-		<div class="row">
-			<div class="col">
-				<table class="table table-bordered table-hover">
-					<thead class="table-light">
-						<tr>
-							<th>Дата</th>
-							<th>Вес</th>
-						</tr>
-					</thead>
+		<div class="accordion" id="accordionWeight">
+			<div class="accordion-item">
+				<h2 class="accordion-header">
+					<button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTbl"
+							aria-expanded="true" aria-controls="collapseTbl">
+					<b>Таблица веса за %s - %s</b>
+					</button>
+				</h2>
+				<div id="collapseTbl" class="accordion-collapse collapse show" data-bs-parent="#accordionWeight">
+					<div class="accordion-body">
+						<table class="table table-bordered table-hover">
+							<thead class="table-light">
+								<tr>
+									<th>Дата</th>
+									<th>Вес</th>
+								</tr>
+							</thead>
 	`,
 		_cssBotstrapURL,
 		tsFromStr,
@@ -229,8 +236,10 @@ func (r *CmdProcessor) weightListCommand(c tele.Context, cmdParts []string, user
 		data = append(data, w.Value)
 	}
 	sb.WriteString(`
-					</tbody>
-				</table>
+							</tbody>
+						</table>
+					</div>
+				</div>
 			</div>
 	`)
 
@@ -253,14 +262,30 @@ func (r *CmdProcessor) weightListCommand(c tele.Context, cmdParts []string, user
 	}
 
 	sb.WriteString(fmt.Sprintf(`
-		<div class="col">
-			<canvas id="chart"></canvas>
+			<div class="accordion-item">
+				<h2 class="accordion-header">
+					<button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseChart"
+							aria-expanded="false" aria-controls="collapseChart">
+					<b>График веса за %s - %s</b>
+					</button>
+				</h2>
+				<div id="collapseChart" class="accordion-collapse collapse" data-bs-parent="#accordionWeight">
+					<div class="accordion-body">
+						<canvas id="chart"></canvas>
+					</div>
+				</div>
+			</div>
 		</div>
 	</div>
 	</body>
+	<script src="%s"></script>
 	%s
 	</html>
-	`, chartSnip))
+	`,
+		tsFromStr,
+		tsToStr,
+		_jsBootstrapURL,
+		chartSnip))
 
 	return c.Send(&tele.Document{
 		File:     tele.FromReader(bytes.NewBufferString(sb.String())),

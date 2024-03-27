@@ -396,19 +396,26 @@ func (r *CmdProcessor) journalReportWeek(c tele.Context, cmdParts []string, user
 	<link href="%s" rel="stylesheet">
 	<body>
 	<div class="container">
-		<h5 align="center">Статистика приема пищи за %s - %s</h5>
-		<div class="row">
-			<div class="col">
-			<table class="table table-bordered table-hover">
-				<thead class="table-light">
-					<tr>
-						<th>Дата</th>
-						<th>Итого, ккал</th>
-						<th>Итого, белки</th>
-						<th>Итого, жиры</th>
-						<th>Итого углеводы</th>
-					</tr>
-				</thead>
+		<div class="accordion" id="accordionJournal">
+			<div class="accordion-item">
+				<h2 class="accordion-header">
+					<button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTbl"
+							aria-expanded="true" aria-controls="collapseTbl">
+					<b>Таблица приема пищи за %s - %s</b>
+					</button>
+				</h2>
+				<div id="collapseTbl" class="accordion-collapse collapse show" data-bs-parent="#accordionJournal">
+					<div class="accordion-body">
+						<table class="table table-bordered table-hover">
+							<thead class="table-light">
+								<tr>
+								<th>Дата</th>
+								<th>Итого, ккал</th>
+								<th>Итого, белки</th>
+								<th>Итого, жиры</th>
+								<th>Итого углеводы</th>
+								</tr>
+							</thead>		
 	`, _cssBotstrapURL, tsStartStr, tsEndStr))
 
 	// Body
@@ -440,14 +447,16 @@ func (r *CmdProcessor) journalReportWeek(c tele.Context, cmdParts []string, user
 
 	// Footer and end table
 	sb.WriteString(fmt.Sprintf(`
-				<tfoot>
-					<tr><td colspan="5"><b>Среднее, ккал: </b>%.2f</td></tr>
-					<tr><td colspan="5"><b>Среднее, Б: </b>%s</td></tr>
-					<tr><td colspan="5"><b>Среднее, Ж: </b>%s</td></tr>
-					<tr><td colspan="5"><b>Среднее, У: </b>%s</td></tr>
-				</tfoot>
-			</table>
-		</div>
+							<tfoot>
+								<tr><td colspan="5"><b>Среднее, ккал: </b>%.2f</td></tr>
+								<tr><td colspan="5"><b>Среднее, Б: </b>%s</td></tr>
+								<tr><td colspan="5"><b>Среднее, Ж: </b>%s</td></tr>
+								<tr><td colspan="5"><b>Среднее, У: </b>%s</td></tr>
+							</tfoot>
+						</table>
+					</div>
+				</div>
+			</div>
 	`,
 		avgCal,
 		pfcSnippet(avgProt, totalAvgPFC),
@@ -474,14 +483,30 @@ func (r *CmdProcessor) journalReportWeek(c tele.Context, cmdParts []string, user
 	}
 
 	sb.WriteString(fmt.Sprintf(`
-		<div class="col">
-			<canvas id="chart"></canvas>
+			<div class="accordion-item">
+				<h2 class="accordion-header">
+					<button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseChart"
+							aria-expanded="false" aria-controls="collapseChart">
+					<b>График веса за %s - %s</b>
+					</button>
+				</h2>
+				<div id="collapseChart" class="accordion-collapse collapse" data-bs-parent="#accordionJournal">
+					<div class="accordion-body">
+						<canvas id="chart"></canvas>
+					</div>
+				</div>
+			</div>
 		</div>
 	</div>
 	</body>
+	<script src="%s"></script>
 	%s
 	</html>
-	`, chartSnip))
+	`,
+		tsStartStr,
+		tsEndStr,
+		_jsBootstrapURL,
+		chartSnip))
 
 	return c.Send(&tele.Document{
 		File:     tele.FromReader(bytes.NewBufferString(sb.String())),
