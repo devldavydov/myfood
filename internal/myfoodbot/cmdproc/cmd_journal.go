@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/devldavydov/myfood/internal/common/html"
 	"github.com/devldavydov/myfood/internal/storage"
 	"go.uber.org/zap"
 	tele "gopkg.in/telebot.v3"
@@ -217,30 +218,11 @@ func (r *CmdProcessor) journalReportDayCommand(c tele.Context, cmdParts []string
 	}
 
 	// Report table
-	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf(`
-	<html>
-	<link href="%s" rel="stylesheet">
-	<body>
-	<div class="container">
-		<h5 align="center">Журнал приема пищи за %s</h5>
-		<table class="table table-bordered table-hover">
-			<thead class="table-light">
-				<tr>
-					<th>Наименование</th>
-					<th>Вес</th>
-					<th>ККал</th>
-					<th>Белки</th>
-					<th>Жиры</th>
-					<th>Углеводы</th>
-				</tr>
-			</thead>
-	`,
-		_cssBotstrapURL,
-		tsStr))
+	htmlBuilder := html.NewBuilder("Журнал приема пищи")
+	tbl := html.NewTable([]string{
+		"Наименование", "Вес", "ККал", "Белки", "Жиры", "Углеводы",
+	})
 
-	// Body
-	sb.WriteString("<tbody>")
 	var totalCal, totalProt, totalFat, totalCarb float64
 	var subTotalCal, subTotalProt, subTotalFat, subTotalCarb float64
 	lastMeal := storage.Meal(-1)
@@ -249,7 +231,13 @@ func (r *CmdProcessor) journalReportDayCommand(c tele.Context, cmdParts []string
 
 		// Add meal divider
 		if j.Meal != lastMeal {
-			sb.WriteString(fmt.Sprintf(`<tr class="table-active"><td colspan="6" align="center"><b>%s</b><tr>`, j.Meal.ToString()))
+			tbl.AddRow(
+				html.NewTr(html.Attrs{"class": "table-active"}).
+					AddTd(html.NewTd(
+						html.NewB(j.Meal.ToString(), nil),
+						html.Attrs{"colspan": "6", "align": "center"},
+					)),
+			)
 			lastMeal = j.Meal
 		}
 
@@ -260,9 +248,14 @@ func (r *CmdProcessor) journalReportDayCommand(c tele.Context, cmdParts []string
 		}
 		foodLbl = fmt.Sprintf("%s [%s]", foodLbl, j.FoodKey)
 
-		sb.WriteString(
-			fmt.Sprintf("<tr><td>%s</td><td>%.1f</td><td>%.2f</td><td>%.2f</td><td>%.2f</td><td>%.2f</td></tr>",
-				foodLbl, j.FoodWeight, j.Cal, j.Prot, j.Fat, j.Carb))
+		tbl.AddRow(
+			html.NewTr(nil).
+				AddTd(html.NewTd(html.NewS(foodLbl), nil)).
+				AddTd(html.NewTd(html.NewS(fmt.Sprintf("%.1f", j.FoodWeight)), nil)).
+				AddTd(html.NewTd(html.NewS(fmt.Sprintf("%.2f", j.Cal)), nil)).
+				AddTd(html.NewTd(html.NewS(fmt.Sprintf("%.2f", j.Prot)), nil)).
+				AddTd(html.NewTd(html.NewS(fmt.Sprintf("%.2f", j.Fat)), nil)).
+				AddTd(html.NewTd(html.NewS(fmt.Sprintf("%.2f", j.Carb)), nil)))
 
 		totalCal += j.Cal
 		totalProt += j.Prot
@@ -276,43 +269,70 @@ func (r *CmdProcessor) journalReportDayCommand(c tele.Context, cmdParts []string
 
 		// Add subtotal row
 		if i == len(lst)-1 || lst[i+1].Meal != j.Meal {
-			sb.WriteString(fmt.Sprintf(`
-			<tr>
-				<td align="right" colspan="2"><b>Всего</b></td>
-				<td>%.2f</td>
-				<td>%.2f</td>
-				<td>%.2f</td>
-				<td>%.2f</td>
-			</tr>`,
-				subTotalCal, subTotalProt, subTotalFat, subTotalCarb))
+			tbl.AddRow(
+				html.NewTr(nil).
+					AddTd(html.NewTd(html.NewB("Всего", nil), html.Attrs{"align": "right", "colspan": "2"})).
+					AddTd(html.NewTd(html.NewS(fmt.Sprintf("%.2f", subTotalCal)), nil)).
+					AddTd(html.NewTd(html.NewS(fmt.Sprintf("%.2f", subTotalProt)), nil)).
+					AddTd(html.NewTd(html.NewS(fmt.Sprintf("%.2f", subTotalFat)), nil)).
+					AddTd(html.NewTd(html.NewS(fmt.Sprintf("%.2f", subTotalCarb)), nil)))
 
 			subTotalCal, subTotalProt, subTotalFat, subTotalCarb = 0, 0, 0, 0
 		}
 	}
-	sb.WriteString("</tbody>")
 
 	// Footer
 	totalPFC := totalProt + totalFat + totalCarb
 
-	sb.WriteString(fmt.Sprintf(`
-			<tfoot>
-				<tr><td colspan="6"><b>Всего, ккал: </b>%s</td></tr>
-				<tr><td colspan="6"><b>Всего, Б: </b>%s</td></tr>
-				<tr><td colspan="6"><b>Всего, Ж: </b>%s</td></tr>
-				<tr><td colspan="6"><b>Всего, У: </b>%s</td></tr>
-			</tfoot>
-		</table>
-	</div>
-	</body>
-	</html>
-	`,
-		calDiffSnippet(us, totalCal),
-		pfcSnippet(totalProt, totalPFC),
-		pfcSnippet(totalFat, totalPFC),
-		pfcSnippet(totalCarb, totalPFC)))
+	tbl.
+		AddFooterElement(
+			html.NewTr(nil).
+				AddTd(html.NewTd(
+					html.NewSpan(
+						html.NewB("Всего, ккал: ", nil),
+						calDiffSnippet(us, totalCal),
+					),
+					html.Attrs{"colspan": "6"}))).
+		AddFooterElement(
+			html.NewTr(nil).
+				AddTd(html.NewTd(
+					html.NewSpan(
+						html.NewB("Всего, Б: ", nil),
+						pfcSnippet(totalProt, totalPFC),
+					),
+					html.Attrs{"colspan": "6"}))).
+		AddFooterElement(
+			html.NewTr(nil).
+				AddTd(html.NewTd(
+					html.NewSpan(
+						html.NewB("Всего, Ж: ", nil),
+						pfcSnippet(totalFat, totalPFC),
+					),
+					html.Attrs{"colspan": "6"}))).
+		AddFooterElement(
+			html.NewTr(nil).
+				AddTd(html.NewTd(
+					html.NewSpan(
+						html.NewB("Всего, У: ", nil),
+						pfcSnippet(totalCarb, totalPFC),
+					),
+					html.Attrs{"colspan": "6"})))
 
+	// Doc
+	htmlBuilder.Add(
+		html.NewContainer().Add(
+			html.NewH(
+				fmt.Sprintf("Журнал приема пищи за %s", tsStr),
+				5,
+				html.Attrs{"align": "center"},
+			),
+			tbl,
+		),
+	)
+
+	// Response
 	return c.Send(&tele.Document{
-		File:     tele.FromReader(bytes.NewBufferString(sb.String())),
+		File:     tele.FromReader(bytes.NewBufferString(htmlBuilder.Build())),
 		MIME:     "text/html",
 		FileName: fmt.Sprintf("report_%s.html", tsStr),
 	})
@@ -514,26 +534,38 @@ func (r *CmdProcessor) journalReportWeek(c tele.Context, cmdParts []string, user
 	})
 }
 
-func calDiffSnippet(us *storage.UserSettings, cal float64) string {
+func calDiffSnippet(us *storage.UserSettings, cal float64) html.IELement {
 	if us == nil {
-		return fmt.Sprintf("%.2f", cal)
+		return html.NewS(fmt.Sprintf("%.2f", cal))
 	} else {
 		diff := us.CalLimit - cal
 		switch {
 		case diff < 0 && math.Abs(diff) > 0.01:
-			return fmt.Sprintf(`%.2f (<b class="text-danger">%+.2f</b>)`, cal, diff)
+			return html.NewSpan(
+				html.NewS(fmt.Sprintf("%.2f (", cal)),
+				html.NewB(fmt.Sprintf("%+.2f", diff), html.Attrs{"class": "text-danger"}),
+				html.NewS(")"),
+			)
 		case diff > 0 && math.Abs(diff) > 0.01:
-			return fmt.Sprintf(`%.2f (<b class="text-success">%+.2f</b>)`, cal, diff)
+			return html.NewSpan(
+				html.NewS(fmt.Sprintf("%.2f (", cal)),
+				html.NewB(fmt.Sprintf("%+.2f", diff), html.Attrs{"class": "text-success"}),
+				html.NewS(")"),
+			)
 		default:
-			return fmt.Sprintf("%.2f", cal)
+			return html.NewS(fmt.Sprintf("%.2f", cal))
 		}
 	}
 }
 
-func pfcSnippet(val, totalVal float64) string {
+func pfcSnippet(val, totalVal float64) html.IELement {
+	var s string
+
 	if totalVal == 0 {
-		return fmt.Sprintf("%.2f", val)
+		s = fmt.Sprintf("%.2f", val)
+	} else {
+		s = fmt.Sprintf("%.2f (%.2f%%)", val, val/totalVal*100)
 	}
 
-	return fmt.Sprintf("%.2f (%.2f%%)", val, val/totalVal*100)
+	return html.NewS(s)
 }
