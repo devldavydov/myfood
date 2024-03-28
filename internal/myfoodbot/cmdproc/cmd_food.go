@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"text/template"
 
+	"github.com/devldavydov/myfood/internal/common/html"
 	"github.com/devldavydov/myfood/internal/storage"
 	"go.uber.org/zap"
 	tele "gopkg.in/telebot.v3"
@@ -277,55 +277,42 @@ func (r *CmdProcessor) foodListCommand(c tele.Context, userID int64) error {
 		return c.Send(msgErrInternal)
 	}
 
-	tmpl := template.Must(template.New("").Parse(fmt.Sprintf(`
-<html>
-	<link href="%s" rel="stylesheet">
-	<div class="container">
-	<h5 align="center">Список продуктов и энергетической ценности</h5>
-	<table class="table table-bordered table-hover">
-		<thead class="table-light">		
-			<tr>
-				<th>Ключ</th>
-				<th>Наименование</th>
-				<th>Бренд</th>
-				<th>ККал в 100г.</th>
-				<th>Белки в 100г.</th>
-				<th>Жиры в 100г.</th>
-				<th>Углеводы в 100г.</th>
-				<th>Комментарий</th>
-			</tr>
-		</thead>
-		<tbody>
-			{{ range . }}
-			<tr>
-				<td>{{.Key}}</td>
-				<td>{{.Name}}</td>
-				<td>{{.Brand}}</td>
-				<td>{{.Cal100}}</td>
-				<td>{{.Prot100}}</td>
-				<td>{{.Fat100}}</td>
-				<td>{{.Carb100}}</td>
-				<td>{{.Comment}}</td>
-			</tr>
-			{{ end }}
-		<tbody>
-	</table>
-	</div>
-<html>	
-	`, _cssBotstrapURL)))
+	// Build html
+	htmlBuilder := html.NewBuilder("Список продуктов")
 
-	buf := bytes.NewBuffer([]byte{})
-	if err = tmpl.Execute(buf, foodList); err != nil {
-		r.logger.Error(
-			"food list command template generate error",
-			zap.Int64("userid", userID),
-			zap.Error(err),
-		)
-		c.Send(msgErrInternal)
+	// Table
+	tbl := html.NewTable([]string{
+		"Ключ", "Наименование", "Бренд", "ККал в 100г.", "Белки в 100г.",
+		"Жиры в 100г.", "Углеводы в 100г.", "Комментарий",
+	})
+
+	for _, item := range foodList {
+		tr := html.NewTr(nil)
+		tr.
+			AddTd(html.NewTd(html.NewS(item.Key), nil)).
+			AddTd(html.NewTd(html.NewS(item.Name), nil)).
+			AddTd(html.NewTd(html.NewS(item.Brand), nil)).
+			AddTd(html.NewTd(html.NewS(item.Cal100), nil)).
+			AddTd(html.NewTd(html.NewS(item.Prot100), nil)).
+			AddTd(html.NewTd(html.NewS(item.Fat100), nil)).
+			AddTd(html.NewTd(html.NewS(item.Carb100), nil)).
+			AddTd(html.NewTd(html.NewS(item.Comment), nil))
+		tbl.AddRow(tr)
 	}
 
+	// Doc
+	htmlBuilder.Add(
+		html.NewContainer().Add(
+			html.NewH(
+				"Список продуктов и энергетической ценности",
+				5,
+				html.Attrs{"align": "center"},
+			),
+			tbl))
+
+	// Response
 	return c.Send(&tele.Document{
-		File:     tele.FromReader(buf),
+		File:     tele.FromReader(bytes.NewBufferString(htmlBuilder.Build())),
 		MIME:     "text/html",
 		FileName: "food.html",
 	})

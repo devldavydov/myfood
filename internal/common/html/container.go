@@ -19,8 +19,12 @@ func (r *Container) Add(elems ...IELement) *Container {
 
 func (r *Container) Build() string {
 	var sb strings.Builder
+
+	sb.WriteString(`<div class="container">`)
 	for _, elem := range r.elements {
 		sb.WriteString(elem.Build())
 	}
+	sb.WriteString("</div>")
+
 	return sb.String()
 }

@@ -20,7 +20,7 @@ type Builder struct {
 	elements []IELement
 }
 
-func NewBuild(title string) *Builder {
+func NewBuilder(title string) *Builder {
 	return &Builder{title: title}
 }
 
