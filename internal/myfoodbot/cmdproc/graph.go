@@ -6,6 +6,7 @@ import (
 )
 
 type ChardData struct {
+	ElemID  string
 	XLabels []string
 	Data    []float64
 	Label   string
@@ -18,7 +19,7 @@ func GetChartSnippet(data *ChardData) (string, error) {
 		Parse(`
 <script>
 	function plot() {
-		const ctx = document.getElementById('chart');
+		const ctx = document.getElementById('{{.ElemID}}');
 
 		new Chart(ctx, {
 			type: '{{.Type}}',

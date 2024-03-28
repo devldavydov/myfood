@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/devldavydov/myfood/internal/common/html"
@@ -408,48 +407,24 @@ func (r *CmdProcessor) journalReportWeek(c tele.Context, cmdParts []string, user
 	}
 
 	// Stat table
-	var sb strings.Builder
+	htmlBuilder := html.NewBuilder("Статистика приема пищи")
+	accordion := html.NewAccordion("accordionStats")
 
-	sb.WriteString(fmt.Sprintf(`
-	<html>
-	<link href="%s" rel="stylesheet">
-	<body>
-	<div class="container">
-		<div class="accordion" id="accordionJournal">
-			<div class="accordion-item">
-				<h2 class="accordion-header">
-					<button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTbl"
-							aria-expanded="true" aria-controls="collapseTbl">
-					<b>Таблица приема пищи за %s - %s</b>
-					</button>
-				</h2>
-				<div id="collapseTbl" class="accordion-collapse collapse show" data-bs-parent="#accordionJournal">
-					<div class="accordion-body">
-						<table class="table table-bordered table-hover">
-							<thead class="table-light">
-								<tr>
-								<th>Дата</th>
-								<th>Итого, ккал</th>
-								<th>Итого, белки</th>
-								<th>Итого, жиры</th>
-								<th>Итого углеводы</th>
-								</tr>
-							</thead>		
-	`, _cssBotstrapURL, tsStartStr, tsEndStr))
+	// Table
+	tbl := html.NewTable([]string{
+		"Дата", "Итого, ккал", "Итого, белки", "Итого, жиры", "Итого, углеводы",
+	})
 
-	// Body
-	sb.WriteString("<tbody>")
 	var totalCal, totalProt, totalFat, totalCarb float64
 	dataRange := make([]float64, 7)
 	for _, j := range lst {
-		sb.WriteString(
-			fmt.Sprintf(
-				"<tr><td>%s</td><td>%s</td><td>%.2f</td><td>%.2f</td><td>%.2f</td></tr>",
-				formatTimestamp(j.Timestamp),
-				calDiffSnippet(us, j.TotalCal),
-				j.TotalProt,
-				j.TotalFat,
-				j.TotalCarb))
+		tbl.AddRow(
+			html.NewTr(nil).
+				AddTd(html.NewTd(html.NewS(formatTimestamp(j.Timestamp)), nil)).
+				AddTd(html.NewTd(calDiffSnippet(us, j.TotalCal), nil)).
+				AddTd(html.NewTd(html.NewS(fmt.Sprintf("%.2f", j.TotalProt)), nil)).
+				AddTd(html.NewTd(html.NewS(fmt.Sprintf("%.2f", j.TotalFat)), nil)).
+				AddTd(html.NewTd(html.NewS(fmt.Sprintf("%.2f", j.TotalCarb)), nil)))
 
 		totalCal += j.TotalCal
 		totalProt += j.TotalProt
@@ -458,32 +433,62 @@ func (r *CmdProcessor) journalReportWeek(c tele.Context, cmdParts []string, user
 
 		dataRange[(j.Timestamp-tsStartUnix)/24/3600%7] = j.TotalCal
 	}
-	sb.WriteString("</tbody>")
 
+	// Footer
 	lLst := float64(len(lst))
 	avgCal, avgProt, avgFat, avgCarb := totalCal/lLst, totalProt/lLst, totalFat/lLst, totalCarb/lLst
 	totalAvgPFC := avgProt + avgFat + avgCarb
 
-	// Footer and end table
-	sb.WriteString(fmt.Sprintf(`
-							<tfoot>
-								<tr><td colspan="5"><b>Среднее, ккал: </b>%.2f</td></tr>
-								<tr><td colspan="5"><b>Среднее, Б: </b>%s</td></tr>
-								<tr><td colspan="5"><b>Среднее, Ж: </b>%s</td></tr>
-								<tr><td colspan="5"><b>Среднее, У: </b>%s</td></tr>
-							</tfoot>
-						</table>
-					</div>
-				</div>
-			</div>
-	`,
-		avgCal,
-		pfcSnippet(avgProt, totalAvgPFC),
-		pfcSnippet(avgFat, totalAvgPFC),
-		pfcSnippet(avgCarb, totalAvgPFC)))
+	tbl.
+		AddFooterElement(
+			html.NewTr(nil).
+				AddTd(html.NewTd(
+					html.NewSpan(
+						html.NewB("Среднее, ккал: ", nil),
+						html.NewS(fmt.Sprintf("%.2f", avgCal)),
+					),
+					html.Attrs{"colspan": "5"}))).
+		AddFooterElement(
+			html.NewTr(nil).
+				AddTd(html.NewTd(
+					html.NewSpan(
+						html.NewB("Среднее, Б: ", nil),
+						pfcSnippet(avgProt, totalAvgPFC),
+					),
+					html.Attrs{"colspan": "5"}))).
+		AddFooterElement(
+			html.NewTr(nil).
+				AddTd(html.NewTd(
+					html.NewSpan(
+						html.NewB("Среднее, Ж: ", nil),
+						pfcSnippet(avgFat, totalAvgPFC),
+					),
+					html.Attrs{"colspan": "5"}))).
+		AddFooterElement(
+			html.NewTr(nil).
+				AddTd(html.NewTd(
+					html.NewSpan(
+						html.NewB("Среднее, У: ", nil),
+						pfcSnippet(avgCarb, totalAvgPFC),
+					),
+					html.Attrs{"colspan": "5"})))
+
+	accordion.AddItem(
+		html.HewAccordionItem(
+			"tbl",
+			fmt.Sprintf("Статистика приема пищи за %s - %s", tsStartStr, tsEndStr),
+			tbl))
 
 	// Chart
+	chart := html.NewCanvas("chart")
+	accordion.AddItem(
+		html.HewAccordionItem(
+			"graph",
+			fmt.Sprintf("График приема пищи за %s - %s", tsStartStr, tsEndStr),
+			chart))
+
 	data := &ChardData{
+		ElemID:  "chart",
 		XLabels: tsRangeStr,
 		Data:    dataRange,
 		Label:   "ККал",
@@ -501,34 +506,18 @@ func (r *CmdProcessor) journalReportWeek(c tele.Context, cmdParts []string, user
 		return c.Send(msgErrInternal)
 	}
 
-	sb.WriteString(fmt.Sprintf(`
-			<div class="accordion-item">
-				<h2 class="accordion-header">
-					<button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseChart"
-							aria-expanded="false" aria-controls="collapseChart">
-					<b>График веса за %s - %s</b>
-					</button>
-				</h2>
-				<div id="collapseChart" class="accordion-collapse collapse" data-bs-parent="#accordionJournal">
-					<div class="accordion-body">
-						<canvas id="chart"></canvas>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
-	</body>
-	<script src="%s"></script>
-	%s
-	</html>
-	`,
-		tsStartStr,
-		tsEndStr,
-		_jsBootstrapURL,
-		chartSnip))
+	// Doc
+	htmlBuilder.Add(
+		html.NewContainer().Add(
+			accordion,
+		),
+		html.NewScript(_jsBootstrapURL),
+		html.NewScript(_jsChartURL),
+		html.NewS(chartSnip),
+	)
 
 	return c.Send(&tele.Document{
-		File:     tele.FromReader(bytes.NewBufferString(sb.String())),
+		File:     tele.FromReader(bytes.NewBufferString(htmlBuilder.Build())),
 		MIME:     "text/html",
 		FileName: fmt.Sprintf("stats_%s_%s.html", tsStartStr, tsEndStr),
 	})

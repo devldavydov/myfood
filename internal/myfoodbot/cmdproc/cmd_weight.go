@@ -232,6 +232,7 @@ func (r *CmdProcessor) weightListCommand(c tele.Context, cmdParts []string, user
 			chart))
 
 	chartSnip, err := GetChartSnippet(&ChardData{
+		ElemID:  "chart",
 		XLabels: xlabels,
 		Data:    data,
 		Label:   "Вес",
