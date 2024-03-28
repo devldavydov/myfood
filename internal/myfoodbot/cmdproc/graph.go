@@ -2,7 +2,6 @@ package cmdproc
 
 import (
 	"bytes"
-	"fmt"
 	"text/template"
 )
 
@@ -16,8 +15,7 @@ type ChardData struct {
 func GetChartSnippet(data *ChardData) (string, error) {
 	tmpl := template.Must(template.
 		New("").
-		Parse(fmt.Sprintf(`
-<script src="%s"></script>
+		Parse(`
 <script>
 	function plot() {
 		const ctx = document.getElementById('chart');
@@ -48,7 +46,7 @@ func GetChartSnippet(data *ChardData) (string, error) {
 	}
 	window.onload = plot;
 </script>
-	`, _jsChartURL)))
+	`))
 
 	buf := bytes.NewBuffer([]byte{})
 	if err := tmpl.Execute(buf, data); err != nil {

@@ -6,8 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 
+	"github.com/devldavydov/myfood/internal/common/html"
 	"github.com/devldavydov/myfood/internal/storage"
 	"go.uber.org/zap"
 	tele "gopkg.in/telebot.v3"
@@ -199,51 +199,38 @@ func (r *CmdProcessor) weightListCommand(c tele.Context, cmdParts []string, user
 	// Report table
 	tsFromStr, tsToStr := formatTimestamp(tsFrom), formatTimestamp(tsTo)
 
-	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf(`
-	<html>
-	<link href="%s" rel="stylesheet">
-	<body>
-	<div class="container">
-		<div class="accordion" id="accordionWeight">
-			<div class="accordion-item">
-				<h2 class="accordion-header">
-					<button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTbl"
-							aria-expanded="true" aria-controls="collapseTbl">
-					<b>Таблица веса за %s - %s</b>
-					</button>
-				</h2>
-				<div id="collapseTbl" class="accordion-collapse collapse show" data-bs-parent="#accordionWeight">
-					<div class="accordion-body">
-						<table class="table table-bordered table-hover">
-							<thead class="table-light">
-								<tr>
-									<th>Дата</th>
-									<th>Вес</th>
-								</tr>
-							</thead>
-	`,
-		_cssBotstrapURL,
-		tsFromStr,
-		tsToStr))
+	htmlBuilder := html.NewBuilder("Таблица веса")
+	accordion := html.NewAccordion("accordionWeight")
 
-	sb.WriteString("<tbody>")
+	// Table
+	tbl := html.NewTable([]string{"Дата", "Вес"})
+
 	xlabels := make([]string, 0, len(lst))
 	data := make([]float64, 0, len(lst))
 	for _, w := range lst {
-		sb.WriteString(fmt.Sprintf("<tr><td>%s</td><td>%.1f</td>", formatTimestamp(w.Timestamp), w.Value))
+		tbl.AddRow(
+			html.NewTr(nil).
+				AddTd(html.NewTd(html.NewS(formatTimestamp(w.Timestamp)), nil)).
+				AddTd(html.NewTd(html.NewS(fmt.Sprintf("%.1f", w.Value)), nil)),
+		)
 		xlabels = append(xlabels, formatTimestamp(w.Timestamp))
 		data = append(data, w.Value)
 	}
-	sb.WriteString(`
-							</tbody>
-						</table>
-					</div>
-				</div>
-			</div>
-	`)
+
+	accordion.AddItem(
+		html.HewAccordionItem(
+			"tbl",
+			fmt.Sprintf("Таблица веса за %s - %s", tsFromStr, tsToStr),
+			tbl))
 
 	// Chart
+	chart := html.NewCanvas("chart")
+	accordion.AddItem(
+		html.HewAccordionItem(
+			"graph",
+			fmt.Sprintf("График веса за %s - %s", tsFromStr, tsToStr),
+			chart))
+
 	chartSnip, err := GetChartSnippet(&ChardData{
 		XLabels: xlabels,
 		Data:    data,
@@ -261,34 +248,19 @@ func (r *CmdProcessor) weightListCommand(c tele.Context, cmdParts []string, user
 		return c.Send(msgErrInternal)
 	}
 
-	sb.WriteString(fmt.Sprintf(`
-			<div class="accordion-item">
-				<h2 class="accordion-header">
-					<button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseChart"
-							aria-expanded="false" aria-controls="collapseChart">
-					<b>График веса за %s - %s</b>
-					</button>
-				</h2>
-				<div id="collapseChart" class="accordion-collapse collapse" data-bs-parent="#accordionWeight">
-					<div class="accordion-body">
-						<canvas id="chart"></canvas>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
-	</body>
-	<script src="%s"></script>
-	%s
-	</html>
-	`,
-		tsFromStr,
-		tsToStr,
-		_jsBootstrapURL,
-		chartSnip))
+	// Doc
+	htmlBuilder.Add(
+		html.NewContainer().Add(
+			accordion,
+		),
+		html.NewScript(_jsBootstrapURL),
+		html.NewScript(_jsChartURL),
+		html.NewS(chartSnip),
+	)
 
+	// Response
 	return c.Send(&tele.Document{
-		File:     tele.FromReader(bytes.NewBufferString(sb.String())),
+		File:     tele.FromReader(bytes.NewBufferString(htmlBuilder.Build())),
 		MIME:     "text/html",
 		FileName: fmt.Sprintf("weight_%s_%s.html", tsFromStr, tsToStr),
 	})

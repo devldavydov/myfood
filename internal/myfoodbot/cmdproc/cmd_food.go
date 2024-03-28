@@ -292,10 +292,10 @@ func (r *CmdProcessor) foodListCommand(c tele.Context, userID int64) error {
 			AddTd(html.NewTd(html.NewS(item.Key), nil)).
 			AddTd(html.NewTd(html.NewS(item.Name), nil)).
 			AddTd(html.NewTd(html.NewS(item.Brand), nil)).
-			AddTd(html.NewTd(html.NewS(item.Cal100), nil)).
-			AddTd(html.NewTd(html.NewS(item.Prot100), nil)).
-			AddTd(html.NewTd(html.NewS(item.Fat100), nil)).
-			AddTd(html.NewTd(html.NewS(item.Carb100), nil)).
+			AddTd(html.NewTd(html.NewS(fmt.Sprintf("%.2f", item.Cal100)), nil)).
+			AddTd(html.NewTd(html.NewS(fmt.Sprintf("%.2f", item.Prot100)), nil)).
+			AddTd(html.NewTd(html.NewS(fmt.Sprintf("%.2f", item.Fat100)), nil)).
+			AddTd(html.NewTd(html.NewS(fmt.Sprintf("%.2f", item.Carb100)), nil)).
 			AddTd(html.NewTd(html.NewS(item.Comment), nil))
 		tbl.AddRow(tr)
 	}
