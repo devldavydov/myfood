@@ -32,6 +32,8 @@ func (r *CmdProcessor) processFood(c tele.Context, cmdParts []string, userID int
 		return r.foodSetCommentCommand(c, cmdParts[1:], userID)
 	case "find":
 		return r.foodFindCommand(c, cmdParts[1:], userID)
+	case "calc":
+		return r.foodCalcCommand(c, cmdParts[1:], userID)
 	case "list":
 		return r.foodListCommand(c, userID)
 	case "del":
@@ -220,6 +222,61 @@ func (r *CmdProcessor) foodFindCommand(c tele.Context, cmdParts []string, userID
 			sb.WriteString("\n")
 		}
 	}
+
+	return c.Send(sb.String(), &tele.SendOptions{ParseMode: tele.ModeHTML})
+}
+
+func (r *CmdProcessor) foodCalcCommand(c tele.Context, cmdParts []string, userID int64) error {
+	if len(cmdParts) != 2 {
+		r.logger.Error(
+			"invalid food calc command",
+			zap.String("reason", "len parts"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+		)
+		return c.Send(msgErrInvalidCommand)
+	}
+
+	foodWeight, err := strconv.ParseFloat(cmdParts[1], 64)
+	if err != nil {
+		r.logger.Error(
+			"invalid food calc command",
+			zap.String("reason", "weight format"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
+		return c.Send(msgErrInvalidCommand)
+	}
+
+	// Get in DB
+	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout)
+	defer cancel()
+
+	food, err := r.stg.GetFood(ctx, cmdParts[0])
+	if err != nil {
+		if errors.Is(err, storage.ErrFoodNotFound) {
+			return c.Send(msgErrFoodNotFound)
+		}
+
+		r.logger.Error(
+			"food calc command DB error",
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
+
+		return c.Send(msgErrInternal)
+	}
+
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("<b>Наименование:</b> %s\n", food.Name))
+	sb.WriteString(fmt.Sprintf("<b>Бренд:</b> %s\n", food.Brand))
+	sb.WriteString(fmt.Sprintf("<b>Вес:</b> %.1f\n", foodWeight))
+	sb.WriteString(fmt.Sprintf("<b>ККал:</b> %.2f\n", foodWeight/100*food.Cal100))
+	sb.WriteString(fmt.Sprintf("<b>Бел:</b> %.2f\n", foodWeight/100*food.Prot100))
+	sb.WriteString(fmt.Sprintf("<b>Жир:</b> %.2f\n", foodWeight/100*food.Fat100))
+	sb.WriteString(fmt.Sprintf("<b>Угл:</b> %.2f\n", foodWeight/100*food.Carb100))
 
 	return c.Send(sb.String(), &tele.SendOptions{ParseMode: tele.ModeHTML})
 }
