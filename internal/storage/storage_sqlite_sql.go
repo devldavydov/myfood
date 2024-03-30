@@ -131,24 +131,4 @@ const (
 			PRIMARY KEY (userid, timestamp)
 		) STRICT;	
 		`
-
-	// UserSettings
-	_sqlCreateTableUserSettings = `
-	CREATE TABLE IF NOT EXISTS user_settings (
-		userid    INTEGER NOT NULL,
-		cal_limit REAL NOT NULL,
-		PRIMARY KEY (userid)
-	) STRICT;
-	`
-	_sqlGetUserSettings = `
-	SELECT cal_limit
-	FROM user_settings
-	WHERE userid = $1
-	`
-	_sqlSetUserSettings = `
-	INSERT INTO user_settings(userid, cal_limit)
-	VALUES ($1, $2)
-	ON CONFLICT (userid) DO
-	UPDATE set cal_limit = $2
-	`
 )

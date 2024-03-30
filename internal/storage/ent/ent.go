@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/devldavydov/myfood/internal/storage/ent/usersettings"
 	"github.com/devldavydov/myfood/internal/storage/ent/weight"
 )
 
@@ -73,7 +74,8 @@ var (
 func checkColumn(table, column string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			weight.Table: weight.ValidColumn,
+			usersettings.Table: usersettings.ValidColumn,
+			weight.Table:       weight.ValidColumn,
 		})
 	})
 	return columnCheck(table, column)

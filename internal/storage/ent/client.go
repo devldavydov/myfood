@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
+	"github.com/devldavydov/myfood/internal/storage/ent/usersettings"
 	"github.com/devldavydov/myfood/internal/storage/ent/weight"
 )
 
@@ -22,6 +23,8 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// UserSettings is the client for interacting with the UserSettings builders.
+	UserSettings *UserSettingsClient
 	// Weight is the client for interacting with the Weight builders.
 	Weight *WeightClient
 }
@@ -35,6 +38,7 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.UserSettings = NewUserSettingsClient(c.config)
 	c.Weight = NewWeightClient(c.config)
 }
 
@@ -126,9 +130,10 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:    ctx,
-		config: cfg,
-		Weight: NewWeightClient(cfg),
+		ctx:          ctx,
+		config:       cfg,
+		UserSettings: NewUserSettingsClient(cfg),
+		Weight:       NewWeightClient(cfg),
 	}, nil
 }
 
@@ -146,16 +151,17 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:    ctx,
-		config: cfg,
-		Weight: NewWeightClient(cfg),
+		ctx:          ctx,
+		config:       cfg,
+		UserSettings: NewUserSettingsClient(cfg),
+		Weight:       NewWeightClient(cfg),
 	}, nil
 }
 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		Weight.
+//		UserSettings.
 //		Query().
 //		Count(ctx)
 func (c *Client) Debug() *Client {
@@ -177,22 +183,159 @@ func (c *Client) Close() error {
 // Use adds the mutation hooks to all the entity clients.
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
+	c.UserSettings.Use(hooks...)
 	c.Weight.Use(hooks...)
 }
 
 // Intercept adds the query interceptors to all the entity clients.
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
+	c.UserSettings.Intercept(interceptors...)
 	c.Weight.Intercept(interceptors...)
 }
 
 // Mutate implements the ent.Mutator interface.
 func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
+	case *UserSettingsMutation:
+		return c.UserSettings.mutate(ctx, m)
 	case *WeightMutation:
 		return c.Weight.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
+	}
+}
+
+// UserSettingsClient is a client for the UserSettings schema.
+type UserSettingsClient struct {
+	config
+}
+
+// NewUserSettingsClient returns a client for the UserSettings from the given config.
+func NewUserSettingsClient(c config) *UserSettingsClient {
+	return &UserSettingsClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `usersettings.Hooks(f(g(h())))`.
+func (c *UserSettingsClient) Use(hooks ...Hook) {
+	c.hooks.UserSettings = append(c.hooks.UserSettings, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `usersettings.Intercept(f(g(h())))`.
+func (c *UserSettingsClient) Intercept(interceptors ...Interceptor) {
+	c.inters.UserSettings = append(c.inters.UserSettings, interceptors...)
+}
+
+// Create returns a builder for creating a UserSettings entity.
+func (c *UserSettingsClient) Create() *UserSettingsCreate {
+	mutation := newUserSettingsMutation(c.config, OpCreate)
+	return &UserSettingsCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of UserSettings entities.
+func (c *UserSettingsClient) CreateBulk(builders ...*UserSettingsCreate) *UserSettingsCreateBulk {
+	return &UserSettingsCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *UserSettingsClient) MapCreateBulk(slice any, setFunc func(*UserSettingsCreate, int)) *UserSettingsCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &UserSettingsCreateBulk{err: fmt.Errorf("calling to UserSettingsClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*UserSettingsCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &UserSettingsCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for UserSettings.
+func (c *UserSettingsClient) Update() *UserSettingsUpdate {
+	mutation := newUserSettingsMutation(c.config, OpUpdate)
+	return &UserSettingsUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *UserSettingsClient) UpdateOne(us *UserSettings) *UserSettingsUpdateOne {
+	mutation := newUserSettingsMutation(c.config, OpUpdateOne, withUserSettings(us))
+	return &UserSettingsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *UserSettingsClient) UpdateOneID(id int) *UserSettingsUpdateOne {
+	mutation := newUserSettingsMutation(c.config, OpUpdateOne, withUserSettingsID(id))
+	return &UserSettingsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for UserSettings.
+func (c *UserSettingsClient) Delete() *UserSettingsDelete {
+	mutation := newUserSettingsMutation(c.config, OpDelete)
+	return &UserSettingsDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *UserSettingsClient) DeleteOne(us *UserSettings) *UserSettingsDeleteOne {
+	return c.DeleteOneID(us.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *UserSettingsClient) DeleteOneID(id int) *UserSettingsDeleteOne {
+	builder := c.Delete().Where(usersettings.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &UserSettingsDeleteOne{builder}
+}
+
+// Query returns a query builder for UserSettings.
+func (c *UserSettingsClient) Query() *UserSettingsQuery {
+	return &UserSettingsQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeUserSettings},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a UserSettings entity by its id.
+func (c *UserSettingsClient) Get(ctx context.Context, id int) (*UserSettings, error) {
+	return c.Query().Where(usersettings.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *UserSettingsClient) GetX(ctx context.Context, id int) *UserSettings {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *UserSettingsClient) Hooks() []Hook {
+	return c.hooks.UserSettings
+}
+
+// Interceptors returns the client interceptors.
+func (c *UserSettingsClient) Interceptors() []Interceptor {
+	return c.inters.UserSettings
+}
+
+func (c *UserSettingsClient) mutate(ctx context.Context, m *UserSettingsMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&UserSettingsCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&UserSettingsUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&UserSettingsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&UserSettingsDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown UserSettings mutation op: %q", m.Op())
 	}
 }
 
@@ -332,9 +475,9 @@ func (c *WeightClient) mutate(ctx context.Context, m *WeightMutation) (Value, er
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Weight []ent.Hook
+		UserSettings, Weight []ent.Hook
 	}
 	inters struct {
-		Weight []ent.Interceptor
+		UserSettings, Weight []ent.Interceptor
 	}
 )

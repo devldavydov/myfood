@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/devldavydov/myfood/internal/storage/ent"
+	"github.com/devldavydov/myfood/internal/storage/ent/usersettings"
 	"github.com/devldavydov/myfood/internal/storage/ent/weight"
 	gsql "github.com/mattn/go-sqlite3"
 	"go.uber.org/zap"
@@ -72,9 +73,9 @@ func NewStorageSQLite(dbFilePath string, logger *zap.Logger) (*StorageSQLite, er
 	}
 
 	// Run migrations from old to new (remove after all done)
-	if err := stg.migrateWeight(); err != nil {
-		return nil, err
-	}
+	// if err := stg.migrateWeight(); err != nil {
+	// 	return nil, err
+	// }
 
 	return stg, nil
 }
@@ -389,16 +390,25 @@ func (r *StorageSQLite) GetJournalStats(ctx context.Context, userID int64, from,
 //
 
 func (r *StorageSQLite) GetUserSettings(ctx context.Context, userID int64) (*UserSettings, error) {
-	var us UserSettings
-	err := r.db.QueryRowContext(ctx, _sqlGetUserSettings, userID).Scan(&us.CalLimit)
-	switch {
-	case err == sql.ErrNoRows:
-		return nil, ErrUserSettingsNotFound
-	case err != nil:
+	res, err := r.dbEnt.Tx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+		return tx.UserSettings.
+			Query().
+			Where(usersettings.Userid(userID)).
+			First(ctx)
+	})
+
+	if err != nil {
+		var notFound *ent.NotFoundError
+		if errors.As(err, &notFound) {
+			return nil, ErrUserSettingsNotFound
+		}
+
 		return nil, err
 	}
 
-	return &us, nil
+	us, _ := res.(*ent.UserSettings)
+
+	return &UserSettings{CalLimit: us.CalLimit}, nil
 }
 
 func (r *StorageSQLite) SetUserSettings(ctx context.Context, userID int64, settings *UserSettings) error {
@@ -406,12 +416,17 @@ func (r *StorageSQLite) SetUserSettings(ctx context.Context, userID int64, setti
 		return ErrUserSettingsInvalid
 	}
 
-	_, err := r.db.ExecContext(ctx, _sqlSetUserSettings, userID, settings.CalLimit)
-	if err != nil {
-		return err
-	}
+	_, err := r.dbEnt.Tx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+		return tx.UserSettings.
+			Create().
+			SetUserid(userID).
+			SetCalLimit(settings.CalLimit).
+			OnConflict().
+			UpdateNewValues().
+			ID(ctx)
+	})
 
-	return nil
+	return err
 }
 
 //
@@ -432,9 +447,7 @@ func (r *StorageSQLite) init() error {
 
 	for _, createTbl := range []string{
 		_sqlCreateTableFood,
-		_sqlCreateTableJournal,
-		_sqlCreateTableWeight,
-		_sqlCreateTableUserSettings} {
+		_sqlCreateTableJournal} {
 		_, err := r.db.ExecContext(ctx, createTbl)
 		if err != nil {
 			return err

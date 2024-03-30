@@ -8,6 +8,18 @@ import (
 )
 
 var (
+	// UserSettingsColumns holds the columns for the "user_settings" table.
+	UserSettingsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "userid", Type: field.TypeInt64, Unique: true},
+		{Name: "cal_limit", Type: field.TypeFloat64},
+	}
+	// UserSettingsTable holds the schema information for the "user_settings" table.
+	UserSettingsTable = &schema.Table{
+		Name:       "user_settings",
+		Columns:    UserSettingsColumns,
+		PrimaryKey: []*schema.Column{UserSettingsColumns[0]},
+	}
 	// WeightsColumns holds the columns for the "weights" table.
 	WeightsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -30,6 +42,7 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		UserSettingsTable,
 		WeightsTable,
 	}
 )
