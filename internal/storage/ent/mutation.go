@@ -11,6 +11,8 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/devldavydov/myfood/internal/storage/ent/food"
+	"github.com/devldavydov/myfood/internal/storage/ent/journal"
 	"github.com/devldavydov/myfood/internal/storage/ent/predicate"
 	"github.com/devldavydov/myfood/internal/storage/ent/usersettings"
 	"github.com/devldavydov/myfood/internal/storage/ent/weight"
@@ -25,9 +27,1641 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
+	TypeFood         = "Food"
+	TypeJournal      = "Journal"
 	TypeUserSettings = "UserSettings"
 	TypeWeight       = "Weight"
 )
+
+// FoodMutation represents an operation that mutates the Food nodes in the graph.
+type FoodMutation struct {
+	config
+	op              Op
+	typ             string
+	id              *int
+	key             *string
+	name            *string
+	brand           *string
+	cal100          *float64
+	addcal100       *float64
+	prot100         *float64
+	addprot100      *float64
+	fat100          *float64
+	addfat100       *float64
+	carb100         *float64
+	addcarb100      *float64
+	comment         *string
+	clearedFields   map[string]struct{}
+	journals        map[int]struct{}
+	removedjournals map[int]struct{}
+	clearedjournals bool
+	done            bool
+	oldValue        func(context.Context) (*Food, error)
+	predicates      []predicate.Food
+}
+
+var _ ent.Mutation = (*FoodMutation)(nil)
+
+// foodOption allows management of the mutation configuration using functional options.
+type foodOption func(*FoodMutation)
+
+// newFoodMutation creates new mutation for the Food entity.
+func newFoodMutation(c config, op Op, opts ...foodOption) *FoodMutation {
+	m := &FoodMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeFood,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withFoodID sets the ID field of the mutation.
+func withFoodID(id int) foodOption {
+	return func(m *FoodMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Food
+		)
+		m.oldValue = func(ctx context.Context) (*Food, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Food.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withFood sets the old Food of the mutation.
+func withFood(node *Food) foodOption {
+	return func(m *FoodMutation) {
+		m.oldValue = func(context.Context) (*Food, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m FoodMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m FoodMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *FoodMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *FoodMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().Food.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetKey sets the "key" field.
+func (m *FoodMutation) SetKey(s string) {
+	m.key = &s
+}
+
+// Key returns the value of the "key" field in the mutation.
+func (m *FoodMutation) Key() (r string, exists bool) {
+	v := m.key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldKey returns the old "key" field's value of the Food entity.
+// If the Food object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FoodMutation) OldKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKey: %w", err)
+	}
+	return oldValue.Key, nil
+}
+
+// ResetKey resets all changes to the "key" field.
+func (m *FoodMutation) ResetKey() {
+	m.key = nil
+}
+
+// SetName sets the "name" field.
+func (m *FoodMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *FoodMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the Food entity.
+// If the Food object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FoodMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *FoodMutation) ResetName() {
+	m.name = nil
+}
+
+// SetBrand sets the "brand" field.
+func (m *FoodMutation) SetBrand(s string) {
+	m.brand = &s
+}
+
+// Brand returns the value of the "brand" field in the mutation.
+func (m *FoodMutation) Brand() (r string, exists bool) {
+	v := m.brand
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBrand returns the old "brand" field's value of the Food entity.
+// If the Food object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FoodMutation) OldBrand(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBrand is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBrand requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBrand: %w", err)
+	}
+	return oldValue.Brand, nil
+}
+
+// ClearBrand clears the value of the "brand" field.
+func (m *FoodMutation) ClearBrand() {
+	m.brand = nil
+	m.clearedFields[food.FieldBrand] = struct{}{}
+}
+
+// BrandCleared returns if the "brand" field was cleared in this mutation.
+func (m *FoodMutation) BrandCleared() bool {
+	_, ok := m.clearedFields[food.FieldBrand]
+	return ok
+}
+
+// ResetBrand resets all changes to the "brand" field.
+func (m *FoodMutation) ResetBrand() {
+	m.brand = nil
+	delete(m.clearedFields, food.FieldBrand)
+}
+
+// SetCal100 sets the "cal100" field.
+func (m *FoodMutation) SetCal100(f float64) {
+	m.cal100 = &f
+	m.addcal100 = nil
+}
+
+// Cal100 returns the value of the "cal100" field in the mutation.
+func (m *FoodMutation) Cal100() (r float64, exists bool) {
+	v := m.cal100
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCal100 returns the old "cal100" field's value of the Food entity.
+// If the Food object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FoodMutation) OldCal100(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCal100 is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCal100 requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCal100: %w", err)
+	}
+	return oldValue.Cal100, nil
+}
+
+// AddCal100 adds f to the "cal100" field.
+func (m *FoodMutation) AddCal100(f float64) {
+	if m.addcal100 != nil {
+		*m.addcal100 += f
+	} else {
+		m.addcal100 = &f
+	}
+}
+
+// AddedCal100 returns the value that was added to the "cal100" field in this mutation.
+func (m *FoodMutation) AddedCal100() (r float64, exists bool) {
+	v := m.addcal100
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetCal100 resets all changes to the "cal100" field.
+func (m *FoodMutation) ResetCal100() {
+	m.cal100 = nil
+	m.addcal100 = nil
+}
+
+// SetProt100 sets the "prot100" field.
+func (m *FoodMutation) SetProt100(f float64) {
+	m.prot100 = &f
+	m.addprot100 = nil
+}
+
+// Prot100 returns the value of the "prot100" field in the mutation.
+func (m *FoodMutation) Prot100() (r float64, exists bool) {
+	v := m.prot100
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProt100 returns the old "prot100" field's value of the Food entity.
+// If the Food object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FoodMutation) OldProt100(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProt100 is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProt100 requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProt100: %w", err)
+	}
+	return oldValue.Prot100, nil
+}
+
+// AddProt100 adds f to the "prot100" field.
+func (m *FoodMutation) AddProt100(f float64) {
+	if m.addprot100 != nil {
+		*m.addprot100 += f
+	} else {
+		m.addprot100 = &f
+	}
+}
+
+// AddedProt100 returns the value that was added to the "prot100" field in this mutation.
+func (m *FoodMutation) AddedProt100() (r float64, exists bool) {
+	v := m.addprot100
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetProt100 resets all changes to the "prot100" field.
+func (m *FoodMutation) ResetProt100() {
+	m.prot100 = nil
+	m.addprot100 = nil
+}
+
+// SetFat100 sets the "fat100" field.
+func (m *FoodMutation) SetFat100(f float64) {
+	m.fat100 = &f
+	m.addfat100 = nil
+}
+
+// Fat100 returns the value of the "fat100" field in the mutation.
+func (m *FoodMutation) Fat100() (r float64, exists bool) {
+	v := m.fat100
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFat100 returns the old "fat100" field's value of the Food entity.
+// If the Food object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FoodMutation) OldFat100(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFat100 is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFat100 requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFat100: %w", err)
+	}
+	return oldValue.Fat100, nil
+}
+
+// AddFat100 adds f to the "fat100" field.
+func (m *FoodMutation) AddFat100(f float64) {
+	if m.addfat100 != nil {
+		*m.addfat100 += f
+	} else {
+		m.addfat100 = &f
+	}
+}
+
+// AddedFat100 returns the value that was added to the "fat100" field in this mutation.
+func (m *FoodMutation) AddedFat100() (r float64, exists bool) {
+	v := m.addfat100
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetFat100 resets all changes to the "fat100" field.
+func (m *FoodMutation) ResetFat100() {
+	m.fat100 = nil
+	m.addfat100 = nil
+}
+
+// SetCarb100 sets the "carb100" field.
+func (m *FoodMutation) SetCarb100(f float64) {
+	m.carb100 = &f
+	m.addcarb100 = nil
+}
+
+// Carb100 returns the value of the "carb100" field in the mutation.
+func (m *FoodMutation) Carb100() (r float64, exists bool) {
+	v := m.carb100
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCarb100 returns the old "carb100" field's value of the Food entity.
+// If the Food object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FoodMutation) OldCarb100(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCarb100 is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCarb100 requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCarb100: %w", err)
+	}
+	return oldValue.Carb100, nil
+}
+
+// AddCarb100 adds f to the "carb100" field.
+func (m *FoodMutation) AddCarb100(f float64) {
+	if m.addcarb100 != nil {
+		*m.addcarb100 += f
+	} else {
+		m.addcarb100 = &f
+	}
+}
+
+// AddedCarb100 returns the value that was added to the "carb100" field in this mutation.
+func (m *FoodMutation) AddedCarb100() (r float64, exists bool) {
+	v := m.addcarb100
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetCarb100 resets all changes to the "carb100" field.
+func (m *FoodMutation) ResetCarb100() {
+	m.carb100 = nil
+	m.addcarb100 = nil
+}
+
+// SetComment sets the "comment" field.
+func (m *FoodMutation) SetComment(s string) {
+	m.comment = &s
+}
+
+// Comment returns the value of the "comment" field in the mutation.
+func (m *FoodMutation) Comment() (r string, exists bool) {
+	v := m.comment
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldComment returns the old "comment" field's value of the Food entity.
+// If the Food object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FoodMutation) OldComment(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldComment is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldComment requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldComment: %w", err)
+	}
+	return oldValue.Comment, nil
+}
+
+// ClearComment clears the value of the "comment" field.
+func (m *FoodMutation) ClearComment() {
+	m.comment = nil
+	m.clearedFields[food.FieldComment] = struct{}{}
+}
+
+// CommentCleared returns if the "comment" field was cleared in this mutation.
+func (m *FoodMutation) CommentCleared() bool {
+	_, ok := m.clearedFields[food.FieldComment]
+	return ok
+}
+
+// ResetComment resets all changes to the "comment" field.
+func (m *FoodMutation) ResetComment() {
+	m.comment = nil
+	delete(m.clearedFields, food.FieldComment)
+}
+
+// AddJournalIDs adds the "journals" edge to the Journal entity by ids.
+func (m *FoodMutation) AddJournalIDs(ids ...int) {
+	if m.journals == nil {
+		m.journals = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.journals[ids[i]] = struct{}{}
+	}
+}
+
+// ClearJournals clears the "journals" edge to the Journal entity.
+func (m *FoodMutation) ClearJournals() {
+	m.clearedjournals = true
+}
+
+// JournalsCleared reports if the "journals" edge to the Journal entity was cleared.
+func (m *FoodMutation) JournalsCleared() bool {
+	return m.clearedjournals
+}
+
+// RemoveJournalIDs removes the "journals" edge to the Journal entity by IDs.
+func (m *FoodMutation) RemoveJournalIDs(ids ...int) {
+	if m.removedjournals == nil {
+		m.removedjournals = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.journals, ids[i])
+		m.removedjournals[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedJournals returns the removed IDs of the "journals" edge to the Journal entity.
+func (m *FoodMutation) RemovedJournalsIDs() (ids []int) {
+	for id := range m.removedjournals {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// JournalsIDs returns the "journals" edge IDs in the mutation.
+func (m *FoodMutation) JournalsIDs() (ids []int) {
+	for id := range m.journals {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetJournals resets all changes to the "journals" edge.
+func (m *FoodMutation) ResetJournals() {
+	m.journals = nil
+	m.clearedjournals = false
+	m.removedjournals = nil
+}
+
+// Where appends a list predicates to the FoodMutation builder.
+func (m *FoodMutation) Where(ps ...predicate.Food) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the FoodMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *FoodMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.Food, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *FoodMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *FoodMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (Food).
+func (m *FoodMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *FoodMutation) Fields() []string {
+	fields := make([]string, 0, 8)
+	if m.key != nil {
+		fields = append(fields, food.FieldKey)
+	}
+	if m.name != nil {
+		fields = append(fields, food.FieldName)
+	}
+	if m.brand != nil {
+		fields = append(fields, food.FieldBrand)
+	}
+	if m.cal100 != nil {
+		fields = append(fields, food.FieldCal100)
+	}
+	if m.prot100 != nil {
+		fields = append(fields, food.FieldProt100)
+	}
+	if m.fat100 != nil {
+		fields = append(fields, food.FieldFat100)
+	}
+	if m.carb100 != nil {
+		fields = append(fields, food.FieldCarb100)
+	}
+	if m.comment != nil {
+		fields = append(fields, food.FieldComment)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *FoodMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case food.FieldKey:
+		return m.Key()
+	case food.FieldName:
+		return m.Name()
+	case food.FieldBrand:
+		return m.Brand()
+	case food.FieldCal100:
+		return m.Cal100()
+	case food.FieldProt100:
+		return m.Prot100()
+	case food.FieldFat100:
+		return m.Fat100()
+	case food.FieldCarb100:
+		return m.Carb100()
+	case food.FieldComment:
+		return m.Comment()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *FoodMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case food.FieldKey:
+		return m.OldKey(ctx)
+	case food.FieldName:
+		return m.OldName(ctx)
+	case food.FieldBrand:
+		return m.OldBrand(ctx)
+	case food.FieldCal100:
+		return m.OldCal100(ctx)
+	case food.FieldProt100:
+		return m.OldProt100(ctx)
+	case food.FieldFat100:
+		return m.OldFat100(ctx)
+	case food.FieldCarb100:
+		return m.OldCarb100(ctx)
+	case food.FieldComment:
+		return m.OldComment(ctx)
+	}
+	return nil, fmt.Errorf("unknown Food field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *FoodMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case food.FieldKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetKey(v)
+		return nil
+	case food.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case food.FieldBrand:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBrand(v)
+		return nil
+	case food.FieldCal100:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCal100(v)
+		return nil
+	case food.FieldProt100:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProt100(v)
+		return nil
+	case food.FieldFat100:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFat100(v)
+		return nil
+	case food.FieldCarb100:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCarb100(v)
+		return nil
+	case food.FieldComment:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetComment(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Food field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *FoodMutation) AddedFields() []string {
+	var fields []string
+	if m.addcal100 != nil {
+		fields = append(fields, food.FieldCal100)
+	}
+	if m.addprot100 != nil {
+		fields = append(fields, food.FieldProt100)
+	}
+	if m.addfat100 != nil {
+		fields = append(fields, food.FieldFat100)
+	}
+	if m.addcarb100 != nil {
+		fields = append(fields, food.FieldCarb100)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *FoodMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case food.FieldCal100:
+		return m.AddedCal100()
+	case food.FieldProt100:
+		return m.AddedProt100()
+	case food.FieldFat100:
+		return m.AddedFat100()
+	case food.FieldCarb100:
+		return m.AddedCarb100()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *FoodMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case food.FieldCal100:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCal100(v)
+		return nil
+	case food.FieldProt100:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddProt100(v)
+		return nil
+	case food.FieldFat100:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddFat100(v)
+		return nil
+	case food.FieldCarb100:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCarb100(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Food numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *FoodMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(food.FieldBrand) {
+		fields = append(fields, food.FieldBrand)
+	}
+	if m.FieldCleared(food.FieldComment) {
+		fields = append(fields, food.FieldComment)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *FoodMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *FoodMutation) ClearField(name string) error {
+	switch name {
+	case food.FieldBrand:
+		m.ClearBrand()
+		return nil
+	case food.FieldComment:
+		m.ClearComment()
+		return nil
+	}
+	return fmt.Errorf("unknown Food nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *FoodMutation) ResetField(name string) error {
+	switch name {
+	case food.FieldKey:
+		m.ResetKey()
+		return nil
+	case food.FieldName:
+		m.ResetName()
+		return nil
+	case food.FieldBrand:
+		m.ResetBrand()
+		return nil
+	case food.FieldCal100:
+		m.ResetCal100()
+		return nil
+	case food.FieldProt100:
+		m.ResetProt100()
+		return nil
+	case food.FieldFat100:
+		m.ResetFat100()
+		return nil
+	case food.FieldCarb100:
+		m.ResetCarb100()
+		return nil
+	case food.FieldComment:
+		m.ResetComment()
+		return nil
+	}
+	return fmt.Errorf("unknown Food field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *FoodMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.journals != nil {
+		edges = append(edges, food.EdgeJournals)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *FoodMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case food.EdgeJournals:
+		ids := make([]ent.Value, 0, len(m.journals))
+		for id := range m.journals {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *FoodMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.removedjournals != nil {
+		edges = append(edges, food.EdgeJournals)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *FoodMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case food.EdgeJournals:
+		ids := make([]ent.Value, 0, len(m.removedjournals))
+		for id := range m.removedjournals {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *FoodMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedjournals {
+		edges = append(edges, food.EdgeJournals)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *FoodMutation) EdgeCleared(name string) bool {
+	switch name {
+	case food.EdgeJournals:
+		return m.clearedjournals
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *FoodMutation) ClearEdge(name string) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Food unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *FoodMutation) ResetEdge(name string) error {
+	switch name {
+	case food.EdgeJournals:
+		m.ResetJournals()
+		return nil
+	}
+	return fmt.Errorf("unknown Food edge %s", name)
+}
+
+// JournalMutation represents an operation that mutates the Journal nodes in the graph.
+type JournalMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *int
+	userid        *int64
+	adduserid     *int64
+	timestamp     *time.Time
+	meal          *int64
+	addmeal       *int64
+	foodweight    *float64
+	addfoodweight *float64
+	clearedFields map[string]struct{}
+	food          *int
+	clearedfood   bool
+	done          bool
+	oldValue      func(context.Context) (*Journal, error)
+	predicates    []predicate.Journal
+}
+
+var _ ent.Mutation = (*JournalMutation)(nil)
+
+// journalOption allows management of the mutation configuration using functional options.
+type journalOption func(*JournalMutation)
+
+// newJournalMutation creates new mutation for the Journal entity.
+func newJournalMutation(c config, op Op, opts ...journalOption) *JournalMutation {
+	m := &JournalMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeJournal,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withJournalID sets the ID field of the mutation.
+func withJournalID(id int) journalOption {
+	return func(m *JournalMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Journal
+		)
+		m.oldValue = func(ctx context.Context) (*Journal, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Journal.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withJournal sets the old Journal of the mutation.
+func withJournal(node *Journal) journalOption {
+	return func(m *JournalMutation) {
+		m.oldValue = func(context.Context) (*Journal, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m JournalMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m JournalMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *JournalMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *JournalMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().Journal.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetUserid sets the "userid" field.
+func (m *JournalMutation) SetUserid(i int64) {
+	m.userid = &i
+	m.adduserid = nil
+}
+
+// Userid returns the value of the "userid" field in the mutation.
+func (m *JournalMutation) Userid() (r int64, exists bool) {
+	v := m.userid
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUserid returns the old "userid" field's value of the Journal entity.
+// If the Journal object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *JournalMutation) OldUserid(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUserid is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUserid requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUserid: %w", err)
+	}
+	return oldValue.Userid, nil
+}
+
+// AddUserid adds i to the "userid" field.
+func (m *JournalMutation) AddUserid(i int64) {
+	if m.adduserid != nil {
+		*m.adduserid += i
+	} else {
+		m.adduserid = &i
+	}
+}
+
+// AddedUserid returns the value that was added to the "userid" field in this mutation.
+func (m *JournalMutation) AddedUserid() (r int64, exists bool) {
+	v := m.adduserid
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetUserid resets all changes to the "userid" field.
+func (m *JournalMutation) ResetUserid() {
+	m.userid = nil
+	m.adduserid = nil
+}
+
+// SetTimestamp sets the "timestamp" field.
+func (m *JournalMutation) SetTimestamp(t time.Time) {
+	m.timestamp = &t
+}
+
+// Timestamp returns the value of the "timestamp" field in the mutation.
+func (m *JournalMutation) Timestamp() (r time.Time, exists bool) {
+	v := m.timestamp
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTimestamp returns the old "timestamp" field's value of the Journal entity.
+// If the Journal object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *JournalMutation) OldTimestamp(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTimestamp is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTimestamp requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTimestamp: %w", err)
+	}
+	return oldValue.Timestamp, nil
+}
+
+// ResetTimestamp resets all changes to the "timestamp" field.
+func (m *JournalMutation) ResetTimestamp() {
+	m.timestamp = nil
+}
+
+// SetMeal sets the "meal" field.
+func (m *JournalMutation) SetMeal(i int64) {
+	m.meal = &i
+	m.addmeal = nil
+}
+
+// Meal returns the value of the "meal" field in the mutation.
+func (m *JournalMutation) Meal() (r int64, exists bool) {
+	v := m.meal
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMeal returns the old "meal" field's value of the Journal entity.
+// If the Journal object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *JournalMutation) OldMeal(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMeal is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMeal requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMeal: %w", err)
+	}
+	return oldValue.Meal, nil
+}
+
+// AddMeal adds i to the "meal" field.
+func (m *JournalMutation) AddMeal(i int64) {
+	if m.addmeal != nil {
+		*m.addmeal += i
+	} else {
+		m.addmeal = &i
+	}
+}
+
+// AddedMeal returns the value that was added to the "meal" field in this mutation.
+func (m *JournalMutation) AddedMeal() (r int64, exists bool) {
+	v := m.addmeal
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetMeal resets all changes to the "meal" field.
+func (m *JournalMutation) ResetMeal() {
+	m.meal = nil
+	m.addmeal = nil
+}
+
+// SetFoodweight sets the "foodweight" field.
+func (m *JournalMutation) SetFoodweight(f float64) {
+	m.foodweight = &f
+	m.addfoodweight = nil
+}
+
+// Foodweight returns the value of the "foodweight" field in the mutation.
+func (m *JournalMutation) Foodweight() (r float64, exists bool) {
+	v := m.foodweight
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFoodweight returns the old "foodweight" field's value of the Journal entity.
+// If the Journal object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *JournalMutation) OldFoodweight(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFoodweight is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFoodweight requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFoodweight: %w", err)
+	}
+	return oldValue.Foodweight, nil
+}
+
+// AddFoodweight adds f to the "foodweight" field.
+func (m *JournalMutation) AddFoodweight(f float64) {
+	if m.addfoodweight != nil {
+		*m.addfoodweight += f
+	} else {
+		m.addfoodweight = &f
+	}
+}
+
+// AddedFoodweight returns the value that was added to the "foodweight" field in this mutation.
+func (m *JournalMutation) AddedFoodweight() (r float64, exists bool) {
+	v := m.addfoodweight
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetFoodweight resets all changes to the "foodweight" field.
+func (m *JournalMutation) ResetFoodweight() {
+	m.foodweight = nil
+	m.addfoodweight = nil
+}
+
+// SetFoodID sets the "food" edge to the Food entity by id.
+func (m *JournalMutation) SetFoodID(id int) {
+	m.food = &id
+}
+
+// ClearFood clears the "food" edge to the Food entity.
+func (m *JournalMutation) ClearFood() {
+	m.clearedfood = true
+}
+
+// FoodCleared reports if the "food" edge to the Food entity was cleared.
+func (m *JournalMutation) FoodCleared() bool {
+	return m.clearedfood
+}
+
+// FoodID returns the "food" edge ID in the mutation.
+func (m *JournalMutation) FoodID() (id int, exists bool) {
+	if m.food != nil {
+		return *m.food, true
+	}
+	return
+}
+
+// FoodIDs returns the "food" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// FoodID instead. It exists only for internal usage by the builders.
+func (m *JournalMutation) FoodIDs() (ids []int) {
+	if id := m.food; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetFood resets all changes to the "food" edge.
+func (m *JournalMutation) ResetFood() {
+	m.food = nil
+	m.clearedfood = false
+}
+
+// Where appends a list predicates to the JournalMutation builder.
+func (m *JournalMutation) Where(ps ...predicate.Journal) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the JournalMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *JournalMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.Journal, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *JournalMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *JournalMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (Journal).
+func (m *JournalMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *JournalMutation) Fields() []string {
+	fields := make([]string, 0, 4)
+	if m.userid != nil {
+		fields = append(fields, journal.FieldUserid)
+	}
+	if m.timestamp != nil {
+		fields = append(fields, journal.FieldTimestamp)
+	}
+	if m.meal != nil {
+		fields = append(fields, journal.FieldMeal)
+	}
+	if m.foodweight != nil {
+		fields = append(fields, journal.FieldFoodweight)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *JournalMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case journal.FieldUserid:
+		return m.Userid()
+	case journal.FieldTimestamp:
+		return m.Timestamp()
+	case journal.FieldMeal:
+		return m.Meal()
+	case journal.FieldFoodweight:
+		return m.Foodweight()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *JournalMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case journal.FieldUserid:
+		return m.OldUserid(ctx)
+	case journal.FieldTimestamp:
+		return m.OldTimestamp(ctx)
+	case journal.FieldMeal:
+		return m.OldMeal(ctx)
+	case journal.FieldFoodweight:
+		return m.OldFoodweight(ctx)
+	}
+	return nil, fmt.Errorf("unknown Journal field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *JournalMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case journal.FieldUserid:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUserid(v)
+		return nil
+	case journal.FieldTimestamp:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTimestamp(v)
+		return nil
+	case journal.FieldMeal:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMeal(v)
+		return nil
+	case journal.FieldFoodweight:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFoodweight(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Journal field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *JournalMutation) AddedFields() []string {
+	var fields []string
+	if m.adduserid != nil {
+		fields = append(fields, journal.FieldUserid)
+	}
+	if m.addmeal != nil {
+		fields = append(fields, journal.FieldMeal)
+	}
+	if m.addfoodweight != nil {
+		fields = append(fields, journal.FieldFoodweight)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *JournalMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case journal.FieldUserid:
+		return m.AddedUserid()
+	case journal.FieldMeal:
+		return m.AddedMeal()
+	case journal.FieldFoodweight:
+		return m.AddedFoodweight()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *JournalMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case journal.FieldUserid:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddUserid(v)
+		return nil
+	case journal.FieldMeal:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddMeal(v)
+		return nil
+	case journal.FieldFoodweight:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddFoodweight(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Journal numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *JournalMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *JournalMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *JournalMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown Journal nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *JournalMutation) ResetField(name string) error {
+	switch name {
+	case journal.FieldUserid:
+		m.ResetUserid()
+		return nil
+	case journal.FieldTimestamp:
+		m.ResetTimestamp()
+		return nil
+	case journal.FieldMeal:
+		m.ResetMeal()
+		return nil
+	case journal.FieldFoodweight:
+		m.ResetFoodweight()
+		return nil
+	}
+	return fmt.Errorf("unknown Journal field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *JournalMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.food != nil {
+		edges = append(edges, journal.EdgeFood)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *JournalMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case journal.EdgeFood:
+		if id := m.food; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *JournalMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *JournalMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *JournalMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedfood {
+		edges = append(edges, journal.EdgeFood)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *JournalMutation) EdgeCleared(name string) bool {
+	switch name {
+	case journal.EdgeFood:
+		return m.clearedfood
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *JournalMutation) ClearEdge(name string) error {
+	switch name {
+	case journal.EdgeFood:
+		m.ClearFood()
+		return nil
+	}
+	return fmt.Errorf("unknown Journal unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *JournalMutation) ResetEdge(name string) error {
+	switch name {
+	case journal.EdgeFood:
+		m.ResetFood()
+		return nil
+	}
+	return fmt.Errorf("unknown Journal edge %s", name)
+}
 
 // UserSettingsMutation represents an operation that mutates the UserSettings nodes in the graph.
 type UserSettingsMutation struct {

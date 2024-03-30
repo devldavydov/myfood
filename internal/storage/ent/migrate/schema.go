@@ -8,6 +8,54 @@ import (
 )
 
 var (
+	// FoodsColumns holds the columns for the "foods" table.
+	FoodsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "key", Type: field.TypeString, Unique: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "brand", Type: field.TypeString, Nullable: true},
+		{Name: "cal100", Type: field.TypeFloat64},
+		{Name: "prot100", Type: field.TypeFloat64},
+		{Name: "fat100", Type: field.TypeFloat64},
+		{Name: "carb100", Type: field.TypeFloat64},
+		{Name: "comment", Type: field.TypeString, Nullable: true},
+	}
+	// FoodsTable holds the schema information for the "foods" table.
+	FoodsTable = &schema.Table{
+		Name:       "foods",
+		Columns:    FoodsColumns,
+		PrimaryKey: []*schema.Column{FoodsColumns[0]},
+	}
+	// JournalsColumns holds the columns for the "journals" table.
+	JournalsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "userid", Type: field.TypeInt64},
+		{Name: "timestamp", Type: field.TypeTime},
+		{Name: "meal", Type: field.TypeInt64},
+		{Name: "foodweight", Type: field.TypeFloat64},
+		{Name: "food_journals", Type: field.TypeInt},
+	}
+	// JournalsTable holds the schema information for the "journals" table.
+	JournalsTable = &schema.Table{
+		Name:       "journals",
+		Columns:    JournalsColumns,
+		PrimaryKey: []*schema.Column{JournalsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "journals_foods_journals",
+				Columns:    []*schema.Column{JournalsColumns[5]},
+				RefColumns: []*schema.Column{FoodsColumns[0]},
+				OnDelete:   schema.Restrict,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "journal_userid_timestamp_meal_food_journals",
+				Unique:  true,
+				Columns: []*schema.Column{JournalsColumns[1], JournalsColumns[2], JournalsColumns[3], JournalsColumns[5]},
+			},
+		},
+	}
 	// UserSettingsColumns holds the columns for the "user_settings" table.
 	UserSettingsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -42,10 +90,13 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		FoodsTable,
+		JournalsTable,
 		UserSettingsTable,
 		WeightsTable,
 	}
 )
 
 func init() {
+	JournalsTable.ForeignKeys[0].RefTable = FoodsTable
 }

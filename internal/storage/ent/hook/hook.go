@@ -9,6 +9,30 @@ import (
 	"github.com/devldavydov/myfood/internal/storage/ent"
 )
 
+// The FoodFunc type is an adapter to allow the use of ordinary
+// function as Food mutator.
+type FoodFunc func(context.Context, *ent.FoodMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f FoodFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.FoodMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.FoodMutation", m)
+}
+
+// The JournalFunc type is an adapter to allow the use of ordinary
+// function as Journal mutator.
+type JournalFunc func(context.Context, *ent.JournalMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f JournalFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.JournalMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.JournalMutation", m)
+}
+
 // The UserSettingsFunc type is an adapter to allow the use of ordinary
 // function as UserSettings mutator.
 type UserSettingsFunc func(context.Context, *ent.UserSettingsMutation) (ent.Value, error)

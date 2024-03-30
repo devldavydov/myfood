@@ -2,8 +2,19 @@
 
 package ent
 
+import (
+	"github.com/devldavydov/myfood/internal/storage/ent/food"
+	"github.com/devldavydov/myfood/internal/storage/ent/schema"
+)
+
 // The init function reads all schema descriptors with runtime code
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	foodFields := schema.Food{}.Fields()
+	_ = foodFields
+	// foodDescName is the schema descriptor for name field.
+	foodDescName := foodFields[1].Descriptor()
+	// food.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	food.NameValidator = foodDescName.Validators[0].(func(string) error)
 }

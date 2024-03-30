@@ -68,9 +68,6 @@ func NewStorageSQLite(dbFilePath string, logger *zap.Logger) (*StorageSQLite, er
 	}
 
 	stg := &StorageSQLite{db: db, dbEnt: dbEnt, logger: logger}
-	if err := stg.init(); err != nil {
-		return nil, err
-	}
 
 	// Run migrations from old to new (remove after all done)
 	// if err := stg.migrateWeight(); err != nil {
@@ -439,23 +436,6 @@ func (r *StorageSQLite) Close() error {
 	}
 
 	return r.dbEnt.Close()
-}
-
-func (r *StorageSQLite) init() error {
-	ctx, cancel := context.WithTimeout(context.Background(), _databaseInitTimeout)
-	defer cancel()
-
-	for _, createTbl := range []string{
-		_sqlCreateTableFood,
-		_sqlCreateTableJournal} {
-		_, err := r.db.ExecContext(ctx, createTbl)
-		if err != nil {
-			return err
-		}
-
-	}
-
-	return nil
 }
 
 func (r *StorageSQLite) migrateWeight() error {

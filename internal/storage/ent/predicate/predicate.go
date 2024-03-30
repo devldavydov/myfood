@@ -6,6 +6,12 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// Food is the predicate function for food builders.
+type Food func(*sql.Selector)
+
+// Journal is the predicate function for journal builders.
+type Journal func(*sql.Selector)
+
 // UserSettings is the predicate function for usersettings builders.
 type UserSettings func(*sql.Selector)
 

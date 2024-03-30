@@ -14,6 +14,9 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/devldavydov/myfood/internal/storage/ent/food"
+	"github.com/devldavydov/myfood/internal/storage/ent/journal"
 	"github.com/devldavydov/myfood/internal/storage/ent/usersettings"
 	"github.com/devldavydov/myfood/internal/storage/ent/weight"
 )
@@ -23,6 +26,10 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// Food is the client for interacting with the Food builders.
+	Food *FoodClient
+	// Journal is the client for interacting with the Journal builders.
+	Journal *JournalClient
 	// UserSettings is the client for interacting with the UserSettings builders.
 	UserSettings *UserSettingsClient
 	// Weight is the client for interacting with the Weight builders.
@@ -38,6 +45,8 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.Food = NewFoodClient(c.config)
+	c.Journal = NewJournalClient(c.config)
 	c.UserSettings = NewUserSettingsClient(c.config)
 	c.Weight = NewWeightClient(c.config)
 }
@@ -132,6 +141,8 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	return &Tx{
 		ctx:          ctx,
 		config:       cfg,
+		Food:         NewFoodClient(cfg),
+		Journal:      NewJournalClient(cfg),
 		UserSettings: NewUserSettingsClient(cfg),
 		Weight:       NewWeightClient(cfg),
 	}, nil
@@ -153,6 +164,8 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	return &Tx{
 		ctx:          ctx,
 		config:       cfg,
+		Food:         NewFoodClient(cfg),
+		Journal:      NewJournalClient(cfg),
 		UserSettings: NewUserSettingsClient(cfg),
 		Weight:       NewWeightClient(cfg),
 	}, nil
@@ -161,7 +174,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		UserSettings.
+//		Food.
 //		Query().
 //		Count(ctx)
 func (c *Client) Debug() *Client {
@@ -183,6 +196,8 @@ func (c *Client) Close() error {
 // Use adds the mutation hooks to all the entity clients.
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
+	c.Food.Use(hooks...)
+	c.Journal.Use(hooks...)
 	c.UserSettings.Use(hooks...)
 	c.Weight.Use(hooks...)
 }
@@ -190,6 +205,8 @@ func (c *Client) Use(hooks ...Hook) {
 // Intercept adds the query interceptors to all the entity clients.
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
+	c.Food.Intercept(interceptors...)
+	c.Journal.Intercept(interceptors...)
 	c.UserSettings.Intercept(interceptors...)
 	c.Weight.Intercept(interceptors...)
 }
@@ -197,12 +214,314 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 // Mutate implements the ent.Mutator interface.
 func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
+	case *FoodMutation:
+		return c.Food.mutate(ctx, m)
+	case *JournalMutation:
+		return c.Journal.mutate(ctx, m)
 	case *UserSettingsMutation:
 		return c.UserSettings.mutate(ctx, m)
 	case *WeightMutation:
 		return c.Weight.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
+	}
+}
+
+// FoodClient is a client for the Food schema.
+type FoodClient struct {
+	config
+}
+
+// NewFoodClient returns a client for the Food from the given config.
+func NewFoodClient(c config) *FoodClient {
+	return &FoodClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `food.Hooks(f(g(h())))`.
+func (c *FoodClient) Use(hooks ...Hook) {
+	c.hooks.Food = append(c.hooks.Food, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `food.Intercept(f(g(h())))`.
+func (c *FoodClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Food = append(c.inters.Food, interceptors...)
+}
+
+// Create returns a builder for creating a Food entity.
+func (c *FoodClient) Create() *FoodCreate {
+	mutation := newFoodMutation(c.config, OpCreate)
+	return &FoodCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Food entities.
+func (c *FoodClient) CreateBulk(builders ...*FoodCreate) *FoodCreateBulk {
+	return &FoodCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *FoodClient) MapCreateBulk(slice any, setFunc func(*FoodCreate, int)) *FoodCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &FoodCreateBulk{err: fmt.Errorf("calling to FoodClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*FoodCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &FoodCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Food.
+func (c *FoodClient) Update() *FoodUpdate {
+	mutation := newFoodMutation(c.config, OpUpdate)
+	return &FoodUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *FoodClient) UpdateOne(f *Food) *FoodUpdateOne {
+	mutation := newFoodMutation(c.config, OpUpdateOne, withFood(f))
+	return &FoodUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *FoodClient) UpdateOneID(id int) *FoodUpdateOne {
+	mutation := newFoodMutation(c.config, OpUpdateOne, withFoodID(id))
+	return &FoodUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Food.
+func (c *FoodClient) Delete() *FoodDelete {
+	mutation := newFoodMutation(c.config, OpDelete)
+	return &FoodDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *FoodClient) DeleteOne(f *Food) *FoodDeleteOne {
+	return c.DeleteOneID(f.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *FoodClient) DeleteOneID(id int) *FoodDeleteOne {
+	builder := c.Delete().Where(food.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &FoodDeleteOne{builder}
+}
+
+// Query returns a query builder for Food.
+func (c *FoodClient) Query() *FoodQuery {
+	return &FoodQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeFood},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Food entity by its id.
+func (c *FoodClient) Get(ctx context.Context, id int) (*Food, error) {
+	return c.Query().Where(food.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *FoodClient) GetX(ctx context.Context, id int) *Food {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryJournals queries the journals edge of a Food.
+func (c *FoodClient) QueryJournals(f *Food) *JournalQuery {
+	query := (&JournalClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := f.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(food.Table, food.FieldID, id),
+			sqlgraph.To(journal.Table, journal.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, food.JournalsTable, food.JournalsColumn),
+		)
+		fromV = sqlgraph.Neighbors(f.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *FoodClient) Hooks() []Hook {
+	return c.hooks.Food
+}
+
+// Interceptors returns the client interceptors.
+func (c *FoodClient) Interceptors() []Interceptor {
+	return c.inters.Food
+}
+
+func (c *FoodClient) mutate(ctx context.Context, m *FoodMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&FoodCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&FoodUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&FoodUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&FoodDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Food mutation op: %q", m.Op())
+	}
+}
+
+// JournalClient is a client for the Journal schema.
+type JournalClient struct {
+	config
+}
+
+// NewJournalClient returns a client for the Journal from the given config.
+func NewJournalClient(c config) *JournalClient {
+	return &JournalClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `journal.Hooks(f(g(h())))`.
+func (c *JournalClient) Use(hooks ...Hook) {
+	c.hooks.Journal = append(c.hooks.Journal, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `journal.Intercept(f(g(h())))`.
+func (c *JournalClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Journal = append(c.inters.Journal, interceptors...)
+}
+
+// Create returns a builder for creating a Journal entity.
+func (c *JournalClient) Create() *JournalCreate {
+	mutation := newJournalMutation(c.config, OpCreate)
+	return &JournalCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Journal entities.
+func (c *JournalClient) CreateBulk(builders ...*JournalCreate) *JournalCreateBulk {
+	return &JournalCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *JournalClient) MapCreateBulk(slice any, setFunc func(*JournalCreate, int)) *JournalCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &JournalCreateBulk{err: fmt.Errorf("calling to JournalClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*JournalCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &JournalCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Journal.
+func (c *JournalClient) Update() *JournalUpdate {
+	mutation := newJournalMutation(c.config, OpUpdate)
+	return &JournalUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *JournalClient) UpdateOne(j *Journal) *JournalUpdateOne {
+	mutation := newJournalMutation(c.config, OpUpdateOne, withJournal(j))
+	return &JournalUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *JournalClient) UpdateOneID(id int) *JournalUpdateOne {
+	mutation := newJournalMutation(c.config, OpUpdateOne, withJournalID(id))
+	return &JournalUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Journal.
+func (c *JournalClient) Delete() *JournalDelete {
+	mutation := newJournalMutation(c.config, OpDelete)
+	return &JournalDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *JournalClient) DeleteOne(j *Journal) *JournalDeleteOne {
+	return c.DeleteOneID(j.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *JournalClient) DeleteOneID(id int) *JournalDeleteOne {
+	builder := c.Delete().Where(journal.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &JournalDeleteOne{builder}
+}
+
+// Query returns a query builder for Journal.
+func (c *JournalClient) Query() *JournalQuery {
+	return &JournalQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeJournal},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Journal entity by its id.
+func (c *JournalClient) Get(ctx context.Context, id int) (*Journal, error) {
+	return c.Query().Where(journal.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *JournalClient) GetX(ctx context.Context, id int) *Journal {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryFood queries the food edge of a Journal.
+func (c *JournalClient) QueryFood(j *Journal) *FoodQuery {
+	query := (&FoodClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := j.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(journal.Table, journal.FieldID, id),
+			sqlgraph.To(food.Table, food.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, journal.FoodTable, journal.FoodColumn),
+		)
+		fromV = sqlgraph.Neighbors(j.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *JournalClient) Hooks() []Hook {
+	return c.hooks.Journal
+}
+
+// Interceptors returns the client interceptors.
+func (c *JournalClient) Interceptors() []Interceptor {
+	return c.inters.Journal
+}
+
+func (c *JournalClient) mutate(ctx context.Context, m *JournalMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&JournalCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&JournalUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&JournalUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&JournalDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Journal mutation op: %q", m.Op())
 	}
 }
 
@@ -475,9 +794,9 @@ func (c *WeightClient) mutate(ctx context.Context, m *WeightMutation) (Value, er
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		UserSettings, Weight []ent.Hook
+		Food, Journal, UserSettings, Weight []ent.Hook
 	}
 	inters struct {
-		UserSettings, Weight []ent.Interceptor
+		Food, Journal, UserSettings, Weight []ent.Interceptor
 	}
 )
