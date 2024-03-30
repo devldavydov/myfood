@@ -124,32 +124,13 @@ const (
 
 	// Weight
 	_sqlCreateTableWeight = `
-	CREATE TABLE IF NOT EXISTS weight2 (
-		userid    INTEGER NOT NULL,
-		timestamp INTEGER NOT NULL,
-		value     REAL NOT NULL,
-		PRIMARY KEY (userid, timestamp)
-	) STRICT;	
-	`
-	_sqlSetWeight = `
-	INSERT INTO weight2(userid, timestamp, value)
-	VALUES ($1, $2, $3)
-	ON CONFLICT (userid, timestamp) DO
-	UPDATE SET value = $3
-	`
-	_sqlWeightList = `
-	SELECT timestamp, value
-	FROM weight2
-	WHERE userid = $1 AND 
-	    timestamp >= $2 AND
-		timestamp <= $3
-	ORDER BY timestamp ASC
-	`
-	_sqlDeleteWeight = `
-	DELETE
-	FROM weight2
-	WHERE userid = $1 AND timestamp = $2
-	`
+		CREATE TABLE IF NOT EXISTS weight2 (
+			userid    INTEGER NOT NULL,
+			timestamp INTEGER NOT NULL,
+			value     REAL NOT NULL,
+			PRIMARY KEY (userid, timestamp)
+		) STRICT;	
+		`
 
 	// UserSettings
 	_sqlCreateTableUserSettings = `

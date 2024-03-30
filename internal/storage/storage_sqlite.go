@@ -72,6 +72,9 @@ func NewStorageSQLite(dbFilePath string, logger *zap.Logger) (*StorageSQLite, er
 	}
 
 	// Run migrations from old to new (remove after all done)
+	if err := stg.migrateWeight(); err != nil {
+		return nil, err
+	}
 
 	return stg, nil
 }
@@ -225,6 +228,9 @@ func (r *StorageSQLite) GetWeightList(ctx context.Context, userID int64, from, t
 				weight.Userid(userID),
 				weight.TimestampGTE(from),
 				weight.TimestampLTE(to),
+			).
+			Order(
+				weight.ByTimestamp(),
 			).
 			All(ctx)
 	})
@@ -437,4 +443,67 @@ func (r *StorageSQLite) init() error {
 	}
 
 	return nil
+}
+
+func (r *StorageSQLite) migrateWeight() error {
+	// Get from old table
+	ctx := context.Background()
+	rows, err := r.db.QueryContext(ctx, `
+	SELECT userid, timestamp, value
+	FROM weight2
+	`)
+
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	type row struct {
+		userid    int64
+		timestamp int64
+		value     float64
+	}
+
+	var list []row
+	for rows.Next() {
+		var f row
+		err = rows.Scan(&f.userid, &f.timestamp, &f.value)
+		if err != nil {
+			return err
+		}
+
+		list = append(list, f)
+	}
+
+	if err = rows.Err(); err != nil {
+		return err
+	}
+
+	// Save in new format
+	_, err = r.dbEnt.Tx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+		for _, i := range list {
+			_, err := tx.Weight.
+				Create().
+				SetUserid(i.userid).
+				SetValue(i.value).
+				SetTimestamp(time.Unix(i.timestamp, 0)).
+				Save(ctx)
+
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		return nil, nil
+	})
+	if err != nil {
+		return err
+	}
+
+	// Delete from table
+	_, err = r.db.ExecContext(ctx, `
+	DELETE FROM weight2;
+	`)
+
+	return err
 }
