@@ -124,7 +124,7 @@ const (
 
 	// Weight
 	_sqlCreateTableWeight = `
-	CREATE TABLE IF NOT EXISTS weight (
+	CREATE TABLE IF NOT EXISTS weight2 (
 		userid    INTEGER NOT NULL,
 		timestamp INTEGER NOT NULL,
 		value     REAL NOT NULL,
@@ -132,14 +132,14 @@ const (
 	) STRICT;	
 	`
 	_sqlSetWeight = `
-	INSERT INTO weight(userid, timestamp, value)
+	INSERT INTO weight2(userid, timestamp, value)
 	VALUES ($1, $2, $3)
 	ON CONFLICT (userid, timestamp) DO
 	UPDATE SET value = $3
 	`
 	_sqlWeightList = `
 	SELECT timestamp, value
-	FROM weight
+	FROM weight2
 	WHERE userid = $1 AND 
 	    timestamp >= $2 AND
 		timestamp <= $3
@@ -147,7 +147,7 @@ const (
 	`
 	_sqlDeleteWeight = `
 	DELETE
-	FROM weight
+	FROM weight2
 	WHERE userid = $1 AND timestamp = $2
 	`
 
