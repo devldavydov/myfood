@@ -362,14 +362,14 @@ func (r *CmdProcessor) journalReportWeek(c tele.Context, cmdParts []string, user
 
 	tsStart = getStartOfWeek(tsStart)
 	tsStartUnix := tsStart.Unix()
-	tsStartStr := formatTimestamp(tsStartUnix)
+	tsStartStr := formatTimestampUnix(tsStartUnix)
 
 	tsRangeStr := make([]string, 7)
 	for i := 0; i < 7; i++ {
-		tsRangeStr[i] = formatTimestamp(tsStart.Add(time.Duration(i) * 24 * time.Hour).Unix())
+		tsRangeStr[i] = formatTimestampUnix(tsStart.Add(time.Duration(i) * 24 * time.Hour).Unix())
 	}
 	tsEndUnix := tsStart.Add(6 * 24 * time.Hour).Unix()
-	tsEndStr := formatTimestamp(tsEndUnix)
+	tsEndStr := formatTimestampUnix(tsEndUnix)
 
 	// Get list from DB and user settings
 	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout*2)
@@ -420,7 +420,7 @@ func (r *CmdProcessor) journalReportWeek(c tele.Context, cmdParts []string, user
 	for _, j := range lst {
 		tbl.AddRow(
 			html.NewTr(nil).
-				AddTd(html.NewTd(html.NewS(formatTimestamp(j.Timestamp)), nil)).
+				AddTd(html.NewTd(html.NewS(formatTimestampUnix(j.Timestamp)), nil)).
 				AddTd(html.NewTd(calDiffSnippet(us, j.TotalCal), nil)).
 				AddTd(html.NewTd(html.NewS(fmt.Sprintf("%.2f", j.TotalProt)), nil)).
 				AddTd(html.NewTd(html.NewS(fmt.Sprintf("%.2f", j.TotalFat)), nil)).

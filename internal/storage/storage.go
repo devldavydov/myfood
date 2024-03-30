@@ -1,6 +1,9 @@
 package storage
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 type Storage interface {
 	// // Food
@@ -12,9 +15,9 @@ type Storage interface {
 	DeleteFood(ctx context.Context, key string) error
 
 	// Weight
-	GetWeightList(ctx context.Context, userID int64, from, to int64) ([]Weight, error)
+	GetWeightList(ctx context.Context, userID int64, from, to time.Time) ([]Weight, error)
 	SetWeight(ctx context.Context, userID int64, weight *Weight) error
-	DeleteWeight(ctx context.Context, userID, timestamp int64) error
+	DeleteWeight(ctx context.Context, userID int64, timestamp time.Time) error
 
 	// Journal
 	SetJournal(ctx context.Context, userID int64, journal *Journal) error
@@ -26,5 +29,5 @@ type Storage interface {
 	GetUserSettings(ctx context.Context, userID int64) (*UserSettings, error)
 	SetUserSettings(ctx context.Context, userID int64, settings *UserSettings) error
 
-	Close()
+	Close() error
 }

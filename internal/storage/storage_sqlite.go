@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/devldavydov/myfood/internal/storage/ent"
+	"github.com/devldavydov/myfood/internal/storage/ent/weight"
 	gsql "github.com/mattn/go-sqlite3"
 	"go.uber.org/zap"
 )
@@ -20,6 +22,7 @@ const (
 
 type StorageSQLite struct {
 	db     *sql.DB
+	dbEnt  *DB
 	logger *zap.Logger
 }
 
@@ -54,10 +57,21 @@ func NewStorageSQLite(dbFilePath string, logger *zap.Logger) (*StorageSQLite, er
 		return nil, err
 	}
 
-	stg := &StorageSQLite{db: db, logger: logger}
+	//
+	// Open DB entgo.
+	//
+
+	dbEnt, err := NewDB(dbFilePath)
+	if err != nil {
+		return nil, err
+	}
+
+	stg := &StorageSQLite{db: db, dbEnt: dbEnt, logger: logger}
 	if err := stg.init(); err != nil {
 		return nil, err
 	}
+
+	// Run migrations from old to new (remove after all done)
 
 	return stg, nil
 }
@@ -203,33 +217,32 @@ func (r *StorageSQLite) DeleteFood(ctx context.Context, key string) error {
 // Weight
 //
 
-func (r *StorageSQLite) GetWeightList(ctx context.Context, userID int64, from, to int64) ([]Weight, error) {
-	rows, err := r.db.QueryContext(ctx, _sqlWeightList, userID, from, to)
+func (r *StorageSQLite) GetWeightList(ctx context.Context, userID int64, from, to time.Time) ([]Weight, error) {
+	res, err := r.dbEnt.Tx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+		return tx.Weight.
+			Query().
+			Where(
+				weight.Userid(userID),
+				weight.TimestampGTE(from),
+				weight.TimestampLTE(to),
+			).
+			All(ctx)
+	})
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
-	var list []Weight
-	for rows.Next() {
-		var w Weight
-		err = rows.Scan(&w.Timestamp, &w.Value)
-		if err != nil {
-			return nil, err
-		}
-
-		list = append(list, w)
-	}
-
-	if len(list) == 0 {
+	weLst, _ := res.([]*ent.Weight)
+	if len(weLst) == 0 {
 		return nil, ErrWeightEmptyList
 	}
 
-	if err = rows.Err(); err != nil {
-		return nil, err
+	wLst := make([]Weight, 0, len(weLst))
+	for _, w := range weLst {
+		wLst = append(wLst, Weight{Timestamp: w.Timestamp, Value: w.Value})
 	}
 
-	return list, nil
+	return wLst, nil
 }
 
 func (r *StorageSQLite) SetWeight(ctx context.Context, userID int64, weight *Weight) error {
@@ -237,16 +250,30 @@ func (r *StorageSQLite) SetWeight(ctx context.Context, userID int64, weight *Wei
 		return ErrWeightInvalid
 	}
 
-	_, err := r.db.ExecContext(ctx, _sqlSetWeight, userID, weight.Timestamp, weight.Value)
-	if err != nil {
-		return err
-	}
+	_, err := r.dbEnt.Tx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+		return tx.Weight.
+			Create().
+			SetUserid(userID).
+			SetTimestamp(weight.Timestamp).
+			SetValue(weight.Value).
+			OnConflict().
+			UpdateNewValues().
+			ID(ctx)
+	})
 
-	return nil
+	return err
 }
 
-func (r *StorageSQLite) DeleteWeight(ctx context.Context, userID, timestamp int64) error {
-	_, err := r.db.ExecContext(ctx, _sqlDeleteWeight, userID, timestamp)
+func (r *StorageSQLite) DeleteWeight(ctx context.Context, userID int64, timestamp time.Time) error {
+	_, err := r.dbEnt.Tx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+		return tx.Weight.
+			Delete().
+			Where(
+				weight.Userid(userID),
+				weight.Timestamp(timestamp),
+			).
+			Exec(ctx)
+	})
 	return err
 }
 
@@ -385,14 +412,12 @@ func (r *StorageSQLite) SetUserSettings(ctx context.Context, userID int64, setti
 //
 //
 
-func (r *StorageSQLite) Close() {
-	if r.db == nil {
-		return
+func (r *StorageSQLite) Close() error {
+	if r.dbEnt == nil {
+		return nil
 	}
 
-	if err := r.db.Close(); err != nil {
-		r.logger.Error("db close error", zap.Error(err))
-	}
+	return r.dbEnt.Close()
 }
 
 func (r *StorageSQLite) init() error {

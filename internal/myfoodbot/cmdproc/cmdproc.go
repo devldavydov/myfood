@@ -61,3 +61,9 @@ func (r *CmdProcessor) Process(c tele.Context, cmd string, userID int64) error {
 	)
 	return c.Send(msgErrInvalidCommand)
 }
+
+func (r *CmdProcessor) Stop() {
+	if err := r.stg.Close(); err != nil {
+		r.logger.Error("storage close error", zap.Error(err))
+	}
+}

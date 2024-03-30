@@ -18,6 +18,11 @@ func parseTimestampAsUnix(sTimestamp string) (int64, error) {
 	return t.Unix(), nil
 }
 
+func formatTimestampUnix(tsUnix int64) string {
+	ts := time.Unix(tsUnix, 0)
+	return ts.Format("02.01.2006")
+}
+
 func parseTimestamp(sTimestamp string) (time.Time, error) {
 	t, err := time.Parse("02.01.2006", sTimestamp)
 	if err != nil {
@@ -26,8 +31,7 @@ func parseTimestamp(sTimestamp string) (time.Time, error) {
 	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC), nil
 }
 
-func formatTimestamp(tsUnix int64) string {
-	ts := time.Unix(tsUnix, 0)
+func formatTimestamp(ts time.Time) string {
 	return ts.Format("02.01.2006")
 }
 

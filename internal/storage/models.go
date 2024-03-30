@@ -1,6 +1,9 @@
 package storage
 
-import "strings"
+import (
+	"strings"
+	"time"
+)
 
 type Food struct {
 	Key     string
@@ -96,12 +99,12 @@ type JournalStats struct {
 }
 
 type Weight struct {
-	Timestamp int64
+	Timestamp time.Time
 	Value     float64
 }
 
 func (r *Weight) Validate() bool {
-	return r.Timestamp >= 0 && r.Value > 0
+	return r.Value > 0
 }
 
 type UserSettings struct {

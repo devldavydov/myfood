@@ -54,7 +54,7 @@ func (r *CmdProcessor) weightSetCommand(c tele.Context, cmdParts []string, userI
 	}
 
 	// Parse timestamp
-	ts, err := parseTimestampAsUnix(cmdParts[0])
+	ts, err := parseTimestamp(cmdParts[0])
 	if err != nil {
 		r.logger.Error(
 			"invalid weight set command",
@@ -113,7 +113,7 @@ func (r *CmdProcessor) weightDelCommand(c tele.Context, cmdParts []string, userI
 	}
 
 	// Parse timestamp
-	ts, err := parseTimestampAsUnix(cmdParts[0])
+	ts, err := parseTimestamp(cmdParts[0])
 	if err != nil {
 		r.logger.Error(
 			"invalid weight del command",
@@ -154,7 +154,7 @@ func (r *CmdProcessor) weightListCommand(c tele.Context, cmdParts []string, user
 	}
 
 	// Parse timestamp
-	tsFrom, err := parseTimestampAsUnix(cmdParts[0])
+	tsFrom, err := parseTimestamp(cmdParts[0])
 	if err != nil {
 		r.logger.Error(
 			"invalid weight list command",
@@ -165,7 +165,7 @@ func (r *CmdProcessor) weightListCommand(c tele.Context, cmdParts []string, user
 		return c.Send(msgErrInvalidCommand)
 	}
 
-	tsTo, err := parseTimestampAsUnix(cmdParts[1])
+	tsTo, err := parseTimestamp(cmdParts[1])
 	if err != nil {
 		r.logger.Error(
 			"invalid weight list command",

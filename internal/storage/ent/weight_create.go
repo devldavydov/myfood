@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/devldavydov/myfood/internal/storage/ent/weight"
@@ -18,6 +19,7 @@ type WeightCreate struct {
 	config
 	mutation *WeightMutation
 	hooks    []Hook
+	conflict []sql.ConflictOption
 }
 
 // SetUserid sets the "userid" field.
@@ -107,6 +109,7 @@ func (wc *WeightCreate) createSpec() (*Weight, *sqlgraph.CreateSpec) {
 		_node = &Weight{config: wc.config}
 		_spec = sqlgraph.NewCreateSpec(weight.Table, sqlgraph.NewFieldSpec(weight.FieldID, field.TypeInt))
 	)
+	_spec.OnConflict = wc.conflict
 	if value, ok := wc.mutation.Userid(); ok {
 		_spec.SetField(weight.FieldUserid, field.TypeInt64, value)
 		_node.Userid = value
@@ -122,11 +125,238 @@ func (wc *WeightCreate) createSpec() (*Weight, *sqlgraph.CreateSpec) {
 	return _node, _spec
 }
 
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.Weight.Create().
+//		SetUserid(v).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.WeightUpsert) {
+//			SetUserid(v+v).
+//		}).
+//		Exec(ctx)
+func (wc *WeightCreate) OnConflict(opts ...sql.ConflictOption) *WeightUpsertOne {
+	wc.conflict = opts
+	return &WeightUpsertOne{
+		create: wc,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.Weight.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+func (wc *WeightCreate) OnConflictColumns(columns ...string) *WeightUpsertOne {
+	wc.conflict = append(wc.conflict, sql.ConflictColumns(columns...))
+	return &WeightUpsertOne{
+		create: wc,
+	}
+}
+
+type (
+	// WeightUpsertOne is the builder for "upsert"-ing
+	//  one Weight node.
+	WeightUpsertOne struct {
+		create *WeightCreate
+	}
+
+	// WeightUpsert is the "OnConflict" setter.
+	WeightUpsert struct {
+		*sql.UpdateSet
+	}
+)
+
+// SetUserid sets the "userid" field.
+func (u *WeightUpsert) SetUserid(v int64) *WeightUpsert {
+	u.Set(weight.FieldUserid, v)
+	return u
+}
+
+// UpdateUserid sets the "userid" field to the value that was provided on create.
+func (u *WeightUpsert) UpdateUserid() *WeightUpsert {
+	u.SetExcluded(weight.FieldUserid)
+	return u
+}
+
+// AddUserid adds v to the "userid" field.
+func (u *WeightUpsert) AddUserid(v int64) *WeightUpsert {
+	u.Add(weight.FieldUserid, v)
+	return u
+}
+
+// SetTimestamp sets the "timestamp" field.
+func (u *WeightUpsert) SetTimestamp(v time.Time) *WeightUpsert {
+	u.Set(weight.FieldTimestamp, v)
+	return u
+}
+
+// UpdateTimestamp sets the "timestamp" field to the value that was provided on create.
+func (u *WeightUpsert) UpdateTimestamp() *WeightUpsert {
+	u.SetExcluded(weight.FieldTimestamp)
+	return u
+}
+
+// SetValue sets the "value" field.
+func (u *WeightUpsert) SetValue(v float64) *WeightUpsert {
+	u.Set(weight.FieldValue, v)
+	return u
+}
+
+// UpdateValue sets the "value" field to the value that was provided on create.
+func (u *WeightUpsert) UpdateValue() *WeightUpsert {
+	u.SetExcluded(weight.FieldValue)
+	return u
+}
+
+// AddValue adds v to the "value" field.
+func (u *WeightUpsert) AddValue(v float64) *WeightUpsert {
+	u.Add(weight.FieldValue, v)
+	return u
+}
+
+// UpdateNewValues updates the mutable fields using the new values that were set on create.
+// Using this option is equivalent to using:
+//
+//	client.Weight.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//		).
+//		Exec(ctx)
+func (u *WeightUpsertOne) UpdateNewValues() *WeightUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//	client.Weight.Create().
+//	    OnConflict(sql.ResolveWithIgnore()).
+//	    Exec(ctx)
+func (u *WeightUpsertOne) Ignore() *WeightUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *WeightUpsertOne) DoNothing() *WeightUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the WeightCreate.OnConflict
+// documentation for more info.
+func (u *WeightUpsertOne) Update(set func(*WeightUpsert)) *WeightUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&WeightUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetUserid sets the "userid" field.
+func (u *WeightUpsertOne) SetUserid(v int64) *WeightUpsertOne {
+	return u.Update(func(s *WeightUpsert) {
+		s.SetUserid(v)
+	})
+}
+
+// AddUserid adds v to the "userid" field.
+func (u *WeightUpsertOne) AddUserid(v int64) *WeightUpsertOne {
+	return u.Update(func(s *WeightUpsert) {
+		s.AddUserid(v)
+	})
+}
+
+// UpdateUserid sets the "userid" field to the value that was provided on create.
+func (u *WeightUpsertOne) UpdateUserid() *WeightUpsertOne {
+	return u.Update(func(s *WeightUpsert) {
+		s.UpdateUserid()
+	})
+}
+
+// SetTimestamp sets the "timestamp" field.
+func (u *WeightUpsertOne) SetTimestamp(v time.Time) *WeightUpsertOne {
+	return u.Update(func(s *WeightUpsert) {
+		s.SetTimestamp(v)
+	})
+}
+
+// UpdateTimestamp sets the "timestamp" field to the value that was provided on create.
+func (u *WeightUpsertOne) UpdateTimestamp() *WeightUpsertOne {
+	return u.Update(func(s *WeightUpsert) {
+		s.UpdateTimestamp()
+	})
+}
+
+// SetValue sets the "value" field.
+func (u *WeightUpsertOne) SetValue(v float64) *WeightUpsertOne {
+	return u.Update(func(s *WeightUpsert) {
+		s.SetValue(v)
+	})
+}
+
+// AddValue adds v to the "value" field.
+func (u *WeightUpsertOne) AddValue(v float64) *WeightUpsertOne {
+	return u.Update(func(s *WeightUpsert) {
+		s.AddValue(v)
+	})
+}
+
+// UpdateValue sets the "value" field to the value that was provided on create.
+func (u *WeightUpsertOne) UpdateValue() *WeightUpsertOne {
+	return u.Update(func(s *WeightUpsert) {
+		s.UpdateValue()
+	})
+}
+
+// Exec executes the query.
+func (u *WeightUpsertOne) Exec(ctx context.Context) error {
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for WeightCreate.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *WeightUpsertOne) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// Exec executes the UPSERT query and returns the inserted/updated ID.
+func (u *WeightUpsertOne) ID(ctx context.Context) (id int, err error) {
+	node, err := u.create.Save(ctx)
+	if err != nil {
+		return id, err
+	}
+	return node.ID, nil
+}
+
+// IDX is like ID, but panics if an error occurs.
+func (u *WeightUpsertOne) IDX(ctx context.Context) int {
+	id, err := u.ID(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return id
+}
+
 // WeightCreateBulk is the builder for creating many Weight entities in bulk.
 type WeightCreateBulk struct {
 	config
 	err      error
 	builders []*WeightCreate
+	conflict []sql.ConflictOption
 }
 
 // Save creates the Weight entities in the database.
@@ -155,6 +385,7 @@ func (wcb *WeightCreateBulk) Save(ctx context.Context) ([]*Weight, error) {
 					_, err = mutators[i+1].Mutate(root, wcb.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
+					spec.OnConflict = wcb.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
 					if err = sqlgraph.BatchCreate(ctx, wcb.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
@@ -205,6 +436,166 @@ func (wcb *WeightCreateBulk) Exec(ctx context.Context) error {
 // ExecX is like Exec, but panics if an error occurs.
 func (wcb *WeightCreateBulk) ExecX(ctx context.Context) {
 	if err := wcb.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.Weight.CreateBulk(builders...).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.WeightUpsert) {
+//			SetUserid(v+v).
+//		}).
+//		Exec(ctx)
+func (wcb *WeightCreateBulk) OnConflict(opts ...sql.ConflictOption) *WeightUpsertBulk {
+	wcb.conflict = opts
+	return &WeightUpsertBulk{
+		create: wcb,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.Weight.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+func (wcb *WeightCreateBulk) OnConflictColumns(columns ...string) *WeightUpsertBulk {
+	wcb.conflict = append(wcb.conflict, sql.ConflictColumns(columns...))
+	return &WeightUpsertBulk{
+		create: wcb,
+	}
+}
+
+// WeightUpsertBulk is the builder for "upsert"-ing
+// a bulk of Weight nodes.
+type WeightUpsertBulk struct {
+	create *WeightCreateBulk
+}
+
+// UpdateNewValues updates the mutable fields using the new values that
+// were set on create. Using this option is equivalent to using:
+//
+//	client.Weight.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//		).
+//		Exec(ctx)
+func (u *WeightUpsertBulk) UpdateNewValues() *WeightUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//	client.Weight.Create().
+//		OnConflict(sql.ResolveWithIgnore()).
+//		Exec(ctx)
+func (u *WeightUpsertBulk) Ignore() *WeightUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *WeightUpsertBulk) DoNothing() *WeightUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the WeightCreateBulk.OnConflict
+// documentation for more info.
+func (u *WeightUpsertBulk) Update(set func(*WeightUpsert)) *WeightUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&WeightUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetUserid sets the "userid" field.
+func (u *WeightUpsertBulk) SetUserid(v int64) *WeightUpsertBulk {
+	return u.Update(func(s *WeightUpsert) {
+		s.SetUserid(v)
+	})
+}
+
+// AddUserid adds v to the "userid" field.
+func (u *WeightUpsertBulk) AddUserid(v int64) *WeightUpsertBulk {
+	return u.Update(func(s *WeightUpsert) {
+		s.AddUserid(v)
+	})
+}
+
+// UpdateUserid sets the "userid" field to the value that was provided on create.
+func (u *WeightUpsertBulk) UpdateUserid() *WeightUpsertBulk {
+	return u.Update(func(s *WeightUpsert) {
+		s.UpdateUserid()
+	})
+}
+
+// SetTimestamp sets the "timestamp" field.
+func (u *WeightUpsertBulk) SetTimestamp(v time.Time) *WeightUpsertBulk {
+	return u.Update(func(s *WeightUpsert) {
+		s.SetTimestamp(v)
+	})
+}
+
+// UpdateTimestamp sets the "timestamp" field to the value that was provided on create.
+func (u *WeightUpsertBulk) UpdateTimestamp() *WeightUpsertBulk {
+	return u.Update(func(s *WeightUpsert) {
+		s.UpdateTimestamp()
+	})
+}
+
+// SetValue sets the "value" field.
+func (u *WeightUpsertBulk) SetValue(v float64) *WeightUpsertBulk {
+	return u.Update(func(s *WeightUpsert) {
+		s.SetValue(v)
+	})
+}
+
+// AddValue adds v to the "value" field.
+func (u *WeightUpsertBulk) AddValue(v float64) *WeightUpsertBulk {
+	return u.Update(func(s *WeightUpsert) {
+		s.AddValue(v)
+	})
+}
+
+// UpdateValue sets the "value" field to the value that was provided on create.
+func (u *WeightUpsertBulk) UpdateValue() *WeightUpsertBulk {
+	return u.Update(func(s *WeightUpsert) {
+		s.UpdateValue()
+	})
+}
+
+// Exec executes the query.
+func (u *WeightUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
+	for i, b := range u.create.builders {
+		if len(b.conflict) != 0 {
+			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the WeightCreateBulk instead", i)
+		}
+	}
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for WeightCreateBulk.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *WeightUpsertBulk) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

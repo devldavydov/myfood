@@ -43,6 +43,7 @@ func (s *Service) Run(ctx context.Context) error {
 	select {
 	case <-ctx.Done():
 		b.Stop()
+		s.cmdProc.Stop()
 	}
 
 	return nil

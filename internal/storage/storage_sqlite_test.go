@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -22,110 +23,109 @@ type StorageSQLiteTestSuite struct {
 
 func (r *StorageSQLiteTestSuite) TestGetWeightList() {
 	r.Run("empty list", func() {
-		_, err := r.stg.GetWeightList(context.TODO(), 1, 0, 10)
+		_, err := r.stg.GetWeightList(context.TODO(), 1, T(0), T(10))
 		r.ErrorIs(err, ErrWeightEmptyList)
 	})
 
 	r.Run("add data", func() {
-		r.NoError(r.stg.SetWeight(context.TODO(), 1, &Weight{Timestamp: 1, Value: 1}))
-		r.NoError(r.stg.SetWeight(context.TODO(), 1, &Weight{Timestamp: 2, Value: 2}))
-		r.NoError(r.stg.SetWeight(context.TODO(), 1, &Weight{Timestamp: 3, Value: 3}))
+		r.NoError(r.stg.SetWeight(context.TODO(), 1, &Weight{Timestamp: T(1), Value: 1}))
+		r.NoError(r.stg.SetWeight(context.TODO(), 1, &Weight{Timestamp: T(2), Value: 2}))
+		r.NoError(r.stg.SetWeight(context.TODO(), 1, &Weight{Timestamp: T(3), Value: 3}))
 
-		r.NoError(r.stg.SetWeight(context.TODO(), 2, &Weight{Timestamp: 4, Value: 4}))
+		r.NoError(r.stg.SetWeight(context.TODO(), 2, &Weight{Timestamp: T(4), Value: 4}))
 	})
 
 	r.Run("get list for different users", func() {
-		lst, err := r.stg.GetWeightList(context.TODO(), 1, 1, 3)
+		lst, err := r.stg.GetWeightList(context.TODO(), 1, T(1), T(3))
 		r.NoError(err)
 		r.Equal([]Weight{
-			{Timestamp: 1, Value: 1},
-			{Timestamp: 2, Value: 2},
-			{Timestamp: 3, Value: 3},
+			{Timestamp: T(1), Value: 1},
+			{Timestamp: T(2), Value: 2},
+			{Timestamp: T(3), Value: 3},
 		}, lst)
 
-		lst, err = r.stg.GetWeightList(context.TODO(), 2, 4, 4)
+		lst, err = r.stg.GetWeightList(context.TODO(), 2, T(4), T(4))
 		r.NoError(err)
 		r.Equal([]Weight{
-			{Timestamp: 4, Value: 4},
+			{Timestamp: T(4), Value: 4},
 		}, lst)
 	})
 
 	r.Run("get limited list", func() {
-		lst, err := r.stg.GetWeightList(context.TODO(), 1, 2, 3)
+		lst, err := r.stg.GetWeightList(context.TODO(), 1, T(2), T(3))
 		r.NoError(err)
 		r.Equal([]Weight{
-			{Timestamp: 2, Value: 2},
-			{Timestamp: 3, Value: 3},
+			{Timestamp: T(2), Value: 2},
+			{Timestamp: T(3), Value: 3},
 		}, lst)
 	})
 }
 
 func (r *StorageSQLiteTestSuite) TestDeleteWeight() {
 	r.Run("add data", func() {
-		r.NoError(r.stg.SetWeight(context.TODO(), 1, &Weight{Timestamp: 1, Value: 1}))
-		r.NoError(r.stg.SetWeight(context.TODO(), 1, &Weight{Timestamp: 2, Value: 2}))
-		r.NoError(r.stg.SetWeight(context.TODO(), 1, &Weight{Timestamp: 3, Value: 3}))
+		r.NoError(r.stg.SetWeight(context.TODO(), 1, &Weight{Timestamp: T(1), Value: 1}))
+		r.NoError(r.stg.SetWeight(context.TODO(), 1, &Weight{Timestamp: T(2), Value: 2}))
+		r.NoError(r.stg.SetWeight(context.TODO(), 1, &Weight{Timestamp: T(3), Value: 3}))
 
-		r.NoError(r.stg.SetWeight(context.TODO(), 2, &Weight{Timestamp: 4, Value: 4}))
+		r.NoError(r.stg.SetWeight(context.TODO(), 2, &Weight{Timestamp: T(4), Value: 4}))
 	})
 
 	r.Run("delete with incorrect user", func() {
-		r.NoError(r.stg.DeleteWeight(context.TODO(), 2, 2))
+		r.NoError(r.stg.DeleteWeight(context.TODO(), 2, T(2)))
 
 		// Data not changed
-		lst, err := r.stg.GetWeightList(context.TODO(), 1, 1, 3)
+		lst, err := r.stg.GetWeightList(context.TODO(), 1, T(1), T(3))
 		r.NoError(err)
 		r.Equal([]Weight{
-			{Timestamp: 1, Value: 1},
-			{Timestamp: 2, Value: 2},
-			{Timestamp: 3, Value: 3},
+			{Timestamp: T(1), Value: 1},
+			{Timestamp: T(2), Value: 2},
+			{Timestamp: T(3), Value: 3},
 		}, lst)
 
-		lst, err = r.stg.GetWeightList(context.TODO(), 2, 4, 4)
+		lst, err = r.stg.GetWeightList(context.TODO(), 2, T(4), T(4))
 		r.NoError(err)
 		r.Equal([]Weight{
-			{Timestamp: 4, Value: 4},
+			{Timestamp: T(4), Value: 4},
 		}, lst)
 	})
 
 	r.Run("delete weight for user", func() {
-		r.NoError(r.stg.DeleteWeight(context.TODO(), 2, 4))
-		_, err := r.stg.GetWeightList(context.TODO(), 2, 4, 4)
+		r.NoError(r.stg.DeleteWeight(context.TODO(), 2, T(4)))
+		_, err := r.stg.GetWeightList(context.TODO(), 2, T(4), T(4))
 		r.ErrorIs(err, ErrWeightEmptyList)
 	})
 }
 
 func (r *StorageSQLiteTestSuite) TestWeightCRU() {
 	r.Run("get not existing weight", func() {
-		wl, err := r.stg.GetWeightList(context.TODO(), 1, 1, 5)
+		wl, err := r.stg.GetWeightList(context.TODO(), 1, T(1), T(5))
 		r.ErrorIs(err, ErrWeightEmptyList)
 		r.Nil(wl)
 	})
 
 	r.Run("set invalid weight", func() {
-		r.ErrorIs(r.stg.SetWeight(context.TODO(), 1, &Weight{Timestamp: -1, Value: 1}), ErrWeightInvalid)
-		r.ErrorIs(r.stg.SetWeight(context.TODO(), 1, &Weight{Timestamp: 1, Value: -1}), ErrWeightInvalid)
+		r.ErrorIs(r.stg.SetWeight(context.TODO(), 1, &Weight{Timestamp: T(1), Value: -1}), ErrWeightInvalid)
 	})
 
 	r.Run("set valid weight", func() {
-		r.NoError(r.stg.SetWeight(context.TODO(), 1, &Weight{Timestamp: 1, Value: 1}))
+		r.NoError(r.stg.SetWeight(context.TODO(), 1, &Weight{Timestamp: T(1), Value: 1}))
 	})
 
 	r.Run("get weight", func() {
-		wl, err := r.stg.GetWeightList(context.TODO(), 1, 1, 5)
+		wl, err := r.stg.GetWeightList(context.TODO(), 1, T(1), T(5))
 		r.NoError(err)
-		r.Equal([]Weight{{Timestamp: 1, Value: 1}}, wl)
+		r.Equal([]Weight{{Timestamp: T(1), Value: 1}}, wl)
 	})
 
 	r.Run("set again with update one", func() {
-		r.NoError(r.stg.SetWeight(context.TODO(), 1, &Weight{Timestamp: 1, Value: 2}))
-		r.NoError(r.stg.SetWeight(context.TODO(), 1, &Weight{Timestamp: 2, Value: 2}))
+		r.NoError(r.stg.SetWeight(context.TODO(), 1, &Weight{Timestamp: T(1), Value: 2}))
+		r.NoError(r.stg.SetWeight(context.TODO(), 1, &Weight{Timestamp: T(2), Value: 2}))
 	})
 
 	r.Run("get weight list", func() {
-		wl, err := r.stg.GetWeightList(context.TODO(), 1, 1, 5)
+		wl, err := r.stg.GetWeightList(context.TODO(), 1, T(1), T(5))
 		r.NoError(err)
-		r.Equal([]Weight{{Timestamp: 1, Value: 2}, {Timestamp: 2, Value: 2}}, wl)
+		r.Equal([]Weight{{Timestamp: T(1), Value: 2}, {Timestamp: T(2), Value: 2}}, wl)
 	})
 }
 
@@ -530,6 +530,10 @@ func (r *StorageSQLiteTestSuite) TestJournalCRUD() {
 	r.Run("try delete used food", func() {
 		r.ErrorIs(r.stg.DeleteFood(context.TODO(), "food_a"), ErrFoodIsUsed)
 	})
+}
+
+func T(sec int) time.Time {
+	return time.Date(1970, 1, 1, 0, 0, sec, 0, time.UTC)
 }
 
 //
