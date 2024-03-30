@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/devldavydov/myfood/internal/storage/ent"
+	"github.com/devldavydov/myfood/internal/storage/ent/food"
 	"github.com/devldavydov/myfood/internal/storage/ent/usersettings"
 	"github.com/devldavydov/myfood/internal/storage/ent/weight"
 	gsql "github.com/mattn/go-sqlite3"
@@ -82,18 +83,22 @@ func NewStorageSQLite(dbFilePath string, logger *zap.Logger) (*StorageSQLite, er
 //
 
 func (r *StorageSQLite) GetFood(ctx context.Context, key string) (*Food, error) {
-	var f Food
-	err := r.db.
-		QueryRowContext(ctx, _sqlGetFood, key).
-		Scan(&f.Key, &f.Name, &f.Brand, &f.Cal100, &f.Prot100, &f.Fat100, &f.Carb100, &f.Comment)
-	switch {
-	case err == sql.ErrNoRows:
-		return nil, ErrFoodNotFound
-	case err != nil:
+	res, err := r.dbEnt.Tx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+		return tx.Food.
+			Query().
+			Where(food.Key(key)).
+			First(ctx)
+	})
+
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, ErrFoodNotFound
+		}
 		return nil, err
 	}
 
-	return &f, nil
+	ef, _ := res.(*ent.Food)
+	return foodFromEntFood(ef), nil
 }
 
 func (r *StorageSQLite) SetFood(ctx context.Context, food *Food) error {
@@ -101,117 +106,129 @@ func (r *StorageSQLite) SetFood(ctx context.Context, food *Food) error {
 		return ErrFoodInvalid
 	}
 
-	_, err := r.db.ExecContext(ctx, _sqlSetFood,
-		food.Key,
-		food.Name,
-		food.Brand,
-		food.Cal100,
-		food.Prot100,
-		food.Fat100,
-		food.Carb100,
-		food.Comment,
-	)
-	if err != nil {
-		return err
-	}
+	_, err := r.dbEnt.Tx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+		return tx.Food.
+			Create().
+			SetKey(food.Key).
+			SetName(food.Name).
+			SetBrand(food.Brand).
+			SetCal100(food.Cal100).
+			SetProt100(food.Prot100).
+			SetFat100(food.Fat100).
+			SetCarb100(food.Carb100).
+			SetComment(food.Comment).
+			OnConflict().
+			UpdateNewValues().
+			ID(ctx)
+	})
 
-	return nil
+	return err
 }
 
 func (r *StorageSQLite) SetFoodComment(ctx context.Context, key, comment string) error {
-	tx, err := r.db.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
+	_, err := r.dbEnt.Tx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+		f, err := tx.Food.
+			Query().
+			Where(food.Key(key)).
+			First(ctx)
 
-	// Get rowid to check existence
-	var rowid int64
-	err = tx.QueryRowContext(ctx, _sqlFoodRowid, key).Scan(&rowid)
-	switch {
-	case errors.Is(err, sql.ErrNoRows):
+		if err != nil {
+			return nil, err
+		}
+
+		return f.
+			Update().
+			SetComment(comment).
+			Save(ctx)
+	})
+
+	if ent.IsNotFound(err) {
 		return ErrFoodNotFound
-	case err != nil:
-		return err
 	}
 
-	// Update
-	_, err = tx.ExecContext(ctx, _sqlSetFoodComment, comment, key)
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
+	return err
 }
 
 func (r *StorageSQLite) GetFoodList(ctx context.Context) ([]Food, error) {
-	rows, err := r.db.QueryContext(ctx, _sqlGetFoodList)
+	res, err := r.dbEnt.Tx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+		return tx.Food.
+			Query().
+			Order(food.ByName()).
+			All(ctx)
+	})
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
-	var list []Food
-	for rows.Next() {
-		var f Food
-		err = rows.Scan(&f.Key, &f.Name, &f.Brand, &f.Cal100, &f.Prot100, &f.Fat100, &f.Carb100, &f.Comment)
-		if err != nil {
-			return nil, err
-		}
+	efList, _ := res.([]*ent.Food)
 
-		list = append(list, f)
-	}
-
-	if len(list) == 0 {
+	if len(efList) == 0 {
 		return nil, ErrFoodEmptyList
 	}
 
-	if err = rows.Err(); err != nil {
-		return nil, err
+	fList := make([]Food, 0, len(efList))
+	for _, ef := range efList {
+		fList = append(fList, *foodFromEntFood(ef))
 	}
 
-	return list, nil
+	return fList, nil
 }
 
 func (r *StorageSQLite) FindFood(ctx context.Context, pattern string) ([]Food, error) {
-	rows, err := r.db.QueryContext(ctx, _sqFindFood, strings.ToUpper(pattern))
+	res, err := r.dbEnt.Tx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+		return tx.Food.
+			Query().
+			Where(food.Or(
+				food.KeyContainsFold(pattern),
+				food.NameContainsFold(pattern),
+				food.BrandContainsFold(pattern),
+				food.CommentContainsFold(pattern),
+			)).
+			Order(food.ByName()).
+			All(ctx)
+	})
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
-	var list []Food
-	for rows.Next() {
-		var f Food
-		err = rows.Scan(&f.Key, &f.Name, &f.Brand, &f.Cal100, &f.Prot100, &f.Fat100, &f.Carb100, &f.Comment)
-		if err != nil {
-			return nil, err
-		}
+	efList, _ := res.([]*ent.Food)
 
-		list = append(list, f)
-	}
-
-	if len(list) == 0 {
+	if len(efList) == 0 {
 		return nil, ErrFoodEmptyList
 	}
 
-	if err = rows.Err(); err != nil {
-		return nil, err
+	fList := make([]Food, 0, len(efList))
+	for _, ef := range efList {
+		fList = append(fList, *foodFromEntFood(ef))
 	}
 
-	return list, nil
+	return fList, nil
 }
 
 func (r *StorageSQLite) DeleteFood(ctx context.Context, key string) error {
-	_, err := r.db.ExecContext(ctx, _sqlDeleteFood, key)
-	if err != nil {
-		var errSql gsql.Error
-		if errors.As(err, &errSql) && errSql.Error() == _errForeignKey {
-			return ErrFoodIsUsed
-		}
-		return err
+	_, err := r.dbEnt.Tx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+		return tx.Food.
+			Delete().
+			Where(food.Key(key)).
+			Exec(ctx)
+	})
+
+	// TODO: check constraint when delete with key in journal
+
+	return err
+}
+
+func foodFromEntFood(ef *ent.Food) *Food {
+	return &Food{
+		Key:     ef.Key,
+		Name:    ef.Name,
+		Brand:   ef.Brand,
+		Cal100:  ef.Cal100,
+		Prot100: ef.Prot100,
+		Fat100:  ef.Fat100,
+		Carb100: ef.Carb100,
+		Comment: ef.Comment,
 	}
-	return nil
 }
 
 //
@@ -395,11 +412,9 @@ func (r *StorageSQLite) GetUserSettings(ctx context.Context, userID int64) (*Use
 	})
 
 	if err != nil {
-		var notFound *ent.NotFoundError
-		if errors.As(err, &notFound) {
+		if ent.IsNotFound(err) {
 			return nil, ErrUserSettingsNotFound
 		}
-
 		return nil, err
 	}
 
