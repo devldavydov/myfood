@@ -55,7 +55,7 @@ func NewStorageSQLite(dbFilePath string, opts ...func(*StorageSQLite)) (*Storage
 
 	// Format url
 	url := fmt.Sprintf(
-		"file:%s?mode=rwc&_timeout=5000&_fk=1&_sync=1",
+		"file:%s?mode=rwc&_timeout=5000&_fk=1&_sync=1&_journal=wal",
 		dbFilePath,
 	)
 
