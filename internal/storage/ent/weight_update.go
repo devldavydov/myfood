@@ -18,8 +18,9 @@ import (
 // WeightUpdate is the builder for updating Weight entities.
 type WeightUpdate struct {
 	config
-	hooks    []Hook
-	mutation *WeightMutation
+	hooks     []Hook
+	mutation  *WeightMutation
+	modifiers []func(*sql.UpdateBuilder)
 }
 
 // Where appends a list predicates to the WeightUpdate builder.
@@ -116,6 +117,12 @@ func (wu *WeightUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// Modify adds a statement modifier for attaching custom logic to the UPDATE statement.
+func (wu *WeightUpdate) Modify(modifiers ...func(u *sql.UpdateBuilder)) *WeightUpdate {
+	wu.modifiers = append(wu.modifiers, modifiers...)
+	return wu
+}
+
 func (wu *WeightUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	_spec := sqlgraph.NewUpdateSpec(weight.Table, weight.Columns, sqlgraph.NewFieldSpec(weight.FieldID, field.TypeInt))
 	if ps := wu.mutation.predicates; len(ps) > 0 {
@@ -140,6 +147,7 @@ func (wu *WeightUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := wu.mutation.AddedValue(); ok {
 		_spec.AddField(weight.FieldValue, field.TypeFloat64, value)
 	}
+	_spec.AddModifiers(wu.modifiers...)
 	if n, err = sqlgraph.UpdateNodes(ctx, wu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{weight.Label}
@@ -155,9 +163,10 @@ func (wu *WeightUpdate) sqlSave(ctx context.Context) (n int, err error) {
 // WeightUpdateOne is the builder for updating a single Weight entity.
 type WeightUpdateOne struct {
 	config
-	fields   []string
-	hooks    []Hook
-	mutation *WeightMutation
+	fields    []string
+	hooks     []Hook
+	mutation  *WeightMutation
+	modifiers []func(*sql.UpdateBuilder)
 }
 
 // SetUserid sets the "userid" field.
@@ -261,6 +270,12 @@ func (wuo *WeightUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
+// Modify adds a statement modifier for attaching custom logic to the UPDATE statement.
+func (wuo *WeightUpdateOne) Modify(modifiers ...func(u *sql.UpdateBuilder)) *WeightUpdateOne {
+	wuo.modifiers = append(wuo.modifiers, modifiers...)
+	return wuo
+}
+
 func (wuo *WeightUpdateOne) sqlSave(ctx context.Context) (_node *Weight, err error) {
 	_spec := sqlgraph.NewUpdateSpec(weight.Table, weight.Columns, sqlgraph.NewFieldSpec(weight.FieldID, field.TypeInt))
 	id, ok := wuo.mutation.ID()
@@ -302,6 +317,7 @@ func (wuo *WeightUpdateOne) sqlSave(ctx context.Context) (_node *Weight, err err
 	if value, ok := wuo.mutation.AddedValue(); ok {
 		_spec.AddField(weight.FieldValue, field.TypeFloat64, value)
 	}
+	_spec.AddModifiers(wuo.modifiers...)
 	_node = &Weight{config: wuo.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues

@@ -21,6 +21,7 @@ type UserSettingsQuery struct {
 	order      []usersettings.OrderOption
 	inters     []Interceptor
 	predicates []predicate.UserSettings
+	modifiers  []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -342,6 +343,9 @@ func (usq *UserSettingsQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 		nodes = append(nodes, node)
 		return node.assignValues(columns, values)
 	}
+	if len(usq.modifiers) > 0 {
+		_spec.Modifiers = usq.modifiers
+	}
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
@@ -356,6 +360,9 @@ func (usq *UserSettingsQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 
 func (usq *UserSettingsQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := usq.querySpec()
+	if len(usq.modifiers) > 0 {
+		_spec.Modifiers = usq.modifiers
+	}
 	_spec.Node.Columns = usq.ctx.Fields
 	if len(usq.ctx.Fields) > 0 {
 		_spec.Unique = usq.ctx.Unique != nil && *usq.ctx.Unique
@@ -418,6 +425,9 @@ func (usq *UserSettingsQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	if usq.ctx.Unique != nil && *usq.ctx.Unique {
 		selector.Distinct()
 	}
+	for _, m := range usq.modifiers {
+		m(selector)
+	}
 	for _, p := range usq.predicates {
 		p(selector)
 	}
@@ -433,6 +443,12 @@ func (usq *UserSettingsQuery) sqlQuery(ctx context.Context) *sql.Selector {
 		selector.Limit(*limit)
 	}
 	return selector
+}
+
+// Modify adds a query modifier for attaching custom logic to queries.
+func (usq *UserSettingsQuery) Modify(modifiers ...func(s *sql.Selector)) *UserSettingsSelect {
+	usq.modifiers = append(usq.modifiers, modifiers...)
+	return usq.Select()
 }
 
 // UserSettingsGroupBy is the group-by builder for UserSettings entities.
@@ -523,4 +539,10 @@ func (uss *UserSettingsSelect) sqlScan(ctx context.Context, root *UserSettingsQu
 	}
 	defer rows.Close()
 	return sql.ScanSlice(rows, v)
+}
+
+// Modify adds a query modifier for attaching custom logic to queries.
+func (uss *UserSettingsSelect) Modify(modifiers ...func(s *sql.Selector)) *UserSettingsSelect {
+	uss.modifiers = append(uss.modifiers, modifiers...)
+	return uss
 }

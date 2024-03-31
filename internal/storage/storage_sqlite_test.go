@@ -546,6 +546,8 @@ func (r *StorageSQLiteTestSuite) SetupTest() {
 	f.Close()
 
 	r.stg, err = NewStorageSQLite(r.dbFile)
+	// To print queries
+	//r.stg, err = NewStorageSQLite(r.dbFile, WithDebug())
 	require.NoError(r.T(), err)
 }
 

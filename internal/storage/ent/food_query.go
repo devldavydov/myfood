@@ -24,6 +24,7 @@ type FoodQuery struct {
 	inters       []Interceptor
 	predicates   []predicate.Food
 	withJournals *JournalQuery
+	modifiers    []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -383,6 +384,9 @@ func (fq *FoodQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Food, e
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
+	if len(fq.modifiers) > 0 {
+		_spec.Modifiers = fq.modifiers
+	}
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
@@ -436,6 +440,9 @@ func (fq *FoodQuery) loadJournals(ctx context.Context, query *JournalQuery, node
 
 func (fq *FoodQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := fq.querySpec()
+	if len(fq.modifiers) > 0 {
+		_spec.Modifiers = fq.modifiers
+	}
 	_spec.Node.Columns = fq.ctx.Fields
 	if len(fq.ctx.Fields) > 0 {
 		_spec.Unique = fq.ctx.Unique != nil && *fq.ctx.Unique
@@ -498,6 +505,9 @@ func (fq *FoodQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	if fq.ctx.Unique != nil && *fq.ctx.Unique {
 		selector.Distinct()
 	}
+	for _, m := range fq.modifiers {
+		m(selector)
+	}
 	for _, p := range fq.predicates {
 		p(selector)
 	}
@@ -513,6 +523,12 @@ func (fq *FoodQuery) sqlQuery(ctx context.Context) *sql.Selector {
 		selector.Limit(*limit)
 	}
 	return selector
+}
+
+// Modify adds a query modifier for attaching custom logic to queries.
+func (fq *FoodQuery) Modify(modifiers ...func(s *sql.Selector)) *FoodSelect {
+	fq.modifiers = append(fq.modifiers, modifiers...)
+	return fq.Select()
 }
 
 // FoodGroupBy is the group-by builder for Food entities.
@@ -603,4 +619,10 @@ func (fs *FoodSelect) sqlScan(ctx context.Context, root *FoodQuery, v any) error
 	}
 	defer rows.Close()
 	return sql.ScanSlice(rows, v)
+}
+
+// Modify adds a query modifier for attaching custom logic to queries.
+func (fs *FoodSelect) Modify(modifiers ...func(s *sql.Selector)) *FoodSelect {
+	fs.modifiers = append(fs.modifiers, modifiers...)
+	return fs
 }

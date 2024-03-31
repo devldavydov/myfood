@@ -19,8 +19,9 @@ import (
 // JournalUpdate is the builder for updating Journal entities.
 type JournalUpdate struct {
 	config
-	hooks    []Hook
-	mutation *JournalMutation
+	hooks     []Hook
+	mutation  *JournalMutation
+	modifiers []func(*sql.UpdateBuilder)
 }
 
 // Where appends a list predicates to the JournalUpdate builder.
@@ -163,6 +164,12 @@ func (ju *JournalUpdate) check() error {
 	return nil
 }
 
+// Modify adds a statement modifier for attaching custom logic to the UPDATE statement.
+func (ju *JournalUpdate) Modify(modifiers ...func(u *sql.UpdateBuilder)) *JournalUpdate {
+	ju.modifiers = append(ju.modifiers, modifiers...)
+	return ju
+}
+
 func (ju *JournalUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if err := ju.check(); err != nil {
 		return n, err
@@ -225,6 +232,7 @@ func (ju *JournalUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	_spec.AddModifiers(ju.modifiers...)
 	if n, err = sqlgraph.UpdateNodes(ctx, ju.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{journal.Label}
@@ -240,9 +248,10 @@ func (ju *JournalUpdate) sqlSave(ctx context.Context) (n int, err error) {
 // JournalUpdateOne is the builder for updating a single Journal entity.
 type JournalUpdateOne struct {
 	config
-	fields   []string
-	hooks    []Hook
-	mutation *JournalMutation
+	fields    []string
+	hooks     []Hook
+	mutation  *JournalMutation
+	modifiers []func(*sql.UpdateBuilder)
 }
 
 // SetUserid sets the "userid" field.
@@ -392,6 +401,12 @@ func (juo *JournalUpdateOne) check() error {
 	return nil
 }
 
+// Modify adds a statement modifier for attaching custom logic to the UPDATE statement.
+func (juo *JournalUpdateOne) Modify(modifiers ...func(u *sql.UpdateBuilder)) *JournalUpdateOne {
+	juo.modifiers = append(juo.modifiers, modifiers...)
+	return juo
+}
+
 func (juo *JournalUpdateOne) sqlSave(ctx context.Context) (_node *Journal, err error) {
 	if err := juo.check(); err != nil {
 		return _node, err
@@ -471,6 +486,7 @@ func (juo *JournalUpdateOne) sqlSave(ctx context.Context) (_node *Journal, err e
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	_spec.AddModifiers(juo.modifiers...)
 	_node = &Journal{config: juo.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues

@@ -18,8 +18,9 @@ import (
 // FoodUpdate is the builder for updating Food entities.
 type FoodUpdate struct {
 	config
-	hooks    []Hook
-	mutation *FoodMutation
+	hooks     []Hook
+	mutation  *FoodMutation
+	modifiers []func(*sql.UpdateBuilder)
 }
 
 // Where appends a list predicates to the FoodUpdate builder.
@@ -258,6 +259,12 @@ func (fu *FoodUpdate) check() error {
 	return nil
 }
 
+// Modify adds a statement modifier for attaching custom logic to the UPDATE statement.
+func (fu *FoodUpdate) Modify(modifiers ...func(u *sql.UpdateBuilder)) *FoodUpdate {
+	fu.modifiers = append(fu.modifiers, modifiers...)
+	return fu
+}
+
 func (fu *FoodUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if err := fu.check(); err != nil {
 		return n, err
@@ -357,6 +364,7 @@ func (fu *FoodUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	_spec.AddModifiers(fu.modifiers...)
 	if n, err = sqlgraph.UpdateNodes(ctx, fu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{food.Label}
@@ -372,9 +380,10 @@ func (fu *FoodUpdate) sqlSave(ctx context.Context) (n int, err error) {
 // FoodUpdateOne is the builder for updating a single Food entity.
 type FoodUpdateOne struct {
 	config
-	fields   []string
-	hooks    []Hook
-	mutation *FoodMutation
+	fields    []string
+	hooks     []Hook
+	mutation  *FoodMutation
+	modifiers []func(*sql.UpdateBuilder)
 }
 
 // SetKey sets the "key" field.
@@ -620,6 +629,12 @@ func (fuo *FoodUpdateOne) check() error {
 	return nil
 }
 
+// Modify adds a statement modifier for attaching custom logic to the UPDATE statement.
+func (fuo *FoodUpdateOne) Modify(modifiers ...func(u *sql.UpdateBuilder)) *FoodUpdateOne {
+	fuo.modifiers = append(fuo.modifiers, modifiers...)
+	return fuo
+}
+
 func (fuo *FoodUpdateOne) sqlSave(ctx context.Context) (_node *Food, err error) {
 	if err := fuo.check(); err != nil {
 		return _node, err
@@ -736,6 +751,7 @@ func (fuo *FoodUpdateOne) sqlSave(ctx context.Context) (_node *Food, err error) 
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	_spec.AddModifiers(fuo.modifiers...)
 	_node = &Food{config: fuo.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues

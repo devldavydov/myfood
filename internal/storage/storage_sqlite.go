@@ -29,6 +29,7 @@ type TxFn func(ctx context.Context, tx *ent.Tx) (any, error)
 type StorageSQLite struct {
 	dbSQL *sql.DB // Remove
 	db    *ent.Client
+	debug bool
 }
 
 var _ Storage = (*StorageSQLite)(nil)
@@ -37,7 +38,7 @@ func go_upper(str string) string {
 	return strings.ToUpper(str)
 }
 
-func NewStorageSQLite(dbFilePath string) (*StorageSQLite, error) {
+func NewStorageSQLite(dbFilePath string, opts ...func(*StorageSQLite)) (*StorageSQLite, error) {
 	//
 	// Driver register (check registration twice).
 	//
@@ -81,6 +82,9 @@ func NewStorageSQLite(dbFilePath string) (*StorageSQLite, error) {
 	}
 
 	stg := &StorageSQLite{db: dbEnt}
+	for _, opt := range opts {
+		opt(stg)
+	}
 
 	// Run migrations from old to new (remove after all done)
 	// if err := stg.migrateWeight(); err != nil {
@@ -90,9 +94,31 @@ func NewStorageSQLite(dbFilePath string) (*StorageSQLite, error) {
 	return stg, nil
 }
 
+func WithDebug() func(*StorageSQLite) {
+	return func(s *StorageSQLite) {
+		s.debug = true
+	}
+}
+
+func (r *StorageSQLite) Close() error {
+	if r.db == nil {
+		return nil
+	}
+
+	return r.db.Close()
+}
+
 func (r *StorageSQLite) doTx(ctx context.Context, fn TxFn) (any, error) {
 	// Begin database transaction.
-	tx, err := r.db.Tx(ctx)
+
+	var clt *ent.Client
+	if r.debug {
+		clt = r.db.Debug()
+	} else {
+		clt = r.db
+	}
+
+	tx, err := clt.Tx(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("db start tx error: %w", err)
 	}
@@ -117,14 +143,6 @@ func (r *StorageSQLite) doTx(ctx context.Context, fn TxFn) (any, error) {
 	}
 
 	return result, nil
-}
-
-func (r *StorageSQLite) Close() error {
-	if r.db == nil {
-		return nil
-	}
-
-	return r.db.Close()
 }
 
 //
@@ -283,7 +301,9 @@ func (r *StorageSQLite) DeleteFood(ctx context.Context, key string) error {
 			Exec(ctx)
 	})
 
-	// TODO: check constraint when delete with key in journal
+	if ent.IsConstraintError(err) {
+		return ErrFoodIsUsed
+	}
 
 	return err
 }
@@ -422,78 +442,176 @@ func (r *StorageSQLite) DeleteJournal(ctx context.Context, userID int64, timesta
 }
 
 func (r *StorageSQLite) GetJournalReport(ctx context.Context, userID int64, from, to time.Time) ([]JournalReport, error) {
-	rows, err := r.dbSQL.QueryContext(ctx, _sqlGetJournalReport, userID, from, to)
+	var res []struct {
+		ent.Journal
+		FoodKey   string  `sql:"foodkey"`
+		FoodName  string  `sql:"foodname"`
+		FoodBrand string  `sql:"foodbrand"`
+		Cal       float64 `sql:"cal"`
+		Prot      float64 `sql:"prot"`
+		Fat       float64 `sql:"fat"`
+		Carb      float64 `sql:"carb"`
+	}
+
+	_, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+		err := tx.Journal.
+			Query().
+			Where(
+				journal.Userid(userID),
+				journal.TimestampGTE(from),
+				journal.TimestampLTE(to),
+			).
+			Modify(func(s *entsql.Selector) {
+				f := entsql.Table(food.Table)
+				s.
+					Join(f).
+					On(
+						s.C(journal.FoodColumn),
+						f.C(food.FieldID),
+					).
+					AppendSelect(
+						entsql.As(f.C(food.FieldKey), "foodkey"),
+						entsql.As(f.C(food.FieldName), "foodname"),
+						entsql.As(f.C(food.FieldBrand), "foodbrand"),
+						entsql.As(
+							fmt.Sprintf("%s / 100 * %s", s.C(journal.FieldFoodweight), f.C(food.FieldCal100)),
+							"cal",
+						),
+						entsql.As(
+							fmt.Sprintf("%s / 100 * %s", s.C(journal.FieldFoodweight), f.C(food.FieldProt100)),
+							"prot",
+						),
+						entsql.As(
+							fmt.Sprintf("%s / 100 * %s", s.C(journal.FieldFoodweight), f.C(food.FieldFat100)),
+							"fat",
+						),
+						entsql.As(
+							fmt.Sprintf("%s / 100 * %s", s.C(journal.FieldFoodweight), f.C(food.FieldCarb100)),
+							"carb",
+						),
+					).
+					OrderBy(
+						s.C(journal.FieldTimestamp),
+						s.C(journal.FieldMeal),
+						f.C(food.FieldName),
+					)
+			}).
+			Scan(ctx, &res)
+
+		return nil, err
+	})
+
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
-	var list []JournalReport
-	for rows.Next() {
-		var jd JournalReport
-		err = rows.Scan(
-			&jd.Timestamp,
-			&jd.Meal,
-			&jd.FoodKey,
-			&jd.FoodName,
-			&jd.FoodBrand,
-			&jd.FoodWeight,
-			&jd.Cal,
-			&jd.Prot,
-			&jd.Fat,
-			&jd.Carb,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		list = append(list, jd)
-	}
-
-	if len(list) == 0 {
+	if len(res) == 0 {
 		return nil, ErrJournalReportEmpty
 	}
 
-	if err = rows.Err(); err != nil {
-		return nil, err
+	lst := make([]JournalReport, 0, len(res))
+	for _, item := range res {
+		lst = append(lst, JournalReport{
+			Timestamp:  item.Timestamp,
+			Meal:       Meal(item.Meal),
+			FoodKey:    item.FoodKey,
+			FoodName:   item.FoodName,
+			FoodBrand:  item.FoodBrand,
+			FoodWeight: item.Foodweight,
+			Cal:        item.Cal,
+			Prot:       item.Prot,
+			Fat:        item.Fat,
+			Carb:       item.Carb,
+		})
 	}
 
-	return list, nil
+	return lst, nil
 }
 
 func (r *StorageSQLite) GetJournalStats(ctx context.Context, userID int64, from, to time.Time) ([]JournalStats, error) {
-	rows, err := r.dbSQL.QueryContext(ctx, _sqlGetJournalStats, userID, from, to)
+	var res []struct {
+		Timestamp time.Time `sql:"timestamp"`
+		TotalCal  float64   `sql:"totalCal"`
+		TotalProt float64   `sql:"totalProt"`
+		TotalFat  float64   `sql:"totalFat"`
+		TotalCarb float64   `sql:"totalCarb"`
+	}
+
+	_, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+		err := tx.Journal.
+			Query().
+			Where(
+				journal.Userid(userID),
+				journal.TimestampGTE(from),
+				journal.TimestampLTE(to),
+			).
+			Modify(func(s *entsql.Selector) {
+				f := entsql.Table(food.Table)
+				s.
+					Join(f).
+					On(
+						s.C(journal.FoodColumn),
+						f.C(food.FieldID),
+					).
+					Select(
+						entsql.As(s.C(journal.FieldTimestamp), "timestamp"),
+						entsql.As(
+							entsql.Sum(
+								fmt.Sprintf("%s / 100 * %s", s.C(journal.FieldFoodweight), f.C(food.FieldCal100)),
+							),
+							"totalCal",
+						),
+						entsql.As(
+							entsql.Sum(
+								fmt.Sprintf("%s / 100 * %s", s.C(journal.FieldFoodweight), f.C(food.FieldProt100)),
+							),
+							"totalProt",
+						),
+						entsql.As(
+							entsql.Sum(
+								fmt.Sprintf("%s / 100 * %s", s.C(journal.FieldFoodweight), f.C(food.FieldFat100)),
+							),
+							"totalFat",
+						),
+						entsql.As(
+							entsql.Sum(
+								fmt.Sprintf("%s / 100 * %s", s.C(journal.FieldFoodweight), f.C(food.FieldCarb100)),
+							),
+							"totalCarb",
+						),
+					).
+					GroupBy(
+						s.C(journal.FieldTimestamp),
+					).
+					OrderBy(
+						s.C(journal.FieldTimestamp),
+					)
+			}).
+			Scan(ctx, &res)
+
+		return nil, err
+	})
+
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
-	var list []JournalStats
-	for rows.Next() {
-		var js JournalStats
-		err = rows.Scan(
-			&js.Timestamp,
-			&js.TotalCal,
-			&js.TotalProt,
-			&js.TotalFat,
-			&js.TotalCarb,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		list = append(list, js)
-	}
-
-	if len(list) == 0 {
+	if len(res) == 0 {
 		return nil, ErrJournalStatsEmpty
 	}
 
-	if err = rows.Err(); err != nil {
-		return nil, err
+	lst := make([]JournalStats, 0, len(res))
+	for _, item := range res {
+		lst = append(lst, JournalStats{
+			Timestamp: item.Timestamp,
+			TotalCal:  item.TotalCal,
+			TotalProt: item.TotalProt,
+			TotalFat:  item.TotalFat,
+			TotalCarb: item.TotalCarb,
+		})
 	}
 
-	return list, nil
+	return lst, nil
 }
 
 //

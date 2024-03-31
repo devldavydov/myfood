@@ -17,8 +17,9 @@ import (
 // UserSettingsUpdate is the builder for updating UserSettings entities.
 type UserSettingsUpdate struct {
 	config
-	hooks    []Hook
-	mutation *UserSettingsMutation
+	hooks     []Hook
+	mutation  *UserSettingsMutation
+	modifiers []func(*sql.UpdateBuilder)
 }
 
 // Where appends a list predicates to the UserSettingsUpdate builder.
@@ -101,6 +102,12 @@ func (usu *UserSettingsUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// Modify adds a statement modifier for attaching custom logic to the UPDATE statement.
+func (usu *UserSettingsUpdate) Modify(modifiers ...func(u *sql.UpdateBuilder)) *UserSettingsUpdate {
+	usu.modifiers = append(usu.modifiers, modifiers...)
+	return usu
+}
+
 func (usu *UserSettingsUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	_spec := sqlgraph.NewUpdateSpec(usersettings.Table, usersettings.Columns, sqlgraph.NewFieldSpec(usersettings.FieldID, field.TypeInt))
 	if ps := usu.mutation.predicates; len(ps) > 0 {
@@ -122,6 +129,7 @@ func (usu *UserSettingsUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := usu.mutation.AddedCalLimit(); ok {
 		_spec.AddField(usersettings.FieldCalLimit, field.TypeFloat64, value)
 	}
+	_spec.AddModifiers(usu.modifiers...)
 	if n, err = sqlgraph.UpdateNodes(ctx, usu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{usersettings.Label}
@@ -137,9 +145,10 @@ func (usu *UserSettingsUpdate) sqlSave(ctx context.Context) (n int, err error) {
 // UserSettingsUpdateOne is the builder for updating a single UserSettings entity.
 type UserSettingsUpdateOne struct {
 	config
-	fields   []string
-	hooks    []Hook
-	mutation *UserSettingsMutation
+	fields    []string
+	hooks     []Hook
+	mutation  *UserSettingsMutation
+	modifiers []func(*sql.UpdateBuilder)
 }
 
 // SetUserid sets the "userid" field.
@@ -229,6 +238,12 @@ func (usuo *UserSettingsUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
+// Modify adds a statement modifier for attaching custom logic to the UPDATE statement.
+func (usuo *UserSettingsUpdateOne) Modify(modifiers ...func(u *sql.UpdateBuilder)) *UserSettingsUpdateOne {
+	usuo.modifiers = append(usuo.modifiers, modifiers...)
+	return usuo
+}
+
 func (usuo *UserSettingsUpdateOne) sqlSave(ctx context.Context) (_node *UserSettings, err error) {
 	_spec := sqlgraph.NewUpdateSpec(usersettings.Table, usersettings.Columns, sqlgraph.NewFieldSpec(usersettings.FieldID, field.TypeInt))
 	id, ok := usuo.mutation.ID()
@@ -267,6 +282,7 @@ func (usuo *UserSettingsUpdateOne) sqlSave(ctx context.Context) (_node *UserSett
 	if value, ok := usuo.mutation.AddedCalLimit(); ok {
 		_spec.AddField(usersettings.FieldCalLimit, field.TypeFloat64, value)
 	}
+	_spec.AddModifiers(usuo.modifiers...)
 	_node = &UserSettings{config: usuo.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues
