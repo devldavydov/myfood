@@ -8,13 +8,13 @@ import (
 	"strings"
 	"time"
 
+	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
 	"github.com/devldavydov/myfood/internal/storage/ent"
 	"github.com/devldavydov/myfood/internal/storage/ent/food"
 	"github.com/devldavydov/myfood/internal/storage/ent/usersettings"
 	"github.com/devldavydov/myfood/internal/storage/ent/weight"
 	gsql "github.com/mattn/go-sqlite3"
-	"go.uber.org/zap"
 )
 
 const (
@@ -24,10 +24,11 @@ const (
 	_errForeignKey    = "FOREIGN KEY constraint failed"
 )
 
+type TxFn func(ctx context.Context, tx *ent.Tx) (any, error)
+
 type StorageSQLite struct {
-	db     *sql.DB
-	dbEnt  *DB
-	logger *zap.Logger
+	dbSQL *sql.DB // Remove
+	db    *ent.Client
 }
 
 var _ Storage = (*StorageSQLite)(nil)
@@ -36,7 +37,7 @@ func go_upper(str string) string {
 	return strings.ToUpper(str)
 }
 
-func NewStorageSQLite(dbFilePath string, logger *zap.Logger) (*StorageSQLite, error) {
+func NewStorageSQLite(dbFilePath string) (*StorageSQLite, error) {
 	//
 	// Driver register (check registration twice).
 	//
@@ -62,7 +63,7 @@ func NewStorageSQLite(dbFilePath string, logger *zap.Logger) (*StorageSQLite, er
 	// Open DB.
 	//
 
-	db, err := sql.Open(_customDriverName, url)
+	dbSQL, err := sql.Open(_customDriverName, url)
 	if err != nil {
 		return nil, err
 	}
@@ -71,12 +72,15 @@ func NewStorageSQLite(dbFilePath string, logger *zap.Logger) (*StorageSQLite, er
 	// Open DB entgo.
 	//
 
-	dbEnt, err := NewDB(db)
-	if err != nil {
+	drv := entsql.OpenDB(dialect.SQLite, dbSQL)
+	dbEnt := ent.NewClient(ent.Driver(drv))
+
+	// Run migration
+	if err := dbEnt.Schema.Create(context.Background()); err != nil {
 		return nil, err
 	}
 
-	stg := &StorageSQLite{db: db, dbEnt: dbEnt, logger: logger}
+	stg := &StorageSQLite{db: dbEnt}
 
 	// Run migrations from old to new (remove after all done)
 	// if err := stg.migrateWeight(); err != nil {
@@ -86,12 +90,49 @@ func NewStorageSQLite(dbFilePath string, logger *zap.Logger) (*StorageSQLite, er
 	return stg, nil
 }
 
+func (r *StorageSQLite) doTx(ctx context.Context, fn TxFn) (any, error) {
+	// Begin database transaction.
+	tx, err := r.db.Tx(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("db start tx error: %w", err)
+	}
+
+	// Rollback on potential panics.
+	defer func() {
+		if err := recover(); err != nil {
+			tx.Rollback()
+		}
+	}()
+
+	// Execute user function.
+	result, err := fn(ctx, tx)
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	// Commit transaction.
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("db commit tx error: %w", err)
+	}
+
+	return result, nil
+}
+
+func (r *StorageSQLite) Close() error {
+	if r.db == nil {
+		return nil
+	}
+
+	return r.db.Close()
+}
+
 //
 // Food
 //
 
 func (r *StorageSQLite) GetFood(ctx context.Context, key string) (*Food, error) {
-	res, err := r.dbEnt.Tx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+	res, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
 		return tx.Food.
 			Query().
 			Where(food.Key(key)).
@@ -114,7 +155,7 @@ func (r *StorageSQLite) SetFood(ctx context.Context, food *Food) error {
 		return ErrFoodInvalid
 	}
 
-	_, err := r.dbEnt.Tx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+	_, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
 		return tx.Food.
 			Create().
 			SetKey(food.Key).
@@ -134,7 +175,7 @@ func (r *StorageSQLite) SetFood(ctx context.Context, food *Food) error {
 }
 
 func (r *StorageSQLite) SetFoodComment(ctx context.Context, key, comment string) error {
-	_, err := r.dbEnt.Tx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+	_, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
 		f, err := tx.Food.
 			Query().
 			Where(food.Key(key)).
@@ -158,7 +199,7 @@ func (r *StorageSQLite) SetFoodComment(ctx context.Context, key, comment string)
 }
 
 func (r *StorageSQLite) GetFoodList(ctx context.Context) ([]Food, error) {
-	res, err := r.dbEnt.Tx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+	res, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
 		return tx.Food.
 			Query().
 			Order(food.ByName()).
@@ -185,7 +226,7 @@ func (r *StorageSQLite) GetFoodList(ctx context.Context) ([]Food, error) {
 func (r *StorageSQLite) FindFood(ctx context.Context, pattern string) ([]Food, error) {
 	upPattern := strings.ToUpper(pattern)
 
-	res, err := r.dbEnt.Tx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+	res, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
 		return tx.Food.
 			Query().
 			Where(func(s *entsql.Selector) {
@@ -235,7 +276,7 @@ func (r *StorageSQLite) FindFood(ctx context.Context, pattern string) ([]Food, e
 }
 
 func (r *StorageSQLite) DeleteFood(ctx context.Context, key string) error {
-	_, err := r.dbEnt.Tx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+	_, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
 		return tx.Food.
 			Delete().
 			Where(food.Key(key)).
@@ -265,7 +306,7 @@ func foodFromEntFood(ef *ent.Food) *Food {
 //
 
 func (r *StorageSQLite) GetWeightList(ctx context.Context, userID int64, from, to time.Time) ([]Weight, error) {
-	res, err := r.dbEnt.Tx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+	res, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
 		return tx.Weight.
 			Query().
 			Where(
@@ -300,7 +341,7 @@ func (r *StorageSQLite) SetWeight(ctx context.Context, userID int64, weight *Wei
 		return ErrWeightInvalid
 	}
 
-	_, err := r.dbEnt.Tx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+	_, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
 		return tx.Weight.
 			Create().
 			SetUserid(userID).
@@ -315,7 +356,7 @@ func (r *StorageSQLite) SetWeight(ctx context.Context, userID int64, weight *Wei
 }
 
 func (r *StorageSQLite) DeleteWeight(ctx context.Context, userID int64, timestamp time.Time) error {
-	_, err := r.dbEnt.Tx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+	_, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
 		return tx.Weight.
 			Delete().
 			Where(
@@ -336,7 +377,7 @@ func (r *StorageSQLite) SetJournal(ctx context.Context, userID int64, journal *J
 		return ErrJournalInvalid
 	}
 
-	_, err := r.db.ExecContext(ctx, _sqlSetJournal, userID, journal.Timestamp, journal.Meal, journal.FoodKey, journal.FoodWeight)
+	_, err := r.dbSQL.ExecContext(ctx, _sqlSetJournal, userID, journal.Timestamp, journal.Meal, journal.FoodKey, journal.FoodWeight)
 	if err != nil {
 		var errSql gsql.Error
 		if errors.As(err, &errSql) && errSql.Error() == _errForeignKey {
@@ -349,12 +390,12 @@ func (r *StorageSQLite) SetJournal(ctx context.Context, userID int64, journal *J
 }
 
 func (r *StorageSQLite) DeleteJournal(ctx context.Context, userID int64, timestamp int64, meal Meal, foodkey string) error {
-	_, err := r.db.ExecContext(ctx, _sqlDeleteJournal, userID, timestamp, meal, foodkey)
+	_, err := r.dbSQL.ExecContext(ctx, _sqlDeleteJournal, userID, timestamp, meal, foodkey)
 	return err
 }
 
 func (r *StorageSQLite) GetJournalReport(ctx context.Context, userID int64, from, to int64) ([]JournalReport, error) {
-	rows, err := r.db.QueryContext(ctx, _sqlGetJournalReport, userID, from, to)
+	rows, err := r.dbSQL.QueryContext(ctx, _sqlGetJournalReport, userID, from, to)
 	if err != nil {
 		return nil, err
 	}
@@ -394,7 +435,7 @@ func (r *StorageSQLite) GetJournalReport(ctx context.Context, userID int64, from
 }
 
 func (r *StorageSQLite) GetJournalStats(ctx context.Context, userID int64, from, to int64) ([]JournalStats, error) {
-	rows, err := r.db.QueryContext(ctx, _sqlGetJournalStats, userID, from, to)
+	rows, err := r.dbSQL.QueryContext(ctx, _sqlGetJournalStats, userID, from, to)
 	if err != nil {
 		return nil, err
 	}
@@ -433,7 +474,7 @@ func (r *StorageSQLite) GetJournalStats(ctx context.Context, userID int64, from,
 //
 
 func (r *StorageSQLite) GetUserSettings(ctx context.Context, userID int64) (*UserSettings, error) {
-	res, err := r.dbEnt.Tx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+	res, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
 		return tx.UserSettings.
 			Query().
 			Where(usersettings.Userid(userID)).
@@ -457,7 +498,7 @@ func (r *StorageSQLite) SetUserSettings(ctx context.Context, userID int64, setti
 		return ErrUserSettingsInvalid
 	}
 
-	_, err := r.dbEnt.Tx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+	_, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
 		return tx.UserSettings.
 			Create().
 			SetUserid(userID).
@@ -474,18 +515,10 @@ func (r *StorageSQLite) SetUserSettings(ctx context.Context, userID int64, setti
 //
 //
 
-func (r *StorageSQLite) Close() error {
-	if r.dbEnt == nil {
-		return nil
-	}
-
-	return r.dbEnt.Close()
-}
-
 func (r *StorageSQLite) migrateWeight() error {
 	// Get from old table
 	ctx := context.Background()
-	rows, err := r.db.QueryContext(ctx, `
+	rows, err := r.dbSQL.QueryContext(ctx, `
 	SELECT userid, timestamp, value
 	FROM weight2
 	`)
@@ -517,7 +550,7 @@ func (r *StorageSQLite) migrateWeight() error {
 	}
 
 	// Save in new format
-	_, err = r.dbEnt.Tx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+	_, err = r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
 		for _, i := range list {
 			_, err := tx.Weight.
 				Create().
@@ -538,7 +571,7 @@ func (r *StorageSQLite) migrateWeight() error {
 	}
 
 	// Delete from table
-	_, err = r.db.ExecContext(ctx, `
+	_, err = r.dbSQL.ExecContext(ctx, `
 	DELETE FROM weight2;
 	`)
 

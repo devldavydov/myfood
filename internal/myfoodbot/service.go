@@ -18,7 +18,7 @@ type Service struct {
 }
 
 func NewService(settings ServiceSettings, logger *zap.Logger) (*Service, error) {
-	stg, err := storage.NewStorageSQLite(settings.DBFilePath, logger)
+	stg, err := storage.NewStorageSQLite(settings.DBFilePath)
 	if err != nil {
 		return nil, err
 	}
