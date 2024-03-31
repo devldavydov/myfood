@@ -2,16 +2,18 @@ package storage
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
+	"entgo.io/ent/dialect"
+	entsql "entgo.io/ent/dialect/sql"
 	"github.com/devldavydov/myfood/internal/storage/ent"
 )
 
 type TxFn func(ctx context.Context, tx *ent.Tx) (any, error)
 
 type DB struct {
-	db   *ent.Client
-	path string
+	db *ent.Client
 }
 
 func (r *DB) Tx(ctx context.Context, fn TxFn) (any, error) {
@@ -50,26 +52,16 @@ func (r *DB) Close() error {
 	return nil
 }
 
-func NewDB(dbFilePath string) (*DB, error) {
-	// Format url
-	url := fmt.Sprintf(
-		"file:%s?mode=rwc&_timeout=5000&_fk=1&_sync=1&_journal=wal",
-		dbFilePath,
-	)
-
-	// Open DB
-	db, err := ent.Open("sqlite3", url)
-	if err != nil {
-		return nil, fmt.Errorf("open database with %s: %w", url, err)
-	}
+func NewDB(dbSQL *sql.DB) (*DB, error) {
+	drv := entsql.OpenDB(dialect.SQLite, dbSQL)
+	db := ent.NewClient(ent.Driver(drv))
 
 	// Run migration
 	if err := db.Schema.Create(context.Background()); err != nil {
-		return nil, fmt.Errorf("database %s migration error: %w", url, err)
+		return nil, err
 	}
 
 	return &DB{
-		db:   db,
-		path: dbFilePath,
+		db: db,
 	}, nil
 }

@@ -4,9 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
+	entsql "entgo.io/ent/dialect/sql"
 	"github.com/devldavydov/myfood/internal/storage/ent"
 	"github.com/devldavydov/myfood/internal/storage/ent/food"
 	"github.com/devldavydov/myfood/internal/storage/ent/usersettings"
@@ -50,11 +52,17 @@ func NewStorageSQLite(dbFilePath string, logger *zap.Logger) (*StorageSQLite, er
 		})
 	}
 
+	// Format url
+	url := fmt.Sprintf(
+		"file:%s?mode=rwc&_timeout=5000&_fk=1&_sync=1&_journal=wal",
+		dbFilePath,
+	)
+
 	//
 	// Open DB.
 	//
 
-	db, err := sql.Open(_customDriverName, dbFilePath+"?_foreign_keys=1")
+	db, err := sql.Open(_customDriverName, url)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +71,7 @@ func NewStorageSQLite(dbFilePath string, logger *zap.Logger) (*StorageSQLite, er
 	// Open DB entgo.
 	//
 
-	dbEnt, err := NewDB(dbFilePath)
+	dbEnt, err := NewDB(db)
 	if err != nil {
 		return nil, err
 	}
@@ -175,15 +183,36 @@ func (r *StorageSQLite) GetFoodList(ctx context.Context) ([]Food, error) {
 }
 
 func (r *StorageSQLite) FindFood(ctx context.Context, pattern string) ([]Food, error) {
+	upPattern := strings.ToUpper(pattern)
+
 	res, err := r.dbEnt.Tx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
 		return tx.Food.
 			Query().
-			Where(food.Or(
-				food.KeyContainsFold(pattern),
-				food.NameContainsFold(pattern),
-				food.BrandContainsFold(pattern),
-				food.CommentContainsFold(pattern),
-			)).
+			Where(func(s *entsql.Selector) {
+				s.Where(
+					entsql.ExprP(
+						fmt.Sprintf("go_upper(%s) LIKE '%%' || ? || '%%'", s.C(food.FieldKey)),
+						upPattern,
+					)).
+					Or().
+					Where(
+						entsql.ExprP(
+							fmt.Sprintf("go_upper(%s) LIKE '%%' || ? || '%%'", s.C(food.FieldName)),
+							upPattern,
+						)).
+					Or().
+					Where(
+						entsql.ExprP(
+							fmt.Sprintf("go_upper(%s) LIKE '%%' || ? || '%%'", s.C(food.FieldBrand)),
+							upPattern,
+						)).
+					Or().
+					Where(
+						entsql.ExprP(
+							fmt.Sprintf("go_upper(%s) LIKE '%%' || ? || '%%'", s.C(food.FieldComment)),
+							upPattern,
+						))
+			}).
 			Order(food.ByName()).
 			All(ctx)
 	})
