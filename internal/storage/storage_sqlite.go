@@ -27,7 +27,6 @@ const (
 type TxFn func(ctx context.Context, tx *ent.Tx) (any, error)
 
 type StorageSQLite struct {
-	dbSQL *sql.DB // Remove
 	db    *ent.Client
 	debug bool
 }
@@ -56,7 +55,7 @@ func NewStorageSQLite(dbFilePath string, opts ...func(*StorageSQLite)) (*Storage
 
 	// Format url
 	url := fmt.Sprintf(
-		"file:%s?mode=rwc&_timeout=5000&_fk=1&_sync=1&_journal=wal",
+		"file:%s?mode=rwc&_timeout=5000&_fk=1&_sync=1",
 		dbFilePath,
 	)
 
@@ -85,11 +84,6 @@ func NewStorageSQLite(dbFilePath string, opts ...func(*StorageSQLite)) (*Storage
 	for _, opt := range opts {
 		opt(stg)
 	}
-
-	// Run migrations from old to new (remove after all done)
-	// if err := stg.migrateWeight(); err != nil {
-	// 	return nil, err
-	// }
 
 	return stg, nil
 }
@@ -652,73 +646,6 @@ func (r *StorageSQLite) SetUserSettings(ctx context.Context, userID int64, setti
 			UpdateNewValues().
 			ID(ctx)
 	})
-
-	return err
-}
-
-//
-//
-//
-
-func (r *StorageSQLite) migrateWeight() error {
-	// Get from old table
-	ctx := context.Background()
-	rows, err := r.dbSQL.QueryContext(ctx, `
-	SELECT userid, timestamp, value
-	FROM weight2
-	`)
-
-	if err != nil {
-		return err
-	}
-	defer rows.Close()
-
-	type row struct {
-		userid    int64
-		timestamp int64
-		value     float64
-	}
-
-	var list []row
-	for rows.Next() {
-		var f row
-		err = rows.Scan(&f.userid, &f.timestamp, &f.value)
-		if err != nil {
-			return err
-		}
-
-		list = append(list, f)
-	}
-
-	if err = rows.Err(); err != nil {
-		return err
-	}
-
-	// Save in new format
-	_, err = r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
-		for _, i := range list {
-			_, err := tx.Weight.
-				Create().
-				SetUserid(i.userid).
-				SetValue(i.value).
-				SetTimestamp(time.Unix(i.timestamp, 0)).
-				Save(ctx)
-
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		return nil, nil
-	})
-	if err != nil {
-		return err
-	}
-
-	// Delete from table
-	_, err = r.dbSQL.ExecContext(ctx, `
-	DELETE FROM weight2;
-	`)
 
 	return err
 }
