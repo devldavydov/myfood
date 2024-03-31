@@ -3,7 +3,6 @@ package storage
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -12,6 +11,7 @@ import (
 	entsql "entgo.io/ent/dialect/sql"
 	"github.com/devldavydov/myfood/internal/storage/ent"
 	"github.com/devldavydov/myfood/internal/storage/ent/food"
+	"github.com/devldavydov/myfood/internal/storage/ent/journal"
 	"github.com/devldavydov/myfood/internal/storage/ent/usersettings"
 	"github.com/devldavydov/myfood/internal/storage/ent/weight"
 	gsql "github.com/mattn/go-sqlite3"
@@ -377,24 +377,51 @@ func (r *StorageSQLite) SetJournal(ctx context.Context, userID int64, journal *J
 		return ErrJournalInvalid
 	}
 
-	_, err := r.dbSQL.ExecContext(ctx, _sqlSetJournal, userID, journal.Timestamp, journal.Meal, journal.FoodKey, journal.FoodWeight)
-	if err != nil {
-		var errSql gsql.Error
-		if errors.As(err, &errSql) && errSql.Error() == _errForeignKey {
-			return ErrJournalInvalidFood
+	_, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+		food, err := tx.Food.
+			Query().
+			Where(food.Key(journal.FoodKey)).
+			First(ctx)
+		if err != nil {
+			return nil, err
 		}
-		return err
+
+		return tx.Journal.
+			Create().
+			SetUserid(userID).
+			SetTimestamp(journal.Timestamp).
+			SetMeal(int64(journal.Meal)).
+			SetFoodweight(journal.FoodWeight).
+			SetFood(food).
+			OnConflict().
+			UpdateNewValues().
+			ID(ctx)
+	})
+
+	if ent.IsNotFound(err) {
+		return ErrJournalInvalidFood
 	}
 
-	return nil
-}
-
-func (r *StorageSQLite) DeleteJournal(ctx context.Context, userID int64, timestamp int64, meal Meal, foodkey string) error {
-	_, err := r.dbSQL.ExecContext(ctx, _sqlDeleteJournal, userID, timestamp, meal, foodkey)
 	return err
 }
 
-func (r *StorageSQLite) GetJournalReport(ctx context.Context, userID int64, from, to int64) ([]JournalReport, error) {
+func (r *StorageSQLite) DeleteJournal(ctx context.Context, userID int64, timestamp time.Time, meal Meal, foodkey string) error {
+	_, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+		return tx.Journal.
+			Delete().
+			Where(
+				journal.Userid(userID),
+				journal.Timestamp(timestamp),
+				journal.Meal(int64(meal)),
+				journal.HasFoodWith(food.Key(foodkey)),
+			).
+			Exec(ctx)
+	})
+
+	return err
+}
+
+func (r *StorageSQLite) GetJournalReport(ctx context.Context, userID int64, from, to time.Time) ([]JournalReport, error) {
 	rows, err := r.dbSQL.QueryContext(ctx, _sqlGetJournalReport, userID, from, to)
 	if err != nil {
 		return nil, err
@@ -434,7 +461,7 @@ func (r *StorageSQLite) GetJournalReport(ctx context.Context, userID int64, from
 	return list, nil
 }
 
-func (r *StorageSQLite) GetJournalStats(ctx context.Context, userID int64, from, to int64) ([]JournalStats, error) {
+func (r *StorageSQLite) GetJournalStats(ctx context.Context, userID int64, from, to time.Time) ([]JournalStats, error) {
 	rows, err := r.dbSQL.QueryContext(ctx, _sqlGetJournalStats, userID, from, to)
 	if err != nil {
 		return nil, err

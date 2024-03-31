@@ -63,7 +63,7 @@ func (r *CmdProcessor) journalSetCommand(c tele.Context, cmdParts []string, user
 	}
 
 	// Parse timestamp
-	ts, err := parseTimestampAsUnix(cmdParts[0])
+	ts, err := parseTimestamp(cmdParts[0])
 	if err != nil {
 		r.logger.Error(
 			"invalid journal set command",
@@ -128,7 +128,7 @@ func (r *CmdProcessor) journalDelCommand(c tele.Context, cmdParts []string, user
 	}
 
 	// Parse timestamp
-	ts, err := parseTimestampAsUnix(cmdParts[0])
+	ts, err := parseTimestamp(cmdParts[0])
 	if err != nil {
 		r.logger.Error(
 			"invalid journal del command",
@@ -169,7 +169,7 @@ func (r *CmdProcessor) journalReportDayCommand(c tele.Context, cmdParts []string
 	}
 
 	tsStr := cmdParts[0]
-	ts, err := parseTimestampAsUnix(tsStr)
+	ts, err := parseTimestamp(tsStr)
 	if err != nil {
 		r.logger.Error(
 			"invalid journal rd command",
@@ -362,14 +362,14 @@ func (r *CmdProcessor) journalReportWeek(c tele.Context, cmdParts []string, user
 
 	tsStart = getStartOfWeek(tsStart)
 	tsStartUnix := tsStart.Unix()
-	tsStartStr := formatTimestampUnix(tsStartUnix)
+	tsStartStr := formatTimestamp(tsStart)
 
 	tsRangeStr := make([]string, 7)
 	for i := 0; i < 7; i++ {
-		tsRangeStr[i] = formatTimestampUnix(tsStart.Add(time.Duration(i) * 24 * time.Hour).Unix())
+		tsRangeStr[i] = formatTimestamp(tsStart.Add(time.Duration(i) * 24 * time.Hour))
 	}
-	tsEndUnix := tsStart.Add(6 * 24 * time.Hour).Unix()
-	tsEndStr := formatTimestampUnix(tsEndUnix)
+	tsEnd := tsStart.Add(6 * 24 * time.Hour)
+	tsEndStr := formatTimestamp(tsEnd)
 
 	// Get list from DB and user settings
 	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout*2)
@@ -390,7 +390,7 @@ func (r *CmdProcessor) journalReportWeek(c tele.Context, cmdParts []string, user
 		}
 	}
 
-	lst, err := r.stg.GetJournalStats(ctx, userID, tsStartUnix, tsEndUnix)
+	lst, err := r.stg.GetJournalStats(ctx, userID, tsStart, tsEnd)
 	if err != nil {
 		if errors.Is(err, storage.ErrJournalStatsEmpty) {
 			return c.Send(msgErrEmptyList)
@@ -420,7 +420,7 @@ func (r *CmdProcessor) journalReportWeek(c tele.Context, cmdParts []string, user
 	for _, j := range lst {
 		tbl.AddRow(
 			html.NewTr(nil).
-				AddTd(html.NewTd(html.NewS(formatTimestampUnix(j.Timestamp)), nil)).
+				AddTd(html.NewTd(html.NewS(formatTimestamp(j.Timestamp)), nil)).
 				AddTd(html.NewTd(calDiffSnippet(us, j.TotalCal), nil)).
 				AddTd(html.NewTd(html.NewS(fmt.Sprintf("%.2f", j.TotalProt)), nil)).
 				AddTd(html.NewTd(html.NewS(fmt.Sprintf("%.2f", j.TotalFat)), nil)).
@@ -431,7 +431,7 @@ func (r *CmdProcessor) journalReportWeek(c tele.Context, cmdParts []string, user
 		totalFat += j.TotalFat
 		totalCarb += j.TotalCarb
 
-		dataRange[(j.Timestamp-tsStartUnix)/24/3600%7] = j.TotalCal
+		dataRange[(j.Timestamp.Unix()-tsStartUnix)/24/3600%7] = j.TotalCal
 	}
 
 	// Footer

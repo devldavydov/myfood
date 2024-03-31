@@ -21,9 +21,9 @@ type Storage interface {
 
 	// Journal
 	SetJournal(ctx context.Context, userID int64, journal *Journal) error
-	DeleteJournal(ctx context.Context, userID int64, timestamp int64, meal Meal, foodkey string) error
-	GetJournalReport(ctx context.Context, userID int64, from, to int64) ([]JournalReport, error)
-	GetJournalStats(ctx context.Context, userID int64, from, to int64) ([]JournalStats, error)
+	DeleteJournal(ctx context.Context, userID int64, timestamp time.Time, meal Meal, foodkey string) error
+	GetJournalReport(ctx context.Context, userID int64, from, to time.Time) ([]JournalReport, error)
+	GetJournalStats(ctx context.Context, userID int64, from, to time.Time) ([]JournalStats, error)
 
 	// UserSettings
 	GetUserSettings(ctx context.Context, userID int64) (*UserSettings, error)

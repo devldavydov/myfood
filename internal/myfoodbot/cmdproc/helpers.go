@@ -10,19 +10,6 @@ const (
 	_jsChartURL     = "https://devldavydov.github.io/js/chartjs/chart.umd.min.js"
 )
 
-func parseTimestampAsUnix(sTimestamp string) (int64, error) {
-	t, err := parseTimestamp(sTimestamp)
-	if err != nil {
-		return 0, err
-	}
-	return t.Unix(), nil
-}
-
-func formatTimestampUnix(tsUnix int64) string {
-	ts := time.Unix(tsUnix, 0)
-	return ts.Format("02.01.2006")
-}
-
 func parseTimestamp(sTimestamp string) (time.Time, error) {
 	t, err := time.Parse("02.01.2006", sTimestamp)
 	if err != nil {

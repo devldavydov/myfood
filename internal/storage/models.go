@@ -64,21 +64,20 @@ func (r Meal) ToString() string {
 }
 
 type Journal struct {
-	Timestamp  int64
+	Timestamp  time.Time
 	Meal       Meal
 	FoodKey    string
 	FoodWeight float64
 }
 
 func (r *Journal) Validate() bool {
-	return r.Timestamp >= 0 &&
-		r.Meal >= 0 &&
+	return r.Meal >= 0 &&
 		r.FoodKey != "" &&
 		r.FoodWeight > 0
 }
 
 type JournalReport struct {
-	Timestamp  int64
+	Timestamp  time.Time
 	Meal       Meal
 	FoodKey    string
 	FoodName   string
@@ -91,7 +90,7 @@ type JournalReport struct {
 }
 
 type JournalStats struct {
-	Timestamp int64
+	Timestamp time.Time
 	TotalCal  float64
 	TotalProt float64
 	TotalFat  float64
