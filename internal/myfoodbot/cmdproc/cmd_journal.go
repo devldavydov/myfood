@@ -31,6 +31,8 @@ func (r *CmdProcessor) processJournal(c tele.Context, cmdParts []string, userID 
 		return r.journalSetCommand(c, cmdParts[1:], userID)
 	case "del":
 		return r.journalDelCommand(c, cmdParts[1:], userID)
+	case "cp":
+		return r.journalCopyCommand(c, cmdParts[1:], userID)
 	case "rd":
 		return r.journalReportDayCommand(c, cmdParts[1:], userID)
 	case "rw":
@@ -155,6 +157,71 @@ func (r *CmdProcessor) journalDelCommand(c tele.Context, cmdParts []string, user
 	}
 
 	return c.Send(msgOK)
+}
+
+func (r *CmdProcessor) journalCopyCommand(c tele.Context, cmdParts []string, userID int64) error {
+	if len(cmdParts) != 4 {
+		r.logger.Error(
+			"invalid journal copy command",
+			zap.String("reason", "len parts"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+		)
+		return c.Send(msgErrInvalidCommand)
+	}
+
+	// Parse timestamp
+	tsFrom, err := parseTimestamp(cmdParts[0])
+	if err != nil {
+		r.logger.Error(
+			"invalid journal copy command",
+			zap.String("reason", "ts from format"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
+		return c.Send(msgErrInvalidCommand)
+	}
+
+	tsTo, err := parseTimestamp(cmdParts[2])
+	if err != nil {
+		r.logger.Error(
+			"invalid journal copy command",
+			zap.String("reason", "ts to format"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
+		return c.Send(msgErrInvalidCommand)
+	}
+
+	// Save in DB
+	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout)
+	defer cancel()
+
+	cnt, err := r.stg.CopyJournal(ctx,
+		userID,
+		tsFrom,
+		storage.NewMealFromString(cmdParts[1]),
+		tsTo,
+		storage.NewMealFromString(cmdParts[3]))
+
+	if err != nil {
+		if errors.Is(err, storage.ErrCopyToNotEmpty) {
+			return c.Send(msgErrJournalCopy)
+		}
+
+		r.logger.Error(
+			"journal copy command DB error",
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
+
+		return c.Send(msgErrInternal)
+	}
+
+	return c.Send(fmt.Sprintf(msgJournalCopied, cnt))
 }
 
 func (r *CmdProcessor) journalReportDayCommand(c tele.Context, cmdParts []string, userID int64) error {

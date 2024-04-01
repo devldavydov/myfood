@@ -121,6 +121,7 @@ func (r *StorageSQLite) doTx(ctx context.Context, fn TxFn) (any, error) {
 	defer func() {
 		if err := recover(); err != nil {
 			tx.Rollback()
+			panic(err)
 		}
 	}()
 
@@ -606,6 +607,65 @@ func (r *StorageSQLite) GetJournalStats(ctx context.Context, userID int64, from,
 	}
 
 	return lst, nil
+}
+
+func (r *StorageSQLite) CopyJournal(ctx context.Context, userID int64, from time.Time, mealFrom Meal, to time.Time, mealTo Meal) (int, error) {
+	res, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+		// Check that destination is empty
+		cnt, err := tx.Journal.
+			Query().
+			Where(
+				journal.Userid(userID),
+				journal.Timestamp(to),
+				journal.Meal(int64(mealTo)),
+			).
+			Count(ctx)
+
+		if err != nil {
+			return nil, err
+		}
+
+		if cnt != 0 {
+			return nil, ErrCopyToNotEmpty
+		}
+
+		// Get source list
+		lst, err := tx.Journal.
+			Query().
+			Where(
+				journal.Userid(userID),
+				journal.Timestamp(from),
+				journal.Meal(int64(mealFrom)),
+			).
+			WithFood().
+			All(ctx)
+
+		if err != nil {
+			return 0, err
+		}
+
+		cnt = len(lst)
+		bulk := make([]*ent.JournalCreate, 0, cnt)
+		for _, item := range lst {
+			bulk = append(bulk, tx.Journal.
+				Create().
+				SetUserid(userID).
+				SetTimestamp(to).
+				SetMeal(int64(mealTo)).
+				SetFoodweight(item.Foodweight).
+				SetFoodID(item.Edges.Food.ID),
+			)
+		}
+		_, err = tx.Journal.CreateBulk(bulk...).Save(ctx)
+
+		return cnt, err
+	})
+
+	cnt := 0
+	if err == nil {
+		cnt, _ = res.(int)
+	}
+	return cnt, err
 }
 
 //

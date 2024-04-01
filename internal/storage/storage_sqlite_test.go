@@ -529,13 +529,67 @@ func (r *StorageSQLiteTestSuite) TestJournalCRUD() {
 	})
 }
 
-func T(sec int) time.Time {
-	return time.Date(1970, 1, 1, 0, 0, sec, 0, time.UTC)
+func (r *StorageSQLiteTestSuite) TestJournalCopy() {
+	r.Run("add food", func() {
+		r.NoError(r.stg.SetFood(context.TODO(), &Food{
+			Key: "food_a", Name: "aaa", Brand: "brand a", Cal100: 1, Prot100: 2, Fat100: 3, Carb100: 4, Comment: "Comment",
+		}))
+		r.NoError(r.stg.SetFood(context.TODO(), &Food{
+			Key: "food_b", Name: "bbb", Brand: "brand b", Cal100: 5, Prot100: 6, Fat100: 7, Carb100: 8, Comment: "",
+		}))
+		r.NoError(r.stg.SetFood(context.TODO(), &Food{
+			Key: "food_c", Name: "ccc", Brand: "brand c", Cal100: 1, Prot100: 1, Fat100: 1, Carb100: 1, Comment: "ccc",
+		}))
+	})
+
+	r.Run("set initial journal", func() {
+		r.NoError(r.stg.SetJournal(context.TODO(), 1, &Journal{
+			Timestamp: T(1), Meal: Meal(0), FoodKey: "food_b", FoodWeight: 100,
+		}))
+		r.NoError(r.stg.SetJournal(context.TODO(), 1, &Journal{
+			Timestamp: T(1), Meal: Meal(0), FoodKey: "food_a", FoodWeight: 200,
+		}))
+		r.NoError(r.stg.SetJournal(context.TODO(), 1, &Journal{
+			Timestamp: T(2), Meal: Meal(0), FoodKey: "food_c", FoodWeight: 300,
+		}))
+	})
+
+	r.Run("try copy when dest no empty", func() {
+		_, err := r.stg.CopyJournal(context.TODO(), 1, T(1), Meal(0), T(2), Meal(0))
+		r.ErrorIs(err, ErrCopyToNotEmpty)
+	})
+
+	r.Run("copy success", func() {
+		cnt, err := r.stg.CopyJournal(context.TODO(), 1, T(1), Meal(0), T(2), Meal(1))
+		r.NoError(err)
+		r.Equal(2, cnt)
+
+		rep, err := r.stg.GetJournalReport(context.TODO(), 1, T(2), T(2))
+		r.NoError(err)
+		r.Equal([]JournalReport{
+			{Timestamp: T(2), Meal: Meal(0), FoodKey: "food_c", FoodName: "ccc", FoodBrand: "brand c",
+				FoodWeight: 300, Cal: 3, Prot: 3, Fat: 3, Carb: 3},
+			{Timestamp: T(2), Meal: Meal(1), FoodKey: "food_a", FoodName: "aaa", FoodBrand: "brand a",
+				FoodWeight: 200, Cal: 2, Prot: 4, Fat: 6, Carb: 8},
+			{Timestamp: T(2), Meal: Meal(1), FoodKey: "food_b", FoodName: "bbb", FoodBrand: "brand b",
+				FoodWeight: 100, Cal: 5, Prot: 6, Fat: 7, Carb: 8},
+		}, rep)
+	})
+
+	r.Run("copy zero", func() {
+		cnt, err := r.stg.CopyJournal(context.TODO(), 1, T(10), Meal(0), T(20), Meal(1))
+		r.NoError(err)
+		r.Equal(0, cnt)
+	})
 }
 
 //
 // Suite setup
 //
+
+func T(sec int) time.Time {
+	return time.Date(1970, 1, 1, 0, 0, sec, 0, time.UTC)
+}
 
 func (r *StorageSQLiteTestSuite) SetupTest() {
 	var err error

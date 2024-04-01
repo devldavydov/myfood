@@ -14,6 +14,7 @@ var (
 	ErrJournalReportEmpty = errors.New("empty journal report")
 	ErrJournalStatsEmpty  = errors.New("empty journal stats")
 	ErrJournalInvalidFood = errors.New("journal invalid food")
+	ErrCopyToNotEmpty     = errors.New("copy destination not empty")
 
 	// Weight
 	ErrWeightNotFound  = errors.New("weight not found")
