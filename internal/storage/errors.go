@@ -10,11 +10,12 @@ var (
 	ErrFoodIsUsed    = errors.New("food is used")
 
 	// Journal
-	ErrJournalInvalid     = errors.New("journal invalid")
-	ErrJournalReportEmpty = errors.New("empty journal report")
-	ErrJournalStatsEmpty  = errors.New("empty journal stats")
-	ErrJournalInvalidFood = errors.New("journal invalid food")
-	ErrCopyToNotEmpty     = errors.New("copy destination not empty")
+	ErrJournalInvalid         = errors.New("journal invalid")
+	ErrJournalMealReportEmpty = errors.New("empty journal meal report")
+	ErrJournalReportEmpty     = errors.New("empty journal report")
+	ErrJournalStatsEmpty      = errors.New("empty journal stats")
+	ErrJournalInvalidFood     = errors.New("journal invalid food")
+	ErrCopyToNotEmpty         = errors.New("copy destination not empty")
 
 	// Weight
 	ErrWeightNotFound  = errors.New("weight not found")

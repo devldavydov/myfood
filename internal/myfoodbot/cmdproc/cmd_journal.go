@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/devldavydov/myfood/internal/common/html"
@@ -33,6 +34,8 @@ func (r *CmdProcessor) processJournal(c tele.Context, cmdParts []string, userID 
 		return r.journalDelCommand(c, cmdParts[1:], userID)
 	case "cp":
 		return r.journalCopyCommand(c, cmdParts[1:], userID)
+	case "rm":
+		return r.journalReportMealCommand(c, cmdParts[1:], userID)
 	case "rd":
 		return r.journalReportDayCommand(c, cmdParts[1:], userID)
 	case "rw":
@@ -222,6 +225,65 @@ func (r *CmdProcessor) journalCopyCommand(c tele.Context, cmdParts []string, use
 	}
 
 	return c.Send(fmt.Sprintf(msgJournalCopied, cnt))
+}
+
+func (r *CmdProcessor) journalReportMealCommand(c tele.Context, cmdParts []string, userID int64) error {
+	if len(cmdParts) != 2 {
+		r.logger.Error(
+			"invalid journal rm command",
+			zap.String("reason", "len parts"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+		)
+		return c.Send(msgErrInvalidCommand)
+	}
+
+	ts, err := parseTimestamp(cmdParts[0])
+	if err != nil {
+		r.logger.Error(
+			"invalid journal rm command",
+			zap.String("reason", "ts format"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
+		return c.Send(msgErrInvalidCommand)
+	}
+
+	// Get list from DB and user settings
+	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout*2)
+	defer cancel()
+
+	lst, err := r.stg.GetJournalMealReport(ctx, userID, ts, storage.NewMealFromString(cmdParts[1]))
+	if err != nil {
+		if errors.Is(err, storage.ErrJournalMealReportEmpty) {
+			return c.Send(msgErrEmptyList)
+		}
+
+		r.logger.Error(
+			"journal rm command DB error",
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
+
+		return c.Send(msgErrInternal)
+	}
+
+	var sb strings.Builder
+	var totalCal float64
+	for _, item := range lst {
+		foodLbl := item.FoodName
+		if item.FoodBrand != "" {
+			foodLbl += " - " + item.FoodBrand
+		}
+		sb.WriteString(fmt.Sprintf("<b>%s [%s]</b>:\n", foodLbl, item.FoodKey))
+		sb.WriteString(fmt.Sprintf("Вес: %.1f, ККал: %.2f\n", item.FoodWeight, item.Cal))
+		totalCal += item.Cal
+	}
+	sb.WriteString(fmt.Sprintf("\n<b>Всего, ккал:</b> %.2f", totalCal))
+
+	return c.Send(sb.String(), &tele.SendOptions{ParseMode: tele.ModeHTML})
 }
 
 func (r *CmdProcessor) journalReportDayCommand(c tele.Context, cmdParts []string, userID int64) error {

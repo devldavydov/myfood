@@ -462,6 +462,12 @@ func (r *StorageSQLiteTestSuite) TestJournalCRUD() {
 	r.Run("get empty report", func() {
 		_, err := r.stg.GetJournalReport(context.TODO(), 1, T(10), T(20))
 		r.ErrorIs(err, ErrJournalReportEmpty)
+
+		_, err = r.stg.GetJournalStats(context.TODO(), 1, T(10), T(20))
+		r.ErrorIs(err, ErrJournalStatsEmpty)
+
+		_, err = r.stg.GetJournalMealReport(context.TODO(), 1, T(10), Meal(0))
+		r.ErrorIs(err, ErrJournalMealReportEmpty)
 	})
 
 	r.Run("get journal reports for user 1", func() {
@@ -492,6 +498,15 @@ func (r *StorageSQLiteTestSuite) TestJournalCRUD() {
 			{Timestamp: T(1), TotalCal: 10, TotalProt: 13, TotalFat: 16, TotalCarb: 19},
 			{Timestamp: T(2), TotalCal: 27, TotalProt: 37, TotalFat: 47, TotalCarb: 57},
 		}, stats)
+
+		mealRep, err := r.stg.GetJournalMealReport(context.TODO(), 1, T(2), Meal(1))
+		r.NoError(err)
+		r.Equal([]JournalMealReport{
+			{Timestamp: T(2), FoodKey: "food_a", FoodName: "aaa", FoodBrand: "brand a",
+				FoodWeight: 200, Cal: 2},
+			{Timestamp: T(2), FoodKey: "food_c", FoodName: "ccc", FoodBrand: "brand c",
+				FoodWeight: 100, Cal: 1},
+		}, mealRep)
 	})
 
 	r.Run("check that user 2 gets his data", func() {

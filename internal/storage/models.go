@@ -76,6 +76,15 @@ func (r *Journal) Validate() bool {
 		r.FoodWeight > 0
 }
 
+type JournalMealReport struct {
+	Timestamp  time.Time
+	FoodKey    string
+	FoodName   string
+	FoodBrand  string
+	FoodWeight float64
+	Cal        float64
+}
+
 type JournalReport struct {
 	Timestamp  time.Time
 	Meal       Meal

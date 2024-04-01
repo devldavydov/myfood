@@ -436,6 +436,46 @@ func (r *StorageSQLite) DeleteJournal(ctx context.Context, userID int64, timesta
 	return err
 }
 
+func (r *StorageSQLite) GetJournalMealReport(ctx context.Context, userID int64, timestamp time.Time, meal Meal) ([]JournalMealReport, error) {
+	res, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+		return tx.Journal.
+			Query().
+			Where(
+				journal.Userid(userID),
+				journal.Timestamp(timestamp),
+				journal.Meal(int64(meal)),
+			).
+			Order(
+				journal.ByFoodField(food.FieldName),
+			).
+			WithFood().
+			All(ctx)
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	jLst, _ := res.([]*ent.Journal)
+	if len(jLst) == 0 {
+		return nil, ErrJournalMealReportEmpty
+	}
+
+	lst := make([]JournalMealReport, 0, len(jLst))
+	for _, item := range jLst {
+		lst = append(lst, JournalMealReport{
+			Timestamp:  item.Timestamp,
+			FoodKey:    item.Edges.Food.Key,
+			FoodName:   item.Edges.Food.Name,
+			FoodBrand:  item.Edges.Food.Brand,
+			FoodWeight: item.Foodweight,
+			Cal:        item.Foodweight / 100 * item.Edges.Food.Cal100,
+		})
+	}
+
+	return lst, nil
+}
+
 func (r *StorageSQLite) GetJournalReport(ctx context.Context, userID int64, from, to time.Time) ([]JournalReport, error) {
 	var res []struct {
 		ent.Journal
