@@ -278,7 +278,7 @@ func (r *CmdProcessor) journalReportMealCommand(c tele.Context, cmdParts []strin
 			foodLbl += " - " + item.FoodBrand
 		}
 		sb.WriteString(fmt.Sprintf("<b>%s [%s]</b>:\n", foodLbl, item.FoodKey))
-		sb.WriteString(fmt.Sprintf("Вес: %.1f, ККал: %.2f\n", item.FoodWeight, item.Cal))
+		sb.WriteString(fmt.Sprintf("%.1f г., %.2f ккал\n", item.FoodWeight, item.Cal))
 		totalCal += item.Cal
 	}
 	sb.WriteString(fmt.Sprintf("\n<b>Всего, ккал:</b> %.2f", totalCal))
