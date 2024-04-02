@@ -436,6 +436,21 @@ func (r *StorageSQLite) DeleteJournal(ctx context.Context, userID int64, timesta
 	return err
 }
 
+func (r *StorageSQLite) DeleteJournalMeal(ctx context.Context, userID int64, timestamp time.Time, meal Meal) error {
+	_, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+		return tx.Journal.
+			Delete().
+			Where(
+				journal.Userid(userID),
+				journal.Timestamp(timestamp),
+				journal.Meal(int64(meal)),
+			).
+			Exec(ctx)
+	})
+
+	return err
+}
+
 func (r *StorageSQLite) GetJournalMealReport(ctx context.Context, userID int64, timestamp time.Time, meal Meal) ([]JournalMealReport, error) {
 	res, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
 		return tx.Journal.

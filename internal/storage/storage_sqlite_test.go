@@ -542,6 +542,17 @@ func (r *StorageSQLiteTestSuite) TestJournalCRUD() {
 	r.Run("try delete used food", func() {
 		r.ErrorIs(r.stg.DeleteFood(context.TODO(), "food_a"), ErrFoodIsUsed)
 	})
+
+	r.Run("delete meal for day", func() {
+		mealRep, err := r.stg.GetJournalMealReport(context.TODO(), 1, T(2), Meal(1))
+		r.NoError(err)
+		r.Equal(2, len(mealRep))
+
+		r.NoError(r.stg.DeleteJournalMeal(context.TODO(), 1, T(2), Meal(1)))
+
+		_, err = r.stg.GetJournalMealReport(context.TODO(), 1, T(2), Meal(1))
+		r.ErrorIs(err, ErrJournalMealReportEmpty)
+	})
 }
 
 func (r *StorageSQLiteTestSuite) TestJournalCopy() {

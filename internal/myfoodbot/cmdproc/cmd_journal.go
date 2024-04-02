@@ -32,6 +32,8 @@ func (r *CmdProcessor) processJournal(c tele.Context, cmdParts []string, userID 
 		return r.journalSetCommand(c, cmdParts[1:], userID)
 	case "del":
 		return r.journalDelCommand(c, cmdParts[1:], userID)
+	case "dm":
+		return r.journalDelMealCommand(c, cmdParts[1:], userID)
 	case "cp":
 		return r.journalCopyCommand(c, cmdParts[1:], userID)
 	case "rm":
@@ -151,6 +153,47 @@ func (r *CmdProcessor) journalDelCommand(c tele.Context, cmdParts []string, user
 	if err := r.stg.DeleteJournal(ctx, userID, ts, storage.NewMealFromString(cmdParts[1]), cmdParts[2]); err != nil {
 		r.logger.Error(
 			"weight journal command DB error",
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
+
+		return c.Send(msgErrInternal)
+	}
+
+	return c.Send(msgOK)
+}
+
+func (r *CmdProcessor) journalDelMealCommand(c tele.Context, cmdParts []string, userID int64) error {
+	if len(cmdParts) != 2 {
+		r.logger.Error(
+			"invalid journal dm command",
+			zap.String("reason", "len parts"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+		)
+		return c.Send(msgErrInvalidCommand)
+	}
+
+	// Parse timestamp
+	ts, err := parseTimestamp(cmdParts[0])
+	if err != nil {
+		r.logger.Error(
+			"invalid journal dm command",
+			zap.String("reason", "ts format"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+		)
+		return c.Send(msgErrInvalidCommand)
+	}
+
+	// Delete from DB
+	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout)
+	defer cancel()
+
+	if err := r.stg.DeleteJournalMeal(ctx, userID, ts, storage.NewMealFromString(cmdParts[1])); err != nil {
+		r.logger.Error(
+			"journal dm command DB error",
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 			zap.Error(err),
