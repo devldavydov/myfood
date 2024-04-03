@@ -14,7 +14,7 @@ import (
 	tele "gopkg.in/telebot.v3"
 )
 
-func (r *CmdProcessor) processFood(c tele.Context, cmdParts []string, userID int64) error {
+func (r *CmdProcessor) processFood(cmdParts []string, userID int64) (any, []any) {
 	if len(cmdParts) == 0 {
 		r.logger.Error(
 			"invalid food command",
@@ -22,34 +22,39 @@ func (r *CmdProcessor) processFood(c tele.Context, cmdParts []string, userID int
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return c.Send(msgErrInvalidCommand)
+		return msgErrInvalidCommand, nil
 	}
+
+	var what any
+	var opts []any
 
 	switch cmdParts[0] {
 	case "set":
-		return r.foodSetCommand(c, cmdParts[1:], userID)
+		what, opts = r.foodSetCommand(cmdParts[1:], userID)
 	case "sc":
-		return r.foodSetCommentCommand(c, cmdParts[1:], userID)
+		what, opts = r.foodSetCommentCommand(cmdParts[1:], userID)
 	case "find":
-		return r.foodFindCommand(c, cmdParts[1:], userID)
+		what, opts = r.foodFindCommand(cmdParts[1:], userID)
 	case "calc":
-		return r.foodCalcCommand(c, cmdParts[1:], userID)
+		what, opts = r.foodCalcCommand(cmdParts[1:], userID)
 	case "list":
-		return r.foodListCommand(c, userID)
+		what, opts = r.foodListCommand(userID)
 	case "del":
-		return r.foodDelCommand(c, cmdParts[1:], userID)
+		what, opts = r.foodDelCommand(cmdParts[1:], userID)
+	default:
+		r.logger.Error(
+			"invalid food command",
+			zap.String("reason", "unknown command"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+		)
+		what = msgErrInvalidCommand
 	}
 
-	r.logger.Error(
-		"invalid food command",
-		zap.String("reason", "unknown command"),
-		zap.Strings("command", cmdParts),
-		zap.Int64("userid", userID),
-	)
-	return c.Send(msgErrInvalidCommand)
+	return what, opts
 }
 
-func (r *CmdProcessor) foodSetCommand(c tele.Context, cmdParts []string, userID int64) error {
+func (r *CmdProcessor) foodSetCommand(cmdParts []string, userID int64) (any, []any) {
 	if len(cmdParts) != 8 {
 		r.logger.Error(
 			"invalid food set command",
@@ -57,7 +62,7 @@ func (r *CmdProcessor) foodSetCommand(c tele.Context, cmdParts []string, userID 
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return c.Send(msgErrInvalidCommand)
+		return msgErrInvalidCommand, nil
 	}
 
 	// Parse fields
@@ -77,7 +82,7 @@ func (r *CmdProcessor) foodSetCommand(c tele.Context, cmdParts []string, userID 
 			zap.Int64("userid", userID),
 			zap.Error(err),
 		)
-		return c.Send(msgErrInvalidCommand)
+		return msgErrInvalidCommand, nil
 	}
 	food.Cal100 = cal100
 
@@ -90,7 +95,7 @@ func (r *CmdProcessor) foodSetCommand(c tele.Context, cmdParts []string, userID 
 			zap.Int64("userid", userID),
 			zap.Error(err),
 		)
-		return c.Send(msgErrInvalidCommand)
+		return msgErrInvalidCommand, nil
 	}
 	food.Prot100 = prot100
 
@@ -103,7 +108,7 @@ func (r *CmdProcessor) foodSetCommand(c tele.Context, cmdParts []string, userID 
 			zap.Int64("userid", userID),
 			zap.Error(err),
 		)
-		return c.Send(msgErrInvalidCommand)
+		return msgErrInvalidCommand, nil
 	}
 	food.Fat100 = fat100
 
@@ -116,7 +121,7 @@ func (r *CmdProcessor) foodSetCommand(c tele.Context, cmdParts []string, userID 
 			zap.Int64("userid", userID),
 			zap.Error(err),
 		)
-		return c.Send(msgErrInvalidCommand)
+		return msgErrInvalidCommand, nil
 	}
 	food.Carb100 = carb100
 
@@ -126,7 +131,7 @@ func (r *CmdProcessor) foodSetCommand(c tele.Context, cmdParts []string, userID 
 
 	if err := r.stg.SetFood(ctx, food); err != nil {
 		if errors.Is(err, storage.ErrFoodInvalid) {
-			return c.Send(msgErrInvalidCommand)
+			return msgErrInvalidCommand, nil
 		}
 
 		r.logger.Error(
@@ -136,13 +141,13 @@ func (r *CmdProcessor) foodSetCommand(c tele.Context, cmdParts []string, userID 
 			zap.Error(err),
 		)
 
-		return c.Send(msgErrInternal)
+		return msgErrInternal, nil
 	}
 
-	return c.Send(msgOK)
+	return msgOK, nil
 }
 
-func (r *CmdProcessor) foodSetCommentCommand(c tele.Context, cmdParts []string, userID int64) error {
+func (r *CmdProcessor) foodSetCommentCommand(cmdParts []string, userID int64) (any, []any) {
 	if len(cmdParts) != 2 {
 		r.logger.Error(
 			"invalid food set comment command",
@@ -150,7 +155,7 @@ func (r *CmdProcessor) foodSetCommentCommand(c tele.Context, cmdParts []string, 
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return c.Send(msgErrInvalidCommand)
+		return msgErrInvalidCommand, nil
 	}
 
 	// Save in DB
@@ -159,7 +164,7 @@ func (r *CmdProcessor) foodSetCommentCommand(c tele.Context, cmdParts []string, 
 
 	if err := r.stg.SetFoodComment(ctx, cmdParts[0], cmdParts[1]); err != nil {
 		if errors.Is(err, storage.ErrFoodNotFound) {
-			return c.Send(msgErrFoodNotFound)
+			return msgErrFoodNotFound, nil
 		}
 
 		r.logger.Error(
@@ -169,13 +174,13 @@ func (r *CmdProcessor) foodSetCommentCommand(c tele.Context, cmdParts []string, 
 			zap.Error(err),
 		)
 
-		return c.Send(msgErrInternal)
+		return msgErrInternal, nil
 	}
 
-	return c.Send(msgOK)
+	return msgOK, nil
 }
 
-func (r *CmdProcessor) foodFindCommand(c tele.Context, cmdParts []string, userID int64) error {
+func (r *CmdProcessor) foodFindCommand(cmdParts []string, userID int64) (any, []any) {
 	if len(cmdParts) != 1 {
 		r.logger.Error(
 			"invalid food find command",
@@ -183,7 +188,7 @@ func (r *CmdProcessor) foodFindCommand(c tele.Context, cmdParts []string, userID
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return c.Send(msgErrInvalidCommand)
+		return msgErrInvalidCommand, nil
 	}
 
 	// Get in DB
@@ -193,7 +198,7 @@ func (r *CmdProcessor) foodFindCommand(c tele.Context, cmdParts []string, userID
 	foodLst, err := r.stg.FindFood(ctx, cmdParts[0])
 	if err != nil {
 		if errors.Is(err, storage.ErrFoodEmptyList) {
-			return c.Send(msgErrEmptyList)
+			return msgErrEmptyList, nil
 		}
 
 		r.logger.Error(
@@ -203,7 +208,7 @@ func (r *CmdProcessor) foodFindCommand(c tele.Context, cmdParts []string, userID
 			zap.Error(err),
 		)
 
-		return c.Send(msgErrInternal)
+		return msgErrInternal, nil
 	}
 
 	var sb strings.Builder
@@ -223,10 +228,10 @@ func (r *CmdProcessor) foodFindCommand(c tele.Context, cmdParts []string, userID
 		}
 	}
 
-	return c.Send(sb.String(), &tele.SendOptions{ParseMode: tele.ModeHTML})
+	return sb.String(), []any{&tele.SendOptions{ParseMode: tele.ModeHTML}}
 }
 
-func (r *CmdProcessor) foodCalcCommand(c tele.Context, cmdParts []string, userID int64) error {
+func (r *CmdProcessor) foodCalcCommand(cmdParts []string, userID int64) (any, []any) {
 	if len(cmdParts) != 2 {
 		r.logger.Error(
 			"invalid food calc command",
@@ -234,7 +239,7 @@ func (r *CmdProcessor) foodCalcCommand(c tele.Context, cmdParts []string, userID
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return c.Send(msgErrInvalidCommand)
+		return msgErrInvalidCommand, nil
 	}
 
 	foodWeight, err := strconv.ParseFloat(cmdParts[1], 64)
@@ -246,7 +251,7 @@ func (r *CmdProcessor) foodCalcCommand(c tele.Context, cmdParts []string, userID
 			zap.Int64("userid", userID),
 			zap.Error(err),
 		)
-		return c.Send(msgErrInvalidCommand)
+		return msgErrInvalidCommand, nil
 	}
 
 	// Get in DB
@@ -256,7 +261,7 @@ func (r *CmdProcessor) foodCalcCommand(c tele.Context, cmdParts []string, userID
 	food, err := r.stg.GetFood(ctx, cmdParts[0])
 	if err != nil {
 		if errors.Is(err, storage.ErrFoodNotFound) {
-			return c.Send(msgErrFoodNotFound)
+			return msgErrFoodNotFound, nil
 		}
 
 		r.logger.Error(
@@ -266,7 +271,7 @@ func (r *CmdProcessor) foodCalcCommand(c tele.Context, cmdParts []string, userID
 			zap.Error(err),
 		)
 
-		return c.Send(msgErrInternal)
+		return msgErrInternal, nil
 	}
 
 	var sb strings.Builder
@@ -278,10 +283,10 @@ func (r *CmdProcessor) foodCalcCommand(c tele.Context, cmdParts []string, userID
 	sb.WriteString(fmt.Sprintf("<b>Жир:</b> %.2f\n", foodWeight/100*food.Fat100))
 	sb.WriteString(fmt.Sprintf("<b>Угл:</b> %.2f\n", foodWeight/100*food.Carb100))
 
-	return c.Send(sb.String(), &tele.SendOptions{ParseMode: tele.ModeHTML})
+	return sb.String(), []any{&tele.SendOptions{ParseMode: tele.ModeHTML}}
 }
 
-func (r *CmdProcessor) foodDelCommand(c tele.Context, cmdParts []string, userID int64) error {
+func (r *CmdProcessor) foodDelCommand(cmdParts []string, userID int64) (any, []any) {
 	if len(cmdParts) != 1 {
 		r.logger.Error(
 			"invalid food del command",
@@ -289,7 +294,7 @@ func (r *CmdProcessor) foodDelCommand(c tele.Context, cmdParts []string, userID 
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return c.Send(msgErrInvalidCommand)
+		return msgErrInvalidCommand, nil
 	}
 
 	// Delete from DB
@@ -298,7 +303,7 @@ func (r *CmdProcessor) foodDelCommand(c tele.Context, cmdParts []string, userID 
 
 	if err := r.stg.DeleteFood(ctx, cmdParts[0]); err != nil {
 		if errors.Is(err, storage.ErrFoodIsUsed) {
-			return c.Send(msgErrFoodIsUsed)
+			return msgErrFoodIsUsed, nil
 		}
 
 		r.logger.Error(
@@ -308,13 +313,13 @@ func (r *CmdProcessor) foodDelCommand(c tele.Context, cmdParts []string, userID 
 			zap.Error(err),
 		)
 
-		return c.Send(msgErrInternal)
+		return msgErrInternal, nil
 	}
 
-	return c.Send(msgOK)
+	return msgOK, nil
 }
 
-func (r *CmdProcessor) foodListCommand(c tele.Context, userID int64) error {
+func (r *CmdProcessor) foodListCommand(userID int64) (any, []any) {
 	// Get from DB
 	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout)
 	defer cancel()
@@ -322,7 +327,7 @@ func (r *CmdProcessor) foodListCommand(c tele.Context, userID int64) error {
 	foodList, err := r.stg.GetFoodList(ctx)
 	if err != nil {
 		if errors.Is(err, storage.ErrFoodEmptyList) {
-			return c.Send(msgErrEmptyList)
+			return msgErrEmptyList, nil
 		}
 
 		r.logger.Error(
@@ -331,7 +336,7 @@ func (r *CmdProcessor) foodListCommand(c tele.Context, userID int64) error {
 			zap.Error(err),
 		)
 
-		return c.Send(msgErrInternal)
+		return msgErrInternal, nil
 	}
 
 	// Build html
@@ -368,9 +373,9 @@ func (r *CmdProcessor) foodListCommand(c tele.Context, userID int64) error {
 			tbl))
 
 	// Response
-	return c.Send(&tele.Document{
+	return &tele.Document{
 		File:     tele.FromReader(bytes.NewBufferString(htmlBuilder.Build())),
 		MIME:     "text/html",
 		FileName: "food.html",
-	})
+	}, nil
 }

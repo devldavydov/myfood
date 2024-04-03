@@ -46,9 +46,9 @@ func (r *CmdProcessor) Process(c tele.Context, cmd string, userID int64) error {
 	case "h":
 		what, opts = r.helpCommand(c)
 	case "w":
-		return r.processWeight(c, cmdParts[1:], userID)
+		what, opts = r.processWeight(cmdParts[1:], userID)
 	case "f":
-		return r.processFood(c, cmdParts[1:], userID)
+		what, opts = r.processFood(cmdParts[1:], userID)
 	case "j":
 		return r.processJournal(c, cmdParts[1:], userID)
 	case "cc":
