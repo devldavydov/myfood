@@ -50,7 +50,7 @@ func (r *CmdProcessor) Process(c tele.Context, cmd string, userID int64) error {
 	case "f":
 		what, opts = r.processFood(cmdParts[1:], userID)
 	case "j":
-		return r.processJournal(c, cmdParts[1:], userID)
+		what, opts = r.processJournal(cmdParts[1:], userID)
 	case "cc":
 		what, opts = r.calcCalCommand(cmdParts[1:])
 	case "us":
