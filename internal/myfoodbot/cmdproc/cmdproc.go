@@ -15,11 +15,12 @@ var (
 
 type CmdProcessor struct {
 	stg    storage.Storage
+	tz     *time.Location
 	logger *zap.Logger
 }
 
-func NewCmdProcessor(stg storage.Storage, logger *zap.Logger) *CmdProcessor {
-	return &CmdProcessor{stg: stg, logger: logger}
+func NewCmdProcessor(stg storage.Storage, tz *time.Location, logger *zap.Logger) *CmdProcessor {
+	return &CmdProcessor{stg: stg, tz: tz, logger: logger}
 }
 
 func (r *CmdProcessor) Process(c tele.Context, cmd string, userID int64) error {

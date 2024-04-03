@@ -23,7 +23,10 @@ func NewService(settings ServiceSettings, logger *zap.Logger) (*Service, error) 
 		return nil, err
 	}
 
-	return &Service{settings: settings, cmdProc: cmdproc.NewCmdProcessor(stg, logger)}, nil
+	return &Service{
+		settings: settings,
+		cmdProc:  cmdproc.NewCmdProcessor(stg, settings.TZ, logger),
+	}, nil
 }
 
 func (s *Service) Run(ctx context.Context) error {

@@ -70,7 +70,7 @@ func (r *CmdProcessor) journalSetCommand(c tele.Context, cmdParts []string, user
 	}
 
 	// Parse timestamp
-	ts, err := parseTimestamp(cmdParts[0])
+	ts, err := r.parseTimestamp(cmdParts[0])
 	if err != nil {
 		r.logger.Error(
 			"invalid journal set command",
@@ -135,7 +135,7 @@ func (r *CmdProcessor) journalDelCommand(c tele.Context, cmdParts []string, user
 	}
 
 	// Parse timestamp
-	ts, err := parseTimestamp(cmdParts[0])
+	ts, err := r.parseTimestamp(cmdParts[0])
 	if err != nil {
 		r.logger.Error(
 			"invalid journal del command",
@@ -176,7 +176,7 @@ func (r *CmdProcessor) journalDelMealCommand(c tele.Context, cmdParts []string, 
 	}
 
 	// Parse timestamp
-	ts, err := parseTimestamp(cmdParts[0])
+	ts, err := r.parseTimestamp(cmdParts[0])
 	if err != nil {
 		r.logger.Error(
 			"invalid journal dm command",
@@ -217,7 +217,7 @@ func (r *CmdProcessor) journalCopyCommand(c tele.Context, cmdParts []string, use
 	}
 
 	// Parse timestamp
-	tsFrom, err := parseTimestamp(cmdParts[0])
+	tsFrom, err := r.parseTimestamp(cmdParts[0])
 	if err != nil {
 		r.logger.Error(
 			"invalid journal copy command",
@@ -229,7 +229,7 @@ func (r *CmdProcessor) journalCopyCommand(c tele.Context, cmdParts []string, use
 		return c.Send(msgErrInvalidCommand)
 	}
 
-	tsTo, err := parseTimestamp(cmdParts[2])
+	tsTo, err := r.parseTimestamp(cmdParts[2])
 	if err != nil {
 		r.logger.Error(
 			"invalid journal copy command",
@@ -281,7 +281,7 @@ func (r *CmdProcessor) journalReportMealCommand(c tele.Context, cmdParts []strin
 		return c.Send(msgErrInvalidCommand)
 	}
 
-	ts, err := parseTimestamp(cmdParts[0])
+	ts, err := r.parseTimestamp(cmdParts[0])
 	if err != nil {
 		r.logger.Error(
 			"invalid journal rm command",
@@ -340,8 +340,7 @@ func (r *CmdProcessor) journalReportDayCommand(c tele.Context, cmdParts []string
 		return c.Send(msgErrInvalidCommand)
 	}
 
-	tsStr := cmdParts[0]
-	ts, err := parseTimestamp(tsStr)
+	ts, err := r.parseTimestamp(cmdParts[0])
 	if err != nil {
 		r.logger.Error(
 			"invalid journal rd command",
@@ -352,6 +351,7 @@ func (r *CmdProcessor) journalReportDayCommand(c tele.Context, cmdParts []string
 		)
 		return c.Send(msgErrInvalidCommand)
 	}
+	tsStr := formatTimestamp(ts)
 
 	// Get list from DB and user settings
 	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout*2)
@@ -520,7 +520,7 @@ func (r *CmdProcessor) journalReportWeek(c tele.Context, cmdParts []string, user
 		return c.Send(msgErrInvalidCommand)
 	}
 
-	tsStart, err := parseTimestamp(cmdParts[0])
+	tsStart, err := r.parseTimestamp(cmdParts[0])
 	if err != nil {
 		r.logger.Error(
 			"invalid journal rw command",

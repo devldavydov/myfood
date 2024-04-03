@@ -10,11 +10,19 @@ const (
 	_jsChartURL     = "https://devldavydov.github.io/js/chartjs/chart.umd.min.js"
 )
 
-func parseTimestamp(sTimestamp string) (time.Time, error) {
-	t, err := time.Parse("02.01.2006", sTimestamp)
-	if err != nil {
-		return time.Time{}, err
+func (r *CmdProcessor) parseTimestamp(sTimestamp string) (time.Time, error) {
+	var t time.Time
+	var err error
+
+	if sTimestamp == "" {
+		t = time.Now().In(r.tz)
+	} else {
+		t, err = time.Parse("02.01.2006", sTimestamp)
+		if err != nil {
+			return time.Time{}, err
+		}
 	}
+
 	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC), nil
 }
 

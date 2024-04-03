@@ -15,6 +15,7 @@ const (
 	_defaultPollTimeout = 10 * time.Second
 	_defaultDBFilePath  = ""
 	_defaultLogLevel    = "INFO"
+	_defaultTZ          = "Europe/Moscow"
 )
 
 type IDList []int64
@@ -37,6 +38,7 @@ type Config struct {
 	PollTimeOut    time.Duration
 	DBFilePath     string
 	LogLevel       string
+	TZ             string
 	AllowedUserIDs IDList
 }
 
@@ -46,6 +48,7 @@ func LoadConfig(flagSet flag.FlagSet, flags []string) (*Config, error) {
 	flagSet.StringVar(&config.Token, "t", _defaultToken, "Telegram API token (required)")
 	flagSet.StringVar(&config.DBFilePath, "d", _defaultDBFilePath, "DB file path")
 	flagSet.StringVar(&config.LogLevel, "l", _defaultLogLevel, "Log level")
+	flagSet.StringVar(&config.TZ, "z", _defaultTZ, "Timezone")
 	flagSet.DurationVar(&config.PollTimeOut, "p", _defaultPollTimeout, "Telegram API poll timeout")
 	flagSet.Var(&config.AllowedUserIDs, "u", "Allowed User ID")
 
@@ -76,5 +79,6 @@ func ServiceSettingsAdapt(config *Config, buildCommit string) (*bot.ServiceSetti
 		config.PollTimeOut,
 		config.DBFilePath,
 		config.AllowedUserIDs,
+		config.TZ,
 		buildCommit)
 }
