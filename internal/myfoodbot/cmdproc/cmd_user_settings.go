@@ -8,10 +8,9 @@ import (
 
 	"github.com/devldavydov/myfood/internal/storage"
 	"go.uber.org/zap"
-	tele "gopkg.in/telebot.v3"
 )
 
-func (r *CmdProcessor) processUserSettings(c tele.Context, cmdParts []string, userID int64) error {
+func (r *CmdProcessor) processUserSettings(cmdParts []string, userID int64) (any, []any) {
 	if len(cmdParts) == 0 {
 		r.logger.Error(
 			"invalid user settings command",
@@ -19,26 +18,31 @@ func (r *CmdProcessor) processUserSettings(c tele.Context, cmdParts []string, us
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return c.Send(msgErrInvalidCommand)
+		return msgErrInvalidCommand, nil
 	}
+
+	var what any
+	var opts []any
 
 	switch cmdParts[0] {
 	case "set":
-		return r.userSettingsSetCommand(c, cmdParts[1:], userID)
+		what, opts = r.userSettingsSetCommand(cmdParts[1:], userID)
 	case "get":
-		return r.userSettingsGetCommand(c, userID)
+		what, opts = r.userSettingsGetCommand(userID)
+	default:
+		r.logger.Error(
+			"invalid user settings command",
+			zap.String("reason", "unknown command"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+		)
+		what = msgErrInvalidCommand
 	}
 
-	r.logger.Error(
-		"invalid user settings command",
-		zap.String("reason", "unknown command"),
-		zap.Strings("command", cmdParts),
-		zap.Int64("userid", userID),
-	)
-	return c.Send(msgErrInvalidCommand)
+	return what, opts
 }
 
-func (r *CmdProcessor) userSettingsSetCommand(c tele.Context, cmdParts []string, userID int64) error {
+func (r *CmdProcessor) userSettingsSetCommand(cmdParts []string, userID int64) (any, []any) {
 	if len(cmdParts) != 1 {
 		r.logger.Error(
 			"invalid user settings set command",
@@ -46,7 +50,7 @@ func (r *CmdProcessor) userSettingsSetCommand(c tele.Context, cmdParts []string,
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return c.Send(msgErrInvalidCommand)
+		return msgErrInvalidCommand, nil
 	}
 
 	// parse
@@ -59,7 +63,7 @@ func (r *CmdProcessor) userSettingsSetCommand(c tele.Context, cmdParts []string,
 			zap.Int64("userid", userID),
 			zap.Error(err),
 		)
-		return c.Send(msgErrInvalidCommand)
+		return msgErrInvalidCommand, nil
 	}
 
 	// Save in DB
@@ -68,7 +72,7 @@ func (r *CmdProcessor) userSettingsSetCommand(c tele.Context, cmdParts []string,
 
 	if err := r.stg.SetUserSettings(ctx, userID, &storage.UserSettings{CalLimit: calLimit}); err != nil {
 		if errors.Is(err, storage.ErrUserSettingsInvalid) {
-			return c.Send(msgErrInvalidCommand)
+			return msgErrInvalidCommand, nil
 		}
 
 		r.logger.Error(
@@ -78,13 +82,13 @@ func (r *CmdProcessor) userSettingsSetCommand(c tele.Context, cmdParts []string,
 			zap.Error(err),
 		)
 
-		return c.Send(msgErrInternal)
+		return msgErrInternal, nil
 	}
 
-	return c.Send(msgOK)
+	return msgOK, nil
 }
 
-func (r *CmdProcessor) userSettingsGetCommand(c tele.Context, userID int64) error {
+func (r *CmdProcessor) userSettingsGetCommand(userID int64) (any, []any) {
 	// Get from DB
 	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout)
 	defer cancel()
@@ -92,7 +96,7 @@ func (r *CmdProcessor) userSettingsGetCommand(c tele.Context, userID int64) erro
 	stgs, err := r.stg.GetUserSettings(ctx, userID)
 	if err != nil {
 		if errors.Is(err, storage.ErrUserSettingsNotFound) {
-			return c.Send(msgErrUserSettingsNotFound)
+			return msgErrUserSettingsNotFound, nil
 		}
 
 		r.logger.Error(
@@ -101,8 +105,8 @@ func (r *CmdProcessor) userSettingsGetCommand(c tele.Context, userID int64) erro
 			zap.Error(err),
 		)
 
-		return c.Send(msgErrInternal)
+		return msgErrInternal, nil
 	}
 
-	return c.Send(fmt.Sprintf("Лимит калорий: %.2f", stgs.CalLimit))
+	return fmt.Sprintf("Лимит калорий: %.2f", stgs.CalLimit), nil
 }

@@ -6,7 +6,7 @@ import (
 	tele "gopkg.in/telebot.v3"
 )
 
-func (r *CmdProcessor) helpCommand(c tele.Context) error {
+func (r *CmdProcessor) helpCommand(c tele.Context) (any, []any) {
 	docRd, err := helpdoc.GetHelpDocument("help")
 	if err != nil {
 		r.logger.Error(
@@ -15,11 +15,11 @@ func (r *CmdProcessor) helpCommand(c tele.Context) error {
 			zap.Error(err),
 		)
 
-		return c.Send(msgErrInternal)
+		return msgErrInternal, nil
 	}
-	return c.Send(&tele.Document{
+	return &tele.Document{
 		File:     tele.FromReader(docRd),
 		MIME:     "text/html",
 		FileName: "help.html",
-	})
+	}, nil
 }

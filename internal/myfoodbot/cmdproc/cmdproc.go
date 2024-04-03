@@ -39,9 +39,12 @@ func (r *CmdProcessor) Process(c tele.Context, cmd string, userID int64) error {
 		return c.Send(msgErrInvalidCommand)
 	}
 
+	var what any
+	var opts []any
+
 	switch cmdParts[0] {
 	case "h":
-		return r.helpCommand(c)
+		what, opts = r.helpCommand(c)
 	case "w":
 		return r.processWeight(c, cmdParts[1:], userID)
 	case "f":
@@ -49,18 +52,20 @@ func (r *CmdProcessor) Process(c tele.Context, cmd string, userID int64) error {
 	case "j":
 		return r.processJournal(c, cmdParts[1:], userID)
 	case "cc":
-		return r.calcCalCommand(c, cmdParts[1:])
+		what, opts = r.calcCalCommand(cmdParts[1:])
 	case "us":
-		return r.processUserSettings(c, cmdParts[1:], userID)
+		what, opts = r.processUserSettings(cmdParts[1:], userID)
+	default:
+		r.logger.Error(
+			"invalid command",
+			zap.String("reason", "unknown command"),
+			zap.String("command", cmd),
+			zap.Int64("userid", userID),
+		)
+		what = msgErrInvalidCommand
 	}
 
-	r.logger.Error(
-		"invalid command",
-		zap.String("reason", "unknown command"),
-		zap.String("command", cmd),
-		zap.Int64("userid", userID),
-	)
-	return c.Send(msgErrInvalidCommand)
+	return c.Send(what, opts...)
 }
 
 func (r *CmdProcessor) Stop() {
