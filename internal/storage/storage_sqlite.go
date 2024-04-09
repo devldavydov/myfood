@@ -451,7 +451,8 @@ func (r *StorageSQLite) DeleteJournalMeal(ctx context.Context, userID int64, tim
 	return err
 }
 
-func (r *StorageSQLite) GetJournalMealReport(ctx context.Context, userID int64, timestamp time.Time, meal Meal) ([]JournalMealReport, error) {
+func (r *StorageSQLite) GetJournalMealReport(ctx context.Context, userID int64, timestamp time.Time, meal Meal) (*JournalMealReport, error) {
+	// Get meal items
 	res, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
 		return tx.Journal.
 			Query().
@@ -476,19 +477,54 @@ func (r *StorageSQLite) GetJournalMealReport(ctx context.Context, userID int64, 
 		return nil, ErrJournalMealReportEmpty
 	}
 
-	lst := make([]JournalMealReport, 0, len(jLst))
+	lst := make([]JournalMealItem, 0, len(jLst))
+	var mealCal float64
 	for _, item := range jLst {
-		lst = append(lst, JournalMealReport{
+		cal := item.Foodweight / 100 * item.Edges.Food.Cal100
+		mealCal += cal
+		lst = append(lst, JournalMealItem{
 			Timestamp:  item.Timestamp,
 			FoodKey:    item.Edges.Food.Key,
 			FoodName:   item.Edges.Food.Name,
 			FoodBrand:  item.Edges.Food.Brand,
 			FoodWeight: item.Foodweight,
-			Cal:        item.Foodweight / 100 * item.Edges.Food.Cal100,
+			Cal:        cal,
 		})
 	}
 
-	return lst, nil
+	// Get total consumed calories for day
+	total, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+		return tx.Journal.
+			Query().
+			Where(
+				journal.Userid(userID),
+				journal.Timestamp(timestamp),
+			).
+			Modify(func(s *entsql.Selector) {
+				f := entsql.Table(food.Table)
+				s.
+					Join(f).
+					On(
+						s.C(journal.FoodColumn),
+						f.C(food.FieldID),
+					).
+					Select(
+						entsql.Sum(
+							fmt.Sprintf("%s / 100 * %s", s.C(journal.FieldFoodweight), f.C(food.FieldCal100)),
+						),
+					)
+			}).
+			Float64(ctx)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &JournalMealReport{
+		Items:           lst,
+		ConsumedMealCal: mealCal,
+		ConsumedDayCal:  total.(float64),
+	}, nil
 }
 
 func (r *StorageSQLite) GetJournalReport(ctx context.Context, userID int64, from, to time.Time) ([]JournalReport, error) {

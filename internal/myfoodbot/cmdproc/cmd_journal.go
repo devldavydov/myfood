@@ -302,7 +302,7 @@ func (r *CmdProcessor) journalReportMealCommand(cmdParts []string, userID int64)
 	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout*2)
 	defer cancel()
 
-	lst, err := r.stg.GetJournalMealReport(ctx, userID, ts, storage.NewMealFromString(cmdParts[1]))
+	rep, err := r.stg.GetJournalMealReport(ctx, userID, ts, storage.NewMealFromString(cmdParts[1]))
 	if err != nil {
 		if errors.Is(err, storage.ErrJournalMealReportEmpty) {
 			return msgErrEmptyList, nil
@@ -318,18 +318,36 @@ func (r *CmdProcessor) journalReportMealCommand(cmdParts []string, userID int64)
 		return msgErrInternal, nil
 	}
 
+	var us *storage.UserSettings
+	us, err = r.stg.GetUserSettings(ctx, userID)
+	if err != nil {
+		if !errors.Is(err, storage.ErrUserSettingsNotFound) {
+			r.logger.Error(
+				"journal rm command DB error for user settings",
+				zap.Strings("command", cmdParts),
+				zap.Int64("userid", userID),
+				zap.Error(err),
+			)
+
+			return msgErrInternal, nil
+		}
+	}
+
 	var sb strings.Builder
-	var totalCal float64
-	for _, item := range lst {
+	for _, item := range rep.Items {
 		foodLbl := item.FoodName
 		if item.FoodBrand != "" {
 			foodLbl += " - " + item.FoodBrand
 		}
 		sb.WriteString(fmt.Sprintf("<b>%s [%s]</b>:\n", foodLbl, item.FoodKey))
 		sb.WriteString(fmt.Sprintf("%.1f г., %.2f ккал\n", item.FoodWeight, item.Cal))
-		totalCal += item.Cal
 	}
-	sb.WriteString(fmt.Sprintf("\n<b>Всего, ккал:</b> %.2f", totalCal))
+	sb.WriteString(fmt.Sprintf("\n<b>Всего (прием пищи), ккал:</b> %.2f", rep.ConsumedMealCal))
+	if us != nil {
+		sb.WriteString(fmt.Sprintf("\n<b>Всего (день), ккал:</b> %.2f (%+.2f)", rep.ConsumedDayCal, us.CalLimit-rep.ConsumedDayCal))
+	} else {
+		sb.WriteString(fmt.Sprintf("\n<b>Всего (день), ккал:</b> %.2f", rep.ConsumedDayCal))
+	}
 
 	return sb.String(), []any{&tele.SendOptions{ParseMode: tele.ModeHTML}}
 }

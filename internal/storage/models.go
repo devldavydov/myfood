@@ -77,6 +77,12 @@ func (r *Journal) Validate() bool {
 }
 
 type JournalMealReport struct {
+	ConsumedDayCal  float64
+	ConsumedMealCal float64
+	Items           []JournalMealItem
+}
+
+type JournalMealItem struct {
 	Timestamp  time.Time
 	FoodKey    string
 	FoodName   string

@@ -501,12 +501,14 @@ func (r *StorageSQLiteTestSuite) TestJournalCRUD() {
 
 		mealRep, err := r.stg.GetJournalMealReport(context.TODO(), 1, T(2), Meal(1))
 		r.NoError(err)
-		r.Equal([]JournalMealReport{
+		r.Equal([]JournalMealItem{
 			{Timestamp: T(2), FoodKey: "food_a", FoodName: "aaa", FoodBrand: "brand a",
 				FoodWeight: 200, Cal: 2},
 			{Timestamp: T(2), FoodKey: "food_c", FoodName: "ccc", FoodBrand: "brand c",
 				FoodWeight: 100, Cal: 1},
-		}, mealRep)
+		}, mealRep.Items)
+		r.Equal(float64(3), mealRep.ConsumedMealCal)
+		r.Equal(float64(27), mealRep.ConsumedDayCal)
 	})
 
 	r.Run("check that user 2 gets his data", func() {
@@ -546,7 +548,7 @@ func (r *StorageSQLiteTestSuite) TestJournalCRUD() {
 	r.Run("delete meal for day", func() {
 		mealRep, err := r.stg.GetJournalMealReport(context.TODO(), 1, T(2), Meal(1))
 		r.NoError(err)
-		r.Equal(2, len(mealRep))
+		r.Equal(2, len(mealRep.Items))
 
 		r.NoError(r.stg.DeleteJournalMeal(context.TODO(), 1, T(2), Meal(1)))
 
