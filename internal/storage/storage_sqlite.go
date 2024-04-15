@@ -759,6 +759,46 @@ func (r *StorageSQLite) CopyJournal(ctx context.Context, userID int64, from time
 	return cnt, err
 }
 
+func (r *StorageSQLite) GetJournalFoodAvgWeight(ctx context.Context, userID int64, from, to time.Time, foodkey string) (float64, error) {
+	var v []struct {
+		Avg float64
+	}
+	_, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+		// Get food
+		foodObj, err := tx.Food.
+			Query().
+			Where(food.Key(foodkey)).
+			First(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		// Get avg food weight
+		err = tx.Journal.
+			Query().
+			Where(
+				journal.Userid(userID),
+				journal.HasFoodWith(food.ID(foodObj.ID)),
+				journal.TimestampGTE(from),
+				journal.TimestampLTE(to),
+			).
+			Aggregate(ent.Mean(journal.FieldFoodweight)).
+			Scan(ctx, &v)
+
+		return nil, err
+	})
+
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return 0, ErrJournalInvalidFood
+		}
+
+		return 0, err
+	}
+
+	return v[0].Avg, nil
+}
+
 //
 // UserSettings
 //

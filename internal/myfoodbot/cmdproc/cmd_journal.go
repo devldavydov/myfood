@@ -46,6 +46,8 @@ func (r *CmdProcessor) processJournal(cmdParts []string, userID int64) []CmdResp
 		resp = r.journalReportWeekCommand(cmdParts[1:], userID)
 	case "tm":
 		resp = r.journalTemplateMealCommand(cmdParts[1:], userID)
+	case "fa":
+		resp = r.journalFoodAvgWeightCommand(cmdParts[1:], userID)
 	default:
 		r.logger.Error(
 			"invalid journal command",
@@ -780,6 +782,65 @@ func (r *CmdProcessor) journalTemplateMealCommand(cmdParts []string, userID int6
 	}
 
 	return resp
+}
+
+func (r *CmdProcessor) journalFoodAvgWeightCommand(cmdParts []string, userID int64) []CmdResponse {
+	if len(cmdParts) != 3 {
+		r.logger.Error(
+			"invalid journal fa command",
+			zap.String("reason", "len parts"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+		)
+		return NewSingleCmdResponse(msgErrInvalidCommand)
+	}
+
+	// Parse timestamp
+	tsFrom, err := r.parseTimestamp(cmdParts[0])
+	if err != nil {
+		r.logger.Error(
+			"invalid journal fa command",
+			zap.String("reason", "ts from format"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
+		return NewSingleCmdResponse(msgErrInvalidCommand)
+	}
+
+	tsTo, err := r.parseTimestamp(cmdParts[1])
+	if err != nil {
+		r.logger.Error(
+			"invalid journal fa command",
+			zap.String("reason", "ts to format"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
+		return NewSingleCmdResponse(msgErrInvalidCommand)
+	}
+
+	// Get data from DB
+	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout*2)
+	defer cancel()
+
+	avgW, err := r.stg.GetJournalFoodAvgWeight(ctx, userID, tsFrom, tsTo, cmdParts[2])
+	if err != nil {
+		if errors.Is(err, storage.ErrJournalInvalidFood) {
+			return NewSingleCmdResponse(msgErrFoodNotFound)
+		}
+
+		r.logger.Error(
+			"journal fa command DB error",
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
+
+		return NewSingleCmdResponse(msgErrInternal)
+	}
+
+	return NewSingleCmdResponse(fmt.Sprintf("Средний вес за все приемы пищи: %1.fг.", avgW))
 }
 
 func calDiffSnippet(us *storage.UserSettings, cal float64) html.IELement {

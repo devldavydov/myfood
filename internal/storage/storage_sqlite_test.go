@@ -509,6 +509,10 @@ func (r *StorageSQLiteTestSuite) TestJournalCRUD() {
 		}, mealRep.Items)
 		r.Equal(float64(3), mealRep.ConsumedMealCal)
 		r.Equal(float64(27), mealRep.ConsumedDayCal)
+
+		foodAvgW, err := r.stg.GetJournalFoodAvgWeight(context.TODO(), 1, T(1), T(2), "food_b")
+		r.NoError(err)
+		r.Equal(float64(200), foodAvgW)
 	})
 
 	r.Run("check that user 2 gets his data", func() {

@@ -6,7 +6,7 @@ import (
 )
 
 type Storage interface {
-	// // Food
+	// Food
 	GetFood(ctx context.Context, key string) (*Food, error)
 	SetFood(ctx context.Context, food *Food) error
 	SetFoodComment(ctx context.Context, key, comment string) error
@@ -27,6 +27,7 @@ type Storage interface {
 	GetJournalReport(ctx context.Context, userID int64, from, to time.Time) ([]JournalReport, error)
 	GetJournalStats(ctx context.Context, userID int64, from, to time.Time) ([]JournalStats, error)
 	CopyJournal(ctx context.Context, userID int64, from time.Time, mealFrom Meal, to time.Time, mealTo Meal) (int, error)
+	GetJournalFoodAvgWeight(ctx context.Context, userID int64, from, to time.Time, foodkey string) (float64, error)
 
 	// UserSettings
 	GetUserSettings(ctx context.Context, userID int64) (*UserSettings, error)
