@@ -39,22 +39,21 @@ func (r *CmdProcessor) Process(c tele.Context, cmd string, userID int64) error {
 		return c.Send(msgErrInvalidCommand)
 	}
 
-	var what any
-	var opts []any
+	var resp []CmdResponse
 
 	switch cmdParts[0] {
 	case "h":
-		what, opts = r.helpCommand(c)
+		resp = r.helpCommand(c)
 	case "w":
-		what, opts = r.processWeight(cmdParts[1:], userID)
+		resp = r.processWeight(cmdParts[1:], userID)
 	case "f":
-		what, opts = r.processFood(cmdParts[1:], userID)
+		resp = r.processFood(cmdParts[1:], userID)
 	case "j":
-		what, opts = r.processJournal(cmdParts[1:], userID)
+		resp = r.processJournal(cmdParts[1:], userID)
 	case "cc":
-		what, opts = r.calcCalCommand(cmdParts[1:])
+		resp = r.calcCalCommand(cmdParts[1:])
 	case "us":
-		what, opts = r.processUserSettings(cmdParts[1:], userID)
+		resp = r.processUserSettings(cmdParts[1:], userID)
 	default:
 		r.logger.Error(
 			"invalid command",
@@ -62,14 +61,35 @@ func (r *CmdProcessor) Process(c tele.Context, cmd string, userID int64) error {
 			zap.String("command", cmd),
 			zap.Int64("userid", userID),
 		)
-		what = msgErrInvalidCommand
+		resp = NewSingleCmdResponse(msgErrInvalidCommand)
 	}
 
-	return c.Send(what, opts...)
+	for _, rItem := range resp {
+		if err := c.Send(rItem.what, rItem.opts...); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (r *CmdProcessor) Stop() {
 	if err := r.stg.Close(); err != nil {
 		r.logger.Error("storage close error", zap.Error(err))
+	}
+}
+
+type CmdResponse struct {
+	what any
+	opts []any
+}
+
+func NewCmdResponse(what any, opts ...any) CmdResponse {
+	return CmdResponse{what: what, opts: opts}
+}
+
+func NewSingleCmdResponse(what any, opts ...any) []CmdResponse {
+	return []CmdResponse{
+		{what: what, opts: opts},
 	}
 }

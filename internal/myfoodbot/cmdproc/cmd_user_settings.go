@@ -10,7 +10,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func (r *CmdProcessor) processUserSettings(cmdParts []string, userID int64) (any, []any) {
+func (r *CmdProcessor) processUserSettings(cmdParts []string, userID int64) []CmdResponse {
 	if len(cmdParts) == 0 {
 		r.logger.Error(
 			"invalid user settings command",
@@ -18,17 +18,16 @@ func (r *CmdProcessor) processUserSettings(cmdParts []string, userID int64) (any
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return msgErrInvalidCommand, nil
+		return NewSingleCmdResponse(msgErrInvalidCommand)
 	}
 
-	var what any
-	var opts []any
+	var resp []CmdResponse
 
 	switch cmdParts[0] {
 	case "set":
-		what, opts = r.userSettingsSetCommand(cmdParts[1:], userID)
+		resp = r.userSettingsSetCommand(cmdParts[1:], userID)
 	case "get":
-		what, opts = r.userSettingsGetCommand(userID)
+		resp = r.userSettingsGetCommand(userID)
 	default:
 		r.logger.Error(
 			"invalid user settings command",
@@ -36,13 +35,13 @@ func (r *CmdProcessor) processUserSettings(cmdParts []string, userID int64) (any
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		what = msgErrInvalidCommand
+		resp = NewSingleCmdResponse(msgErrInvalidCommand)
 	}
 
-	return what, opts
+	return resp
 }
 
-func (r *CmdProcessor) userSettingsSetCommand(cmdParts []string, userID int64) (any, []any) {
+func (r *CmdProcessor) userSettingsSetCommand(cmdParts []string, userID int64) []CmdResponse {
 	if len(cmdParts) != 1 {
 		r.logger.Error(
 			"invalid user settings set command",
@@ -50,7 +49,7 @@ func (r *CmdProcessor) userSettingsSetCommand(cmdParts []string, userID int64) (
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return msgErrInvalidCommand, nil
+		return NewSingleCmdResponse(msgErrInvalidCommand)
 	}
 
 	// parse
@@ -63,7 +62,7 @@ func (r *CmdProcessor) userSettingsSetCommand(cmdParts []string, userID int64) (
 			zap.Int64("userid", userID),
 			zap.Error(err),
 		)
-		return msgErrInvalidCommand, nil
+		return NewSingleCmdResponse(msgErrInvalidCommand)
 	}
 
 	// Save in DB
@@ -72,7 +71,7 @@ func (r *CmdProcessor) userSettingsSetCommand(cmdParts []string, userID int64) (
 
 	if err := r.stg.SetUserSettings(ctx, userID, &storage.UserSettings{CalLimit: calLimit}); err != nil {
 		if errors.Is(err, storage.ErrUserSettingsInvalid) {
-			return msgErrInvalidCommand, nil
+			return NewSingleCmdResponse(msgErrInvalidCommand)
 		}
 
 		r.logger.Error(
@@ -82,13 +81,13 @@ func (r *CmdProcessor) userSettingsSetCommand(cmdParts []string, userID int64) (
 			zap.Error(err),
 		)
 
-		return msgErrInternal, nil
+		return NewSingleCmdResponse(msgErrInternal)
 	}
 
-	return msgOK, nil
+	return NewSingleCmdResponse(msgOK)
 }
 
-func (r *CmdProcessor) userSettingsGetCommand(userID int64) (any, []any) {
+func (r *CmdProcessor) userSettingsGetCommand(userID int64) []CmdResponse {
 	// Get from DB
 	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout)
 	defer cancel()
@@ -96,7 +95,7 @@ func (r *CmdProcessor) userSettingsGetCommand(userID int64) (any, []any) {
 	stgs, err := r.stg.GetUserSettings(ctx, userID)
 	if err != nil {
 		if errors.Is(err, storage.ErrUserSettingsNotFound) {
-			return msgErrUserSettingsNotFound, nil
+			return NewSingleCmdResponse(msgErrUserSettingsNotFound)
 		}
 
 		r.logger.Error(
@@ -105,8 +104,8 @@ func (r *CmdProcessor) userSettingsGetCommand(userID int64) (any, []any) {
 			zap.Error(err),
 		)
 
-		return msgErrInternal, nil
+		return NewSingleCmdResponse(msgErrInternal)
 	}
 
-	return fmt.Sprintf("Лимит калорий: %.2f", stgs.CalLimit), nil
+	return NewSingleCmdResponse(fmt.Sprintf("Лимит калорий: %.2f", stgs.CalLimit))
 }

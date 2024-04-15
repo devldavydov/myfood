@@ -2,6 +2,8 @@ package cmdproc
 
 import (
 	"time"
+
+	tele "gopkg.in/telebot.v3"
 )
 
 const (
@@ -9,6 +11,8 @@ const (
 	_jsBootstrapURL = "https://devldavydov.github.io/js/bootstrap/bootstrap.bundle.min.js"
 	_jsChartURL     = "https://devldavydov.github.io/js/chartjs/chart.umd.min.js"
 )
+
+var optsHTML = &tele.SendOptions{ParseMode: tele.ModeHTML}
 
 func (r *CmdProcessor) parseTimestamp(sTimestamp string) (time.Time, error) {
 	var t time.Time

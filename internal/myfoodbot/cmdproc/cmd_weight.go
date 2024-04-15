@@ -13,7 +13,7 @@ import (
 	tele "gopkg.in/telebot.v3"
 )
 
-func (r *CmdProcessor) processWeight(cmdParts []string, userID int64) (any, []any) {
+func (r *CmdProcessor) processWeight(cmdParts []string, userID int64) []CmdResponse {
 	if len(cmdParts) == 0 {
 		r.logger.Error(
 			"invalid weight command",
@@ -21,19 +21,18 @@ func (r *CmdProcessor) processWeight(cmdParts []string, userID int64) (any, []an
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return msgErrInvalidCommand, nil
+		return NewSingleCmdResponse(msgErrInvalidCommand)
 	}
 
-	var what any
-	var opts []any
+	var resp []CmdResponse
 
 	switch cmdParts[0] {
 	case "set":
-		what, opts = r.weightSetCommand(cmdParts[1:], userID)
+		resp = r.weightSetCommand(cmdParts[1:], userID)
 	case "del":
-		what, opts = r.weightDelCommand(cmdParts[1:], userID)
+		resp = r.weightDelCommand(cmdParts[1:], userID)
 	case "list":
-		what, opts = r.weightListCommand(cmdParts[1:], userID)
+		resp = r.weightListCommand(cmdParts[1:], userID)
 	default:
 		r.logger.Error(
 			"invalid weight command",
@@ -41,13 +40,13 @@ func (r *CmdProcessor) processWeight(cmdParts []string, userID int64) (any, []an
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		what = msgErrInvalidCommand
+		resp = NewSingleCmdResponse(msgErrInvalidCommand)
 	}
 
-	return what, opts
+	return resp
 }
 
-func (r *CmdProcessor) weightSetCommand(cmdParts []string, userID int64) (any, []any) {
+func (r *CmdProcessor) weightSetCommand(cmdParts []string, userID int64) []CmdResponse {
 	if len(cmdParts) != 2 {
 		r.logger.Error(
 			"invalid weight set command",
@@ -55,7 +54,7 @@ func (r *CmdProcessor) weightSetCommand(cmdParts []string, userID int64) (any, [
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return msgErrInvalidCommand, nil
+		return NewSingleCmdResponse(msgErrInvalidCommand)
 	}
 
 	// Parse timestamp
@@ -68,7 +67,7 @@ func (r *CmdProcessor) weightSetCommand(cmdParts []string, userID int64) (any, [
 			zap.Int64("userid", userID),
 			zap.Error(err),
 		)
-		return msgErrInvalidCommand, nil
+		return NewSingleCmdResponse(msgErrInvalidCommand)
 	}
 
 	// Parse val
@@ -81,7 +80,7 @@ func (r *CmdProcessor) weightSetCommand(cmdParts []string, userID int64) (any, [
 			zap.Int64("userid", userID),
 			zap.Error(err),
 		)
-		return msgErrInvalidCommand, nil
+		return NewSingleCmdResponse(msgErrInvalidCommand)
 	}
 
 	// Save in DB
@@ -90,7 +89,7 @@ func (r *CmdProcessor) weightSetCommand(cmdParts []string, userID int64) (any, [
 
 	if err := r.stg.SetWeight(ctx, userID, &storage.Weight{Timestamp: ts, Value: val}); err != nil {
 		if errors.Is(err, storage.ErrWeightInvalid) {
-			return msgErrInvalidCommand, nil
+			return NewSingleCmdResponse(msgErrInvalidCommand)
 		}
 
 		r.logger.Error(
@@ -100,13 +99,13 @@ func (r *CmdProcessor) weightSetCommand(cmdParts []string, userID int64) (any, [
 			zap.Error(err),
 		)
 
-		return msgErrInternal, nil
+		return NewSingleCmdResponse(msgErrInternal)
 	}
 
-	return msgOK, nil
+	return NewSingleCmdResponse(msgOK)
 }
 
-func (r *CmdProcessor) weightDelCommand(cmdParts []string, userID int64) (any, []any) {
+func (r *CmdProcessor) weightDelCommand(cmdParts []string, userID int64) []CmdResponse {
 	if len(cmdParts) != 1 {
 		r.logger.Error(
 			"invalid weight del command",
@@ -114,7 +113,7 @@ func (r *CmdProcessor) weightDelCommand(cmdParts []string, userID int64) (any, [
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return msgErrInvalidCommand, nil
+		return NewSingleCmdResponse(msgErrInvalidCommand)
 	}
 
 	// Parse timestamp
@@ -126,7 +125,7 @@ func (r *CmdProcessor) weightDelCommand(cmdParts []string, userID int64) (any, [
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return msgErrInvalidCommand, nil
+		return NewSingleCmdResponse(msgErrInvalidCommand)
 	}
 
 	// Delete from DB
@@ -141,13 +140,13 @@ func (r *CmdProcessor) weightDelCommand(cmdParts []string, userID int64) (any, [
 			zap.Error(err),
 		)
 
-		return msgErrInternal, nil
+		return NewSingleCmdResponse(msgErrInternal)
 	}
 
-	return msgOK, nil
+	return NewSingleCmdResponse(msgOK)
 }
 
-func (r *CmdProcessor) weightListCommand(cmdParts []string, userID int64) (any, []any) {
+func (r *CmdProcessor) weightListCommand(cmdParts []string, userID int64) []CmdResponse {
 	if len(cmdParts) != 2 {
 		r.logger.Error(
 			"invalid weight list command",
@@ -155,7 +154,7 @@ func (r *CmdProcessor) weightListCommand(cmdParts []string, userID int64) (any, 
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return msgErrInvalidCommand, nil
+		return NewSingleCmdResponse(msgErrInvalidCommand)
 	}
 
 	// Parse timestamp
@@ -167,7 +166,7 @@ func (r *CmdProcessor) weightListCommand(cmdParts []string, userID int64) (any, 
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return msgErrInvalidCommand, nil
+		return NewSingleCmdResponse(msgErrInvalidCommand)
 	}
 
 	tsTo, err := r.parseTimestamp(cmdParts[1])
@@ -178,7 +177,7 @@ func (r *CmdProcessor) weightListCommand(cmdParts []string, userID int64) (any, 
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return msgErrInvalidCommand, nil
+		return NewSingleCmdResponse(msgErrInvalidCommand)
 	}
 
 	// List from DB
@@ -188,7 +187,7 @@ func (r *CmdProcessor) weightListCommand(cmdParts []string, userID int64) (any, 
 	lst, err := r.stg.GetWeightList(ctx, userID, tsFrom, tsTo)
 	if err != nil {
 		if errors.Is(err, storage.ErrWeightEmptyList) {
-			return msgErrEmptyList, nil
+			return NewSingleCmdResponse(msgErrEmptyList)
 		}
 
 		r.logger.Error(
@@ -198,7 +197,7 @@ func (r *CmdProcessor) weightListCommand(cmdParts []string, userID int64) (any, 
 			zap.Error(err),
 		)
 
-		return msgErrInternal, nil
+		return NewSingleCmdResponse(msgErrInternal)
 	}
 
 	// Report table
@@ -251,7 +250,7 @@ func (r *CmdProcessor) weightListCommand(cmdParts []string, userID int64) (any, 
 			zap.Error(err),
 		)
 
-		return msgErrInternal, nil
+		return NewSingleCmdResponse(msgErrInternal)
 	}
 
 	// Doc
@@ -265,9 +264,9 @@ func (r *CmdProcessor) weightListCommand(cmdParts []string, userID int64) (any, 
 	)
 
 	// Response
-	return &tele.Document{
+	return NewSingleCmdResponse(&tele.Document{
 		File:     tele.FromReader(bytes.NewBufferString(htmlBuilder.Build())),
 		MIME:     "text/html",
 		FileName: fmt.Sprintf("weight_%s_%s.html", tsFromStr, tsToStr),
-	}, nil
+	})
 }

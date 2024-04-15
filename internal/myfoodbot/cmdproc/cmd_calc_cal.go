@@ -4,33 +4,31 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-
-	tele "gopkg.in/telebot.v3"
 )
 
-func (r *CmdProcessor) calcCalCommand(cmdParts []string) (any, []any) {
+func (r *CmdProcessor) calcCalCommand(cmdParts []string) []CmdResponse {
 	if len(cmdParts) != 4 {
-		return msgErrInvalidCommand, nil
+		return NewSingleCmdResponse(msgErrInvalidCommand)
 	}
 
 	gender := cmdParts[0]
 	if !(gender == "m" || gender == "f") {
-		return msgErrInvalidCommand, nil
+		return NewSingleCmdResponse(msgErrInvalidCommand)
 	}
 
 	weight, err := strconv.ParseFloat(cmdParts[1], 64)
 	if err != nil || weight <= 0 {
-		return msgErrInvalidCommand, nil
+		return NewSingleCmdResponse(msgErrInvalidCommand)
 	}
 
 	height, err := strconv.ParseFloat(cmdParts[2], 64)
 	if err != nil || height <= 0 {
-		return msgErrInvalidCommand, nil
+		return NewSingleCmdResponse(msgErrInvalidCommand)
 	}
 
 	age, err := strconv.ParseFloat(cmdParts[3], 64)
 	if err != nil || age <= 0 {
-		return msgErrInvalidCommand, nil
+		return NewSingleCmdResponse(msgErrInvalidCommand)
 	}
 
 	cal := 10*weight + 6.25*height - 5*age
@@ -59,5 +57,5 @@ func (r *CmdProcessor) calcCalCommand(cmdParts []string) (any, []any) {
 		sb.WriteString("\n")
 	}
 
-	return sb.String(), []any{&tele.SendOptions{ParseMode: tele.ModeHTML}}
+	return NewSingleCmdResponse(sb.String(), optsHTML)
 }
