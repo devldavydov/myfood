@@ -840,7 +840,7 @@ func (r *CmdProcessor) journalFoodAvgWeightCommand(cmdParts []string, userID int
 		return NewSingleCmdResponse(msgErrInternal)
 	}
 
-	return NewSingleCmdResponse(fmt.Sprintf("Средний вес за все приемы пищи: %1.fг.", avgW))
+	return NewSingleCmdResponse(fmt.Sprintf("Средний вес за все приемы пищи: %.1fг.", avgW))
 }
 
 func calDiffSnippet(us *storage.UserSettings, cal float64) html.IELement {
