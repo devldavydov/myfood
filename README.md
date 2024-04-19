@@ -3,4 +3,4 @@
 Food calories calculation project:
 
 - Bot for Telegram
-- Web server and UI [myfood-ui](https://github.com/devldavydov/myfood-ui)
+- Web server and [UI](https://github.com/devldavydov/myfood-ui)
