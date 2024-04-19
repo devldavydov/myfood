@@ -12,12 +12,12 @@ import (
 )
 
 type Service struct {
-	settings ServiceSettings
+	settings *ServiceSettings
 	cmdProc  *cmdproc.CmdProcessor
 	logger   *zap.Logger
 }
 
-func NewService(settings ServiceSettings, logger *zap.Logger) (*Service, error) {
+func NewService(settings *ServiceSettings, logger *zap.Logger) (*Service, error) {
 	stg, err := storage.NewStorageSQLite(settings.DBFilePath)
 	if err != nil {
 		return nil, err

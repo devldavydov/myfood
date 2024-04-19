@@ -10,7 +10,7 @@ generate:
 	go generate ./...
 
 .PHONY: build
-build: build_bot # build_server
+build: build_bot build_server
 
 .PHONY: build_bot
 build_bot:

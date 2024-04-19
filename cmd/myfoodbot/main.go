@@ -42,7 +42,7 @@ func run() error {
 		return fmt.Errorf("failed to create bot service settings: %w", err)
 	}
 
-	service, err := bot.NewService(*serviceSettings, logger)
+	service, err := bot.NewService(serviceSettings, logger)
 	if err != nil {
 		return fmt.Errorf("failed to create bot service: %w", err)
 	}
