@@ -18,5 +18,5 @@ func NewWeightHander(stg storage.Storage, logger *zap.Logger) *WeightHandler {
 }
 
 func (r *WeightHandler) Index(c *gin.Context) {
-	c.HTML(http.StatusOK, "weight.html", gin.H{"page": "weight"})
+	c.HTML(http.StatusOK, "weight", gin.H{"nav": "weight"})
 }

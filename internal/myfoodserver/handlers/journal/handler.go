@@ -18,5 +18,5 @@ func NewJournalHander(stg storage.Storage, logger *zap.Logger) *JournalHandler {
 }
 
 func (r *JournalHandler) Index(c *gin.Context) {
-	c.HTML(http.StatusOK, "journal.html", gin.H{"page": "journal"})
+	c.HTML(http.StatusOK, "journal", gin.H{"nav": "journal"})
 }

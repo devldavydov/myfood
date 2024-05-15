@@ -1,0 +1,10 @@
+{{ template "base.html" . }}
+
+{{ define "title" }}
+    MyFood - Главная
+{{ end }}
+
+{{ define "content" }}
+    <p>Hello, {{ .name }}!</p>
+    <p>Контент главной страницы</p>
+{{ end }}

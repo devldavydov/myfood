@@ -18,5 +18,5 @@ func NewFoodHander(stg storage.Storage, logger *zap.Logger) *FoodHandler {
 }
 
 func (r *FoodHandler) Index(c *gin.Context) {
-	c.HTML(http.StatusOK, "food.html", gin.H{"page": "food"})
+	c.HTML(http.StatusOK, "food", gin.H{"nav": "food"})
 }

@@ -18,5 +18,5 @@ func NewSettingsHander(stg storage.Storage, logger *zap.Logger) *SettingsHandler
 }
 
 func (r *SettingsHandler) Index(c *gin.Context) {
-	c.HTML(http.StatusOK, "settings.html", gin.H{"page": "settings"})
+	c.HTML(http.StatusOK, "settings", gin.H{"nav": "settings"})
 }

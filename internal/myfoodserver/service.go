@@ -2,20 +2,16 @@ package myfoodserver
 
 import (
 	"context"
-	"embed"
 	"fmt"
-	"html/template"
 	"net/http"
 
 	handler "github.com/devldavydov/myfood/internal/myfoodserver/handlers"
+	"github.com/devldavydov/myfood/internal/myfoodserver/templates"
 	"github.com/devldavydov/myfood/internal/storage"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
-
-//go:embed templates/*
-var fs embed.FS
 
 type Service struct {
 	settings *ServerSettings
@@ -32,8 +28,7 @@ func (r *Service) Run(ctx context.Context) error {
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.Default()
 
-	tmpl := template.Must(template.New("").ParseFS(fs, "templates/*"))
-	router.SetHTMLTemplate(tmpl)
+	router.HTMLRender = templates.NewTemplateRenderer()
 
 	router.Use(gzip.Gzip(gzip.DefaultCompression))
 	handler.Init(router, r.stg, r.logger)
