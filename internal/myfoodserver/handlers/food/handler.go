@@ -17,6 +17,6 @@ func NewFoodHander(stg storage.Storage, logger *zap.Logger) *FoodHandler {
 	return &FoodHandler{stg: stg, logger: logger}
 }
 
-func (r *FoodHandler) Dummy(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"group": "food"})
+func (r *FoodHandler) Index(c *gin.Context) {
+	c.HTML(http.StatusOK, "food.html", gin.H{"page": "food"})
 }

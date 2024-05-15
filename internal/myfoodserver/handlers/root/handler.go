@@ -18,7 +18,5 @@ func NewRootHander(stg storage.Storage, logger *zap.Logger) *RootHandler {
 }
 
 func (r *RootHandler) Index(c *gin.Context) {
-	c.HTML(http.StatusOK, "index.tmpl", gin.H{
-		"title": "MyFood",
-	})
+	c.HTML(http.StatusOK, "index.html", gin.H{"name": "MyFood", "page": "index"})
 }

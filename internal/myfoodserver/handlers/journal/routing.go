@@ -8,5 +8,5 @@ import (
 
 func Attach(group *gin.RouterGroup, stg storage.Storage, logger *zap.Logger) {
 	journalHandler := NewJournalHander(stg, logger)
-	group.GET("/", journalHandler.Dummy)
+	group.GET("/", journalHandler.Index)
 }

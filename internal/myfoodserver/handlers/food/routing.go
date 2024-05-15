@@ -8,5 +8,5 @@ import (
 
 func Attach(group *gin.RouterGroup, stg storage.Storage, logger *zap.Logger) {
 	foodHandler := NewFoodHander(stg, logger)
-	group.GET("/", foodHandler.Dummy)
+	group.GET("/", foodHandler.Index)
 }

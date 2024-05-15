@@ -2,11 +2,10 @@ package myfoodserver
 
 import (
 	"context"
+	"embed"
 	"fmt"
 	"html/template"
 	"net/http"
-
-	"embed"
 
 	handler "github.com/devldavydov/myfood/internal/myfoodserver/handlers"
 	"github.com/devldavydov/myfood/internal/storage"

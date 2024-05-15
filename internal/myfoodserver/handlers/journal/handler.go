@@ -17,6 +17,6 @@ func NewJournalHander(stg storage.Storage, logger *zap.Logger) *JournalHandler {
 	return &JournalHandler{stg: stg, logger: logger}
 }
 
-func (r *JournalHandler) Dummy(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"group": "journal"})
+func (r *JournalHandler) Index(c *gin.Context) {
+	c.HTML(http.StatusOK, "journal.html", gin.H{"page": "journal"})
 }

@@ -17,6 +17,6 @@ func NewWeightHander(stg storage.Storage, logger *zap.Logger) *WeightHandler {
 	return &WeightHandler{stg: stg, logger: logger}
 }
 
-func (r *WeightHandler) Dummy(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"group": "weight"})
+func (r *WeightHandler) Index(c *gin.Context) {
+	c.HTML(http.StatusOK, "weight.html", gin.H{"page": "weight"})
 }

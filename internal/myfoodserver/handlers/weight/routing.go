@@ -8,5 +8,5 @@ import (
 
 func Attach(group *gin.RouterGroup, stg storage.Storage, logger *zap.Logger) {
 	weightHandler := NewWeightHander(stg, logger)
-	group.GET("/", weightHandler.Dummy)
+	group.GET("/", weightHandler.Index)
 }

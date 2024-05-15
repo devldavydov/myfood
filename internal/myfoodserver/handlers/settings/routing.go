@@ -1,4 +1,4 @@
-package usersettings
+package settings
 
 import (
 	"github.com/devldavydov/myfood/internal/storage"
@@ -7,6 +7,6 @@ import (
 )
 
 func Attach(group *gin.RouterGroup, stg storage.Storage, logger *zap.Logger) {
-	userSettingsHandler := NewUserSettingsHander(stg, logger)
-	group.GET("/", userSettingsHandler.Dummy)
+	settingsHandler := NewSettingsHander(stg, logger)
+	group.GET("/", settingsHandler.Index)
 }
