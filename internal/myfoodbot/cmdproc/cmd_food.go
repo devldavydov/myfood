@@ -125,7 +125,7 @@ func (r *CmdProcessor) foodSetCommand(cmdParts []string, userID int64) []CmdResp
 	food.Carb100 = carb100
 
 	// Save in DB
-	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), storage.StorageOperationTimeout)
 	defer cancel()
 
 	if err := r.stg.SetFood(ctx, food); err != nil {
@@ -158,7 +158,7 @@ func (r *CmdProcessor) foodSetCommentCommand(cmdParts []string, userID int64) []
 	}
 
 	// Save in DB
-	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), storage.StorageOperationTimeout)
 	defer cancel()
 
 	if err := r.stg.SetFoodComment(ctx, cmdParts[0], cmdParts[1]); err != nil {
@@ -191,7 +191,7 @@ func (r *CmdProcessor) foodFindCommand(cmdParts []string, userID int64) []CmdRes
 	}
 
 	// Get in DB
-	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), storage.StorageOperationTimeout)
 	defer cancel()
 
 	foodLst, err := r.stg.FindFood(ctx, cmdParts[0])
@@ -254,7 +254,7 @@ func (r *CmdProcessor) foodCalcCommand(cmdParts []string, userID int64) []CmdRes
 	}
 
 	// Get in DB
-	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), storage.StorageOperationTimeout)
 	defer cancel()
 
 	food, err := r.stg.GetFood(ctx, cmdParts[0])
@@ -297,7 +297,7 @@ func (r *CmdProcessor) foodDelCommand(cmdParts []string, userID int64) []CmdResp
 	}
 
 	// Delete from DB
-	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), storage.StorageOperationTimeout)
 	defer cancel()
 
 	if err := r.stg.DeleteFood(ctx, cmdParts[0]); err != nil {
@@ -320,7 +320,7 @@ func (r *CmdProcessor) foodDelCommand(cmdParts []string, userID int64) []CmdResp
 
 func (r *CmdProcessor) foodListCommand(userID int64) []CmdResponse {
 	// Get from DB
-	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), storage.StorageOperationTimeout)
 	defer cancel()
 
 	foodList, err := r.stg.GetFoodList(ctx)

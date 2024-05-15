@@ -19,7 +19,9 @@
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}/cmd/myfoodserver/",
-            "args": []
+            "args": [
+                "-d", "${workspaceFolder}/myfood.db",
+            ]
         },
     ]
 }

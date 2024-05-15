@@ -9,10 +9,6 @@ import (
 	tele "gopkg.in/telebot.v3"
 )
 
-var (
-	_stgOperationTimeout = 10 * time.Second
-)
-
 type CmdProcessor struct {
 	stg    storage.Storage
 	tz     *time.Location

@@ -2,7 +2,9 @@ package templates
 
 import (
 	"embed"
+	"fmt"
 	"html/template"
+	"strings"
 
 	"github.com/gin-gonic/gin/render"
 )
@@ -19,9 +21,9 @@ func NewTemplateRenderer() *TemplateRenderer {
 		"index": template.Must(template.ParseFS(fs,
 			"tmpl/base.html",
 			"tmpl/index.html")),
-		"food": template.Must(template.ParseFS(fs,
+		"food/list": template.Must(template.ParseFS(fs,
 			"tmpl/base.html",
-			"tmpl/food.html")),
+			"tmpl/food/list.html")),
 		"journal": template.Must(template.ParseFS(fs,
 			"tmpl/base.html",
 			"tmpl/journal.html")),
@@ -43,12 +45,33 @@ func (r *TemplateRenderer) Instance(name string, data any) render.Render {
 	}
 }
 
+type Message struct {
+	Cls string
+	Msg string
+}
+
+func NewMessage(cls, msg string) Message {
+	return Message{Cls: cls, Msg: msg}
+}
+
+func MessageToString(f Message) string {
+	return fmt.Sprintf("%s|%s", f.Cls, f.Msg)
+}
+
+func MessageFromString(s string) Message {
+	parts := strings.Split(s, "|")
+	if len(parts) == 2 {
+		return NewMessage(parts[0], parts[1])
+	}
+
+	return Message{}
+}
+
 type TemplateData struct {
-	// Error data.
-	IsError bool
-	Error   string
 	// Navigation flag.
 	Nav string
-	// Custom template data.
+	// Flash messages.
+	Messages []Message
+	// Template data.
 	Data any
 }

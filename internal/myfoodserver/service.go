@@ -9,9 +9,13 @@ import (
 	"github.com/devldavydov/myfood/internal/myfoodserver/templates"
 	"github.com/devldavydov/myfood/internal/storage"
 	"github.com/gin-contrib/gzip"
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
+
+const SessionName = "MyFoodSession"
 
 type Service struct {
 	settings *ServerSettings
@@ -20,7 +24,12 @@ type Service struct {
 }
 
 func NewService(settings *ServerSettings, logger *zap.Logger) (*Service, error) {
-	return &Service{settings: settings, logger: logger}, nil
+	stg, err := storage.NewStorageSQLite(settings.DBFilePath)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Service{settings: settings, stg: stg, logger: logger}, nil
 }
 
 func (r *Service) Run(ctx context.Context) error {
@@ -30,7 +39,13 @@ func (r *Service) Run(ctx context.Context) error {
 
 	router.HTMLRender = templates.NewTemplateRenderer()
 
-	router.Use(gzip.Gzip(gzip.DefaultCompression))
+	store := cookie.NewStore([]byte(r.settings.SessionSecret))
+
+	router.Use(
+		gzip.Gzip(gzip.DefaultCompression),
+		sessions.Sessions(SessionName, store),
+	)
+
 	handler.Init(router, r.stg, r.logger)
 
 	// Start server

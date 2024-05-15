@@ -106,7 +106,7 @@ func (r *CmdProcessor) journalSetCommand(cmdParts []string, userID int64) []CmdR
 	jrnl.FoodWeight = weight
 
 	// Save in DB
-	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), storage.StorageOperationTimeout)
 	defer cancel()
 
 	if err := r.stg.SetJournal(ctx, userID, jrnl); err != nil {
@@ -155,7 +155,7 @@ func (r *CmdProcessor) journalDelCommand(cmdParts []string, userID int64) []CmdR
 	}
 
 	// Delete from DB
-	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), storage.StorageOperationTimeout)
 	defer cancel()
 
 	if err := r.stg.DeleteJournal(ctx, userID, ts, storage.NewMealFromString(cmdParts[1]), cmdParts[2]); err != nil {
@@ -196,7 +196,7 @@ func (r *CmdProcessor) journalDelMealCommand(cmdParts []string, userID int64) []
 	}
 
 	// Delete from DB
-	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), storage.StorageOperationTimeout)
 	defer cancel()
 
 	if err := r.stg.DeleteJournalMeal(ctx, userID, ts, storage.NewMealFromString(cmdParts[1])); err != nil {
@@ -250,7 +250,7 @@ func (r *CmdProcessor) journalCopyCommand(cmdParts []string, userID int64) []Cmd
 	}
 
 	// Save in DB
-	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), storage.StorageOperationTimeout)
 	defer cancel()
 
 	cnt, err := r.stg.CopyJournal(ctx,
@@ -302,7 +302,7 @@ func (r *CmdProcessor) journalReportMealCommand(cmdParts []string, userID int64)
 	}
 
 	// Get list from DB and user settings
-	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout*2)
+	ctx, cancel := context.WithTimeout(context.Background(), storage.StorageOperationTimeout*2)
 	defer cancel()
 
 	rep, err := r.stg.GetJournalMealReport(ctx, userID, ts, storage.NewMealFromString(cmdParts[1]))
@@ -380,7 +380,7 @@ func (r *CmdProcessor) journalReportDayCommand(cmdParts []string, userID int64) 
 	tsStr := formatTimestamp(ts)
 
 	// Get list from DB and user settings
-	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout*2)
+	ctx, cancel := context.WithTimeout(context.Background(), storage.StorageOperationTimeout*2)
 	defer cancel()
 
 	var us *storage.UserSettings
@@ -570,7 +570,7 @@ func (r *CmdProcessor) journalReportWeekCommand(cmdParts []string, userID int64)
 	tsEndStr := formatTimestamp(tsEnd)
 
 	// Get list from DB and user settings
-	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout*2)
+	ctx, cancel := context.WithTimeout(context.Background(), storage.StorageOperationTimeout*2)
 	defer cancel()
 
 	var us *storage.UserSettings
@@ -745,7 +745,7 @@ func (r *CmdProcessor) journalTemplateMealCommand(cmdParts []string, userID int6
 	}
 
 	// Get list from DB and user settings
-	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout*2)
+	ctx, cancel := context.WithTimeout(context.Background(), storage.StorageOperationTimeout*2)
 	defer cancel()
 
 	mealStr := cmdParts[1]
@@ -821,7 +821,7 @@ func (r *CmdProcessor) journalFoodAvgWeightCommand(cmdParts []string, userID int
 	}
 
 	// Get data from DB
-	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout*2)
+	ctx, cancel := context.WithTimeout(context.Background(), storage.StorageOperationTimeout*2)
 	defer cancel()
 
 	avgW, err := r.stg.GetJournalFoodAvgWeight(ctx, userID, tsFrom, tsTo, cmdParts[2])

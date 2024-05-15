@@ -84,7 +84,7 @@ func (r *CmdProcessor) weightSetCommand(cmdParts []string, userID int64) []CmdRe
 	}
 
 	// Save in DB
-	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), storage.StorageOperationTimeout)
 	defer cancel()
 
 	if err := r.stg.SetWeight(ctx, userID, &storage.Weight{Timestamp: ts, Value: val}); err != nil {
@@ -129,7 +129,7 @@ func (r *CmdProcessor) weightDelCommand(cmdParts []string, userID int64) []CmdRe
 	}
 
 	// Delete from DB
-	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), storage.StorageOperationTimeout)
 	defer cancel()
 
 	if err := r.stg.DeleteWeight(ctx, userID, ts); err != nil {
@@ -181,7 +181,7 @@ func (r *CmdProcessor) weightListCommand(cmdParts []string, userID int64) []CmdR
 	}
 
 	// List from DB
-	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), storage.StorageOperationTimeout)
 	defer cancel()
 
 	lst, err := r.stg.GetWeightList(ctx, userID, tsFrom, tsTo)

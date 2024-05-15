@@ -53,8 +53,13 @@
     <div class="container">
       <div class="mb-3"></div>
       
-      {{ if ne .Error "" }}
-        <div class="alert alert-danger">{{ .Error }}</div>        
+      {{ range $msg := .Messages }}
+        {{ if and (ne $msg.Cls "") (ne $msg.Msg "") }}
+          <div class="alert alert-{{ $msg.Cls }} alert-dismissible fade show">
+            {{ $msg.Msg }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>      
+        {{ end }}
       {{ end }}
 
       {{ block "content" . }}{{ end }}

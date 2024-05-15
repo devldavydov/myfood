@@ -66,7 +66,7 @@ func (r *CmdProcessor) userSettingsSetCommand(cmdParts []string, userID int64) [
 	}
 
 	// Save in DB
-	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), storage.StorageOperationTimeout)
 	defer cancel()
 
 	if err := r.stg.SetUserSettings(ctx, userID, &storage.UserSettings{CalLimit: calLimit}); err != nil {
@@ -89,7 +89,7 @@ func (r *CmdProcessor) userSettingsSetCommand(cmdParts []string, userID int64) [
 
 func (r *CmdProcessor) userSettingsGetCommand(userID int64) []CmdResponse {
 	// Get from DB
-	ctx, cancel := context.WithTimeout(context.Background(), _stgOperationTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), storage.StorageOperationTimeout)
 	defer cancel()
 
 	stgs, err := r.stg.GetUserSettings(ctx, userID)
