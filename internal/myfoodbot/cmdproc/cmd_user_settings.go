@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/devldavydov/myfood/internal/common/messages"
 	"github.com/devldavydov/myfood/internal/storage"
 	"go.uber.org/zap"
 )
@@ -18,7 +19,7 @@ func (r *CmdProcessor) processUserSettings(cmdParts []string, userID int64) []Cm
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	var resp []CmdResponse
@@ -35,7 +36,7 @@ func (r *CmdProcessor) processUserSettings(cmdParts []string, userID int64) []Cm
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		resp = NewSingleCmdResponse(msgErrInvalidCommand)
+		resp = NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	return resp
@@ -49,7 +50,7 @@ func (r *CmdProcessor) userSettingsSetCommand(cmdParts []string, userID int64) [
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	// parse
@@ -62,7 +63,7 @@ func (r *CmdProcessor) userSettingsSetCommand(cmdParts []string, userID int64) [
 			zap.Int64("userid", userID),
 			zap.Error(err),
 		)
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	// Save in DB
@@ -71,7 +72,7 @@ func (r *CmdProcessor) userSettingsSetCommand(cmdParts []string, userID int64) [
 
 	if err := r.stg.SetUserSettings(ctx, userID, &storage.UserSettings{CalLimit: calLimit}); err != nil {
 		if errors.Is(err, storage.ErrUserSettingsInvalid) {
-			return NewSingleCmdResponse(msgErrInvalidCommand)
+			return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 		}
 
 		r.logger.Error(
@@ -81,10 +82,10 @@ func (r *CmdProcessor) userSettingsSetCommand(cmdParts []string, userID int64) [
 			zap.Error(err),
 		)
 
-		return NewSingleCmdResponse(msgErrInternal)
+		return NewSingleCmdResponse(messages.MsgErrInternal)
 	}
 
-	return NewSingleCmdResponse(msgOK)
+	return NewSingleCmdResponse(messages.MsgOK)
 }
 
 func (r *CmdProcessor) userSettingsGetCommand(userID int64) []CmdResponse {
@@ -95,7 +96,7 @@ func (r *CmdProcessor) userSettingsGetCommand(userID int64) []CmdResponse {
 	stgs, err := r.stg.GetUserSettings(ctx, userID)
 	if err != nil {
 		if errors.Is(err, storage.ErrUserSettingsNotFound) {
-			return NewSingleCmdResponse(msgErrUserSettingsNotFound)
+			return NewSingleCmdResponse(messages.MsgErrUserSettingsNotFound)
 		}
 
 		r.logger.Error(
@@ -104,7 +105,7 @@ func (r *CmdProcessor) userSettingsGetCommand(userID int64) []CmdResponse {
 			zap.Error(err),
 		)
 
-		return NewSingleCmdResponse(msgErrInternal)
+		return NewSingleCmdResponse(messages.MsgErrInternal)
 	}
 
 	return NewSingleCmdResponse(fmt.Sprintf("Лимит калорий: %.2f", stgs.CalLimit))

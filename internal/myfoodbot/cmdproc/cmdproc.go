@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/devldavydov/myfood/internal/common/messages"
 	"github.com/devldavydov/myfood/internal/storage"
 	"go.uber.org/zap"
 	tele "gopkg.in/telebot.v3"
@@ -32,7 +33,7 @@ func (r *CmdProcessor) Process(c tele.Context, cmd string, userID int64) error {
 			zap.String("command", cmd),
 			zap.Int64("userid", userID),
 		)
-		return c.Send(msgErrInvalidCommand)
+		return c.Send(messages.MsgErrInvalidCommand)
 	}
 
 	var resp []CmdResponse
@@ -57,7 +58,7 @@ func (r *CmdProcessor) Process(c tele.Context, cmd string, userID int64) error {
 			zap.String("command", cmd),
 			zap.Int64("userid", userID),
 		)
-		resp = NewSingleCmdResponse(msgErrInvalidCommand)
+		resp = NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	for _, rItem := range resp {

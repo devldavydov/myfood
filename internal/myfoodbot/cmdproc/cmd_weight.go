@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/devldavydov/myfood/internal/common/html"
+	"github.com/devldavydov/myfood/internal/common/messages"
 	"github.com/devldavydov/myfood/internal/storage"
 	"go.uber.org/zap"
 	tele "gopkg.in/telebot.v3"
@@ -21,7 +22,7 @@ func (r *CmdProcessor) processWeight(cmdParts []string, userID int64) []CmdRespo
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	var resp []CmdResponse
@@ -40,7 +41,7 @@ func (r *CmdProcessor) processWeight(cmdParts []string, userID int64) []CmdRespo
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		resp = NewSingleCmdResponse(msgErrInvalidCommand)
+		resp = NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	return resp
@@ -54,7 +55,7 @@ func (r *CmdProcessor) weightSetCommand(cmdParts []string, userID int64) []CmdRe
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	// Parse timestamp
@@ -67,7 +68,7 @@ func (r *CmdProcessor) weightSetCommand(cmdParts []string, userID int64) []CmdRe
 			zap.Int64("userid", userID),
 			zap.Error(err),
 		)
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	// Parse val
@@ -80,7 +81,7 @@ func (r *CmdProcessor) weightSetCommand(cmdParts []string, userID int64) []CmdRe
 			zap.Int64("userid", userID),
 			zap.Error(err),
 		)
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	// Save in DB
@@ -89,7 +90,7 @@ func (r *CmdProcessor) weightSetCommand(cmdParts []string, userID int64) []CmdRe
 
 	if err := r.stg.SetWeight(ctx, userID, &storage.Weight{Timestamp: ts, Value: val}); err != nil {
 		if errors.Is(err, storage.ErrWeightInvalid) {
-			return NewSingleCmdResponse(msgErrInvalidCommand)
+			return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 		}
 
 		r.logger.Error(
@@ -99,10 +100,10 @@ func (r *CmdProcessor) weightSetCommand(cmdParts []string, userID int64) []CmdRe
 			zap.Error(err),
 		)
 
-		return NewSingleCmdResponse(msgErrInternal)
+		return NewSingleCmdResponse(messages.MsgErrInternal)
 	}
 
-	return NewSingleCmdResponse(msgOK)
+	return NewSingleCmdResponse(messages.MsgOK)
 }
 
 func (r *CmdProcessor) weightDelCommand(cmdParts []string, userID int64) []CmdResponse {
@@ -113,7 +114,7 @@ func (r *CmdProcessor) weightDelCommand(cmdParts []string, userID int64) []CmdRe
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	// Parse timestamp
@@ -125,7 +126,7 @@ func (r *CmdProcessor) weightDelCommand(cmdParts []string, userID int64) []CmdRe
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	// Delete from DB
@@ -140,10 +141,10 @@ func (r *CmdProcessor) weightDelCommand(cmdParts []string, userID int64) []CmdRe
 			zap.Error(err),
 		)
 
-		return NewSingleCmdResponse(msgErrInternal)
+		return NewSingleCmdResponse(messages.MsgErrInternal)
 	}
 
-	return NewSingleCmdResponse(msgOK)
+	return NewSingleCmdResponse(messages.MsgOK)
 }
 
 func (r *CmdProcessor) weightListCommand(cmdParts []string, userID int64) []CmdResponse {
@@ -154,7 +155,7 @@ func (r *CmdProcessor) weightListCommand(cmdParts []string, userID int64) []CmdR
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	// Parse timestamp
@@ -166,7 +167,7 @@ func (r *CmdProcessor) weightListCommand(cmdParts []string, userID int64) []CmdR
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	tsTo, err := r.parseTimestamp(cmdParts[1])
@@ -177,7 +178,7 @@ func (r *CmdProcessor) weightListCommand(cmdParts []string, userID int64) []CmdR
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	// List from DB
@@ -187,7 +188,7 @@ func (r *CmdProcessor) weightListCommand(cmdParts []string, userID int64) []CmdR
 	lst, err := r.stg.GetWeightList(ctx, userID, tsFrom, tsTo)
 	if err != nil {
 		if errors.Is(err, storage.ErrWeightEmptyList) {
-			return NewSingleCmdResponse(msgErrEmptyList)
+			return NewSingleCmdResponse(messages.MsgErrEmptyList)
 		}
 
 		r.logger.Error(
@@ -197,7 +198,7 @@ func (r *CmdProcessor) weightListCommand(cmdParts []string, userID int64) []CmdR
 			zap.Error(err),
 		)
 
-		return NewSingleCmdResponse(msgErrInternal)
+		return NewSingleCmdResponse(messages.MsgErrInternal)
 	}
 
 	// Report table
@@ -250,7 +251,7 @@ func (r *CmdProcessor) weightListCommand(cmdParts []string, userID int64) []CmdR
 			zap.Error(err),
 		)
 
-		return NewSingleCmdResponse(msgErrInternal)
+		return NewSingleCmdResponse(messages.MsgErrInternal)
 	}
 
 	// Doc

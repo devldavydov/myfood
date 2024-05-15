@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/devldavydov/myfood/internal/common/html"
+	"github.com/devldavydov/myfood/internal/common/messages"
 	"github.com/devldavydov/myfood/internal/storage"
 	"go.uber.org/zap"
 	tele "gopkg.in/telebot.v3"
@@ -24,7 +25,7 @@ func (r *CmdProcessor) processJournal(cmdParts []string, userID int64) []CmdResp
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	var resp []CmdResponse
@@ -55,7 +56,7 @@ func (r *CmdProcessor) processJournal(cmdParts []string, userID int64) []CmdResp
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		resp = NewSingleCmdResponse(msgErrInvalidCommand)
+		resp = NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	return resp
@@ -69,7 +70,7 @@ func (r *CmdProcessor) journalSetCommand(cmdParts []string, userID int64) []CmdR
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	jrnl := &storage.Journal{
@@ -87,7 +88,7 @@ func (r *CmdProcessor) journalSetCommand(cmdParts []string, userID int64) []CmdR
 			zap.Int64("userid", userID),
 			zap.Error(err),
 		)
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 	jrnl.Timestamp = ts
 
@@ -101,7 +102,7 @@ func (r *CmdProcessor) journalSetCommand(cmdParts []string, userID int64) []CmdR
 			zap.Int64("userid", userID),
 			zap.Error(err),
 		)
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 	jrnl.FoodWeight = weight
 
@@ -111,11 +112,11 @@ func (r *CmdProcessor) journalSetCommand(cmdParts []string, userID int64) []CmdR
 
 	if err := r.stg.SetJournal(ctx, userID, jrnl); err != nil {
 		if errors.Is(err, storage.ErrJournalInvalid) {
-			return NewSingleCmdResponse(msgErrInvalidCommand)
+			return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 		}
 
 		if errors.Is(err, storage.ErrJournalInvalidFood) {
-			return NewSingleCmdResponse(msgErrFoodNotFound)
+			return NewSingleCmdResponse(messages.MsgErrFoodNotFound)
 		}
 
 		r.logger.Error(
@@ -125,10 +126,10 @@ func (r *CmdProcessor) journalSetCommand(cmdParts []string, userID int64) []CmdR
 			zap.Error(err),
 		)
 
-		return NewSingleCmdResponse(msgErrInternal)
+		return NewSingleCmdResponse(messages.MsgErrInternal)
 	}
 
-	return NewSingleCmdResponse(msgOK)
+	return NewSingleCmdResponse(messages.MsgOK)
 }
 
 func (r *CmdProcessor) journalDelCommand(cmdParts []string, userID int64) []CmdResponse {
@@ -139,7 +140,7 @@ func (r *CmdProcessor) journalDelCommand(cmdParts []string, userID int64) []CmdR
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	// Parse timestamp
@@ -151,7 +152,7 @@ func (r *CmdProcessor) journalDelCommand(cmdParts []string, userID int64) []CmdR
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	// Delete from DB
@@ -166,10 +167,10 @@ func (r *CmdProcessor) journalDelCommand(cmdParts []string, userID int64) []CmdR
 			zap.Error(err),
 		)
 
-		return NewSingleCmdResponse(msgErrInternal)
+		return NewSingleCmdResponse(messages.MsgErrInternal)
 	}
 
-	return NewSingleCmdResponse(msgOK)
+	return NewSingleCmdResponse(messages.MsgOK)
 }
 
 func (r *CmdProcessor) journalDelMealCommand(cmdParts []string, userID int64) []CmdResponse {
@@ -180,7 +181,7 @@ func (r *CmdProcessor) journalDelMealCommand(cmdParts []string, userID int64) []
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	// Parse timestamp
@@ -192,7 +193,7 @@ func (r *CmdProcessor) journalDelMealCommand(cmdParts []string, userID int64) []
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	// Delete from DB
@@ -207,10 +208,10 @@ func (r *CmdProcessor) journalDelMealCommand(cmdParts []string, userID int64) []
 			zap.Error(err),
 		)
 
-		return NewSingleCmdResponse(msgErrInternal)
+		return NewSingleCmdResponse(messages.MsgErrInternal)
 	}
 
-	return NewSingleCmdResponse(msgOK)
+	return NewSingleCmdResponse(messages.MsgOK)
 }
 
 func (r *CmdProcessor) journalCopyCommand(cmdParts []string, userID int64) []CmdResponse {
@@ -221,7 +222,7 @@ func (r *CmdProcessor) journalCopyCommand(cmdParts []string, userID int64) []Cmd
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	// Parse timestamp
@@ -234,7 +235,7 @@ func (r *CmdProcessor) journalCopyCommand(cmdParts []string, userID int64) []Cmd
 			zap.Int64("userid", userID),
 			zap.Error(err),
 		)
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	tsTo, err := r.parseTimestamp(cmdParts[2])
@@ -246,7 +247,7 @@ func (r *CmdProcessor) journalCopyCommand(cmdParts []string, userID int64) []Cmd
 			zap.Int64("userid", userID),
 			zap.Error(err),
 		)
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	// Save in DB
@@ -262,7 +263,7 @@ func (r *CmdProcessor) journalCopyCommand(cmdParts []string, userID int64) []Cmd
 
 	if err != nil {
 		if errors.Is(err, storage.ErrCopyToNotEmpty) {
-			return NewSingleCmdResponse(msgErrJournalCopy)
+			return NewSingleCmdResponse(messages.MsgErrJournalCopy)
 		}
 
 		r.logger.Error(
@@ -272,10 +273,10 @@ func (r *CmdProcessor) journalCopyCommand(cmdParts []string, userID int64) []Cmd
 			zap.Error(err),
 		)
 
-		return NewSingleCmdResponse(msgErrInternal)
+		return NewSingleCmdResponse(messages.MsgErrInternal)
 	}
 
-	return NewSingleCmdResponse(fmt.Sprintf(msgJournalCopied, cnt))
+	return NewSingleCmdResponse(fmt.Sprintf(messages.MsgJournalCopied, cnt))
 }
 
 func (r *CmdProcessor) journalReportMealCommand(cmdParts []string, userID int64) []CmdResponse {
@@ -286,7 +287,7 @@ func (r *CmdProcessor) journalReportMealCommand(cmdParts []string, userID int64)
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	ts, err := r.parseTimestamp(cmdParts[0])
@@ -298,7 +299,7 @@ func (r *CmdProcessor) journalReportMealCommand(cmdParts []string, userID int64)
 			zap.Int64("userid", userID),
 			zap.Error(err),
 		)
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	// Get list from DB and user settings
@@ -308,7 +309,7 @@ func (r *CmdProcessor) journalReportMealCommand(cmdParts []string, userID int64)
 	rep, err := r.stg.GetJournalMealReport(ctx, userID, ts, storage.NewMealFromString(cmdParts[1]))
 	if err != nil {
 		if errors.Is(err, storage.ErrJournalMealReportEmpty) {
-			return NewSingleCmdResponse(msgErrEmptyList)
+			return NewSingleCmdResponse(messages.MsgErrEmptyList)
 		}
 
 		r.logger.Error(
@@ -318,7 +319,7 @@ func (r *CmdProcessor) journalReportMealCommand(cmdParts []string, userID int64)
 			zap.Error(err),
 		)
 
-		return NewSingleCmdResponse(msgErrInternal)
+		return NewSingleCmdResponse(messages.MsgErrInternal)
 	}
 
 	var us *storage.UserSettings
@@ -332,7 +333,7 @@ func (r *CmdProcessor) journalReportMealCommand(cmdParts []string, userID int64)
 				zap.Error(err),
 			)
 
-			return NewSingleCmdResponse(msgErrInternal)
+			return NewSingleCmdResponse(messages.MsgErrInternal)
 		}
 	}
 
@@ -363,7 +364,7 @@ func (r *CmdProcessor) journalReportDayCommand(cmdParts []string, userID int64) 
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	ts, err := r.parseTimestamp(cmdParts[0])
@@ -375,7 +376,7 @@ func (r *CmdProcessor) journalReportDayCommand(cmdParts []string, userID int64) 
 			zap.Int64("userid", userID),
 			zap.Error(err),
 		)
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 	tsStr := formatTimestamp(ts)
 
@@ -394,14 +395,14 @@ func (r *CmdProcessor) journalReportDayCommand(cmdParts []string, userID int64) 
 				zap.Error(err),
 			)
 
-			return NewSingleCmdResponse(msgErrInternal)
+			return NewSingleCmdResponse(messages.MsgErrInternal)
 		}
 	}
 
 	lst, err := r.stg.GetJournalReport(ctx, userID, ts, ts)
 	if err != nil {
 		if errors.Is(err, storage.ErrJournalReportEmpty) {
-			return NewSingleCmdResponse(msgErrEmptyList)
+			return NewSingleCmdResponse(messages.MsgErrEmptyList)
 		}
 
 		r.logger.Error(
@@ -411,7 +412,7 @@ func (r *CmdProcessor) journalReportDayCommand(cmdParts []string, userID int64) 
 			zap.Error(err),
 		)
 
-		return NewSingleCmdResponse(msgErrInternal)
+		return NewSingleCmdResponse(messages.MsgErrInternal)
 	}
 
 	// Report table
@@ -543,7 +544,7 @@ func (r *CmdProcessor) journalReportWeekCommand(cmdParts []string, userID int64)
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	tsStart, err := r.parseTimestamp(cmdParts[0])
@@ -555,7 +556,7 @@ func (r *CmdProcessor) journalReportWeekCommand(cmdParts []string, userID int64)
 			zap.Int64("userid", userID),
 			zap.Error(err),
 		)
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	tsStart = getStartOfWeek(tsStart)
@@ -584,14 +585,14 @@ func (r *CmdProcessor) journalReportWeekCommand(cmdParts []string, userID int64)
 				zap.Error(err),
 			)
 
-			return NewSingleCmdResponse(msgErrInternal)
+			return NewSingleCmdResponse(messages.MsgErrInternal)
 		}
 	}
 
 	lst, err := r.stg.GetJournalStats(ctx, userID, tsStart, tsEnd)
 	if err != nil {
 		if errors.Is(err, storage.ErrJournalStatsEmpty) {
-			return NewSingleCmdResponse(msgErrEmptyList)
+			return NewSingleCmdResponse(messages.MsgErrEmptyList)
 		}
 
 		r.logger.Error(
@@ -601,7 +602,7 @@ func (r *CmdProcessor) journalReportWeekCommand(cmdParts []string, userID int64)
 			zap.Error(err),
 		)
 
-		return NewSingleCmdResponse(msgErrInternal)
+		return NewSingleCmdResponse(messages.MsgErrInternal)
 	}
 
 	// Stat table
@@ -701,7 +702,7 @@ func (r *CmdProcessor) journalReportWeekCommand(cmdParts []string, userID int64)
 			zap.Error(err),
 		)
 
-		return NewSingleCmdResponse(msgErrInternal)
+		return NewSingleCmdResponse(messages.MsgErrInternal)
 	}
 
 	// Doc
@@ -729,7 +730,7 @@ func (r *CmdProcessor) journalTemplateMealCommand(cmdParts []string, userID int6
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	ts, err := r.parseTimestamp(cmdParts[0])
@@ -741,7 +742,7 @@ func (r *CmdProcessor) journalTemplateMealCommand(cmdParts []string, userID int6
 			zap.Int64("userid", userID),
 			zap.Error(err),
 		)
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	// Get list from DB and user settings
@@ -752,7 +753,7 @@ func (r *CmdProcessor) journalTemplateMealCommand(cmdParts []string, userID int6
 	rep, err := r.stg.GetJournalMealReport(ctx, userID, ts, storage.NewMealFromString(mealStr))
 	if err != nil {
 		if errors.Is(err, storage.ErrJournalMealReportEmpty) {
-			return NewSingleCmdResponse(msgErrEmptyList)
+			return NewSingleCmdResponse(messages.MsgErrEmptyList)
 		}
 
 		r.logger.Error(
@@ -762,7 +763,7 @@ func (r *CmdProcessor) journalTemplateMealCommand(cmdParts []string, userID int6
 			zap.Error(err),
 		)
 
-		return NewSingleCmdResponse(msgErrInternal)
+		return NewSingleCmdResponse(messages.MsgErrInternal)
 	}
 
 	tsStr := formatTimestamp(ts)
@@ -792,7 +793,7 @@ func (r *CmdProcessor) journalFoodAvgWeightCommand(cmdParts []string, userID int
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 		)
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	// Parse timestamp
@@ -805,7 +806,7 @@ func (r *CmdProcessor) journalFoodAvgWeightCommand(cmdParts []string, userID int
 			zap.Int64("userid", userID),
 			zap.Error(err),
 		)
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	tsTo, err := r.parseTimestamp(cmdParts[1])
@@ -817,7 +818,7 @@ func (r *CmdProcessor) journalFoodAvgWeightCommand(cmdParts []string, userID int
 			zap.Int64("userid", userID),
 			zap.Error(err),
 		)
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	// Get data from DB
@@ -827,7 +828,7 @@ func (r *CmdProcessor) journalFoodAvgWeightCommand(cmdParts []string, userID int
 	avgW, err := r.stg.GetJournalFoodAvgWeight(ctx, userID, tsFrom, tsTo, cmdParts[2])
 	if err != nil {
 		if errors.Is(err, storage.ErrJournalInvalidFood) {
-			return NewSingleCmdResponse(msgErrFoodNotFound)
+			return NewSingleCmdResponse(messages.MsgErrFoodNotFound)
 		}
 
 		r.logger.Error(
@@ -837,7 +838,7 @@ func (r *CmdProcessor) journalFoodAvgWeightCommand(cmdParts []string, userID int
 			zap.Error(err),
 		)
 
-		return NewSingleCmdResponse(msgErrInternal)
+		return NewSingleCmdResponse(messages.MsgErrInternal)
 	}
 
 	return NewSingleCmdResponse(fmt.Sprintf("Средний вес за все приемы пищи: %.1fг.", avgW))

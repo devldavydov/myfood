@@ -4,31 +4,33 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/devldavydov/myfood/internal/common/messages"
 )
 
 func (r *CmdProcessor) calcCalCommand(cmdParts []string) []CmdResponse {
 	if len(cmdParts) != 4 {
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	gender := cmdParts[0]
 	if !(gender == "m" || gender == "f") {
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	weight, err := strconv.ParseFloat(cmdParts[1], 64)
 	if err != nil || weight <= 0 {
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	height, err := strconv.ParseFloat(cmdParts[2], 64)
 	if err != nil || height <= 0 {
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	age, err := strconv.ParseFloat(cmdParts[3], 64)
 	if err != nil || age <= 0 {
-		return NewSingleCmdResponse(msgErrInvalidCommand)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
 	cal := 10*weight + 6.25*height - 5*age
