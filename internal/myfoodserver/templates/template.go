@@ -42,3 +42,13 @@ func (r *TemplateRenderer) Instance(name string, data any) render.Render {
 		Data:     data,
 	}
 }
+
+type TemplateData struct {
+	// Error data.
+	IsError bool
+	Error   string
+	// Navigation flag.
+	Nav string
+	// Custom template data.
+	Data any
+}

@@ -3,6 +3,7 @@ package root
 import (
 	"net/http"
 
+	"github.com/devldavydov/myfood/internal/myfoodserver/templates"
 	"github.com/devldavydov/myfood/internal/storage"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -18,5 +19,10 @@ func NewRootHander(stg storage.Storage, logger *zap.Logger) *RootHandler {
 }
 
 func (r *RootHandler) Index(c *gin.Context) {
-	c.HTML(http.StatusOK, "index", gin.H{"name": "MyFood", "nav": "index"})
+	c.HTML(http.StatusOK, "index", &templates.TemplateData{
+		Nav: "index",
+		Data: gin.H{
+			"name": "myfood",
+		},
+	})
 }
