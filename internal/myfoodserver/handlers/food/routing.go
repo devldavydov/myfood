@@ -9,5 +9,6 @@ import (
 func Attach(group *gin.RouterGroup, stg storage.Storage, logger *zap.Logger) {
 	foodHandler := NewFoodHander(stg, logger)
 	group.GET("/", foodHandler.Index)
+	group.GET("/view/:key", foodHandler.View)
 	group.GET("/set/:key", foodHandler.Set)
 }

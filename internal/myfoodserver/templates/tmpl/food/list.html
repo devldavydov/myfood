@@ -18,7 +18,7 @@
 
     {{ if not .Data }}
         <div class="alert alert-secondary" role="alert">
-            Список еды пуст!
+            Пустой список еды
         </div>
     {{ else }}
         <div class="table-responsive">
@@ -28,7 +28,6 @@
                         <th class="align-middle">Наименование</th>
                         <th class="align-middle">Бренд</th>
                         <th class="align-middle">ККал, 100г.</th>
-                        <th class="align-middle">БЖУ, 100г.</th>
                         <th class="align-middle">Комментарий</th>
                         <th class="align-middle text-center"><i class="bi bi-gear"></i></th>
                     </tr>
@@ -36,22 +35,14 @@
                 <tbody>
                     {{ range $food := .Data }}
                     <tr>
-                        <td class="align-middle col-md-3">{{ $food.name }}</td>
+                        <td class="align-middle col-md-4">{{ $food.name }}</td>
                         <td class="align-middle col-md-2">{{ $food.brand }}</td>
                         <td class="align-middle col-md-1">{{ $food.cal100 }}</td>
-                        <td class="align-middle col-md-2" >
-                            <strong>Б:</strong> {{ $food.prot100 }} <strong>Ж:</strong> {{ $food.fat100 }} <strong>У:</strong> {{ $food.carb100 }}
-                        </td>
-                        <td class="align-middle col-md-3">{{ $food.comment }}</td>
+                        <td class="align-middle col-md-4">{{ $food.comment }}</td>
                         <td class="align-middle text-center col-md-1">
                             <a
-                                href="/food/set/{{ $food.key }}"
-                                class="btn btn-warning"                            
-                                ><i class="bi bi-pencil"></i></a>
-                            <a
-                                href="/food/del/{{ $food.key }}"
-                                class="btn btn-danger"
-                                ><i class="bi bi-trash"></i></a>
+                                href="/food/view/{{ $food.key }}"
+                                class="btn btn-primary"><i class="bi bi-box-arrow-right"></i></a>
                         </td>
                     </tr>     
                     {{ end }}                                                                                                                                                                                                                                                                       

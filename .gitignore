@@ -8,6 +8,7 @@
 *.so
 *.dylib
 bin/
+__debug*
 
 # DB files
 *.db*

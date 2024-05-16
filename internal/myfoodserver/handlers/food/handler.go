@@ -36,12 +36,8 @@ func (r *FoodHandler) Index(c *gin.Context) {
 			zap.Error(err),
 		)
 
-		c.HTML(http.StatusOK, "food/list", &templates.TemplateData{
-			Nav: "food",
-			Messages: []templates.Message{
-				templates.NewMessage(messages.MsgClassError, messages.MsgErrInternal),
-			},
-		})
+		tmplData.Messages = append(tmplData.Messages, templates.NewMessage(messages.MsgClassError, messages.MsgErrInternal))
+		c.HTML(http.StatusOK, "food/list", tmplData)
 		return
 	}
 
@@ -61,6 +57,44 @@ func (r *FoodHandler) Index(c *gin.Context) {
 	tmplData.Data = data
 
 	c.HTML(http.StatusOK, "food/list", tmplData)
+}
+
+func (r *FoodHandler) View(c *gin.Context) {
+	tmplData := helpers.InitTemplateData(c, "food")
+
+	// Get from DB
+	ctx, cancel := context.WithTimeout(c.Request.Context(), storage.StorageOperationTimeout)
+	defer cancel()
+
+	food, err := r.stg.GetFood(ctx, c.Param("key"))
+	if err != nil {
+		if errors.Is(err, storage.ErrFoodNotFound) {
+			c.HTML(http.StatusOK, "food/view", tmplData)
+			return
+		}
+
+		r.logger.Error(
+			"food view DB error",
+			zap.Error(err),
+		)
+
+		tmplData.Messages = append(tmplData.Messages, templates.NewMessage(messages.MsgClassError, messages.MsgErrInternal))
+		c.HTML(http.StatusOK, "food/view", tmplData)
+		return
+	}
+
+	tmplData.Data = map[string]any{
+		"key":     food.Key,
+		"name":    food.Name,
+		"brand":   food.Brand,
+		"cal100":  food.Cal100,
+		"prot100": food.Prot100,
+		"fat100":  food.Fat100,
+		"carb100": food.Carb100,
+		"comment": food.Comment,
+	}
+
+	c.HTML(http.StatusOK, "food/view", tmplData)
 }
 
 func (r *FoodHandler) Set(c *gin.Context) {
