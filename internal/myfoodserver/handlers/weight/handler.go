@@ -3,7 +3,7 @@ package weight
 import (
 	"net/http"
 
-	"github.com/devldavydov/myfood/internal/myfoodserver/templates"
+	"github.com/devldavydov/myfood/internal/myfoodserver/model"
 	"github.com/devldavydov/myfood/internal/storage"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -19,7 +19,7 @@ func NewWeightHander(stg storage.Storage, logger *zap.Logger) *WeightHandler {
 }
 
 func (r *WeightHandler) Index(c *gin.Context) {
-	c.HTML(http.StatusOK, "weight", &templates.TemplateData{
+	c.HTML(http.StatusOK, "weight", &model.TemplateData{
 		Nav: "weight",
 	})
 }

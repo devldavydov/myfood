@@ -53,19 +53,14 @@
     <div class="container">
       <div class="mb-3"></div>
       
-      {{ range $msg := .Messages }}
-        {{ if and (ne $msg.Cls "") (ne $msg.Msg "") }}
-          <div class="alert alert-{{ $msg.Cls }} alert-dismissible fade show">
-            {{ $msg.Msg }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-          </div>      
-        {{ end }}
-      {{ end }}
+      <div id="notifications"></div>
 
       {{ block "content" . }}{{ end }}
     </div>  
 
     <script src="/static/js/jquery/jquery-3.6.0.min.js"></script>
     <script src="/static/js/bootstrap/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/myfood/common.js"></script>
+    {{ block "script" . }}{{ end }}
   </body>
 </html>

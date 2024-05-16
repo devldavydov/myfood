@@ -2,9 +2,7 @@ package templates
 
 import (
 	"embed"
-	"fmt"
 	"html/template"
-	"strings"
 
 	"github.com/gin-gonic/gin/render"
 )
@@ -51,35 +49,4 @@ func (r *TemplateRenderer) Instance(name string, data any) render.Render {
 		Template: r.templates[name],
 		Data:     data,
 	}
-}
-
-type Message struct {
-	Cls string
-	Msg string
-}
-
-func NewMessage(cls, msg string) Message {
-	return Message{Cls: cls, Msg: msg}
-}
-
-func MessageToString(f Message) string {
-	return fmt.Sprintf("%s|%s", f.Cls, f.Msg)
-}
-
-func MessageFromString(s string) Message {
-	parts := strings.Split(s, "|")
-	if len(parts) == 2 {
-		return NewMessage(parts[0], parts[1])
-	}
-
-	return Message{}
-}
-
-type TemplateData struct {
-	// Navigation flag.
-	Nav string
-	// Flash messages.
-	Messages []Message
-	// Template data.
-	Data any
 }

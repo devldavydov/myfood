@@ -8,7 +8,14 @@ import (
 
 func Attach(group *gin.RouterGroup, stg storage.Storage, logger *zap.Logger) {
 	foodHandler := NewFoodHander(stg, logger)
-	group.GET("/", foodHandler.Index)
-	group.GET("/view/:key", foodHandler.View)
-	group.GET("/set/:key", foodHandler.Set)
+
+	// Pages
+	group.GET("/", foodHandler.IndexPage)
+	group.GET("/view/:key", foodHandler.ViewPage)
+	group.GET("/set/:key", foodHandler.SetPage)
+
+	// API
+	api := group.Group("/api")
+	api.GET("/get/:key", foodHandler.GetAPI)
+	api.POST("/del", foodHandler.DeleteAPI)
 }

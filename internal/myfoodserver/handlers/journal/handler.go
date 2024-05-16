@@ -3,7 +3,7 @@ package journal
 import (
 	"net/http"
 
-	"github.com/devldavydov/myfood/internal/myfoodserver/templates"
+	"github.com/devldavydov/myfood/internal/myfoodserver/model"
 	"github.com/devldavydov/myfood/internal/storage"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -19,7 +19,7 @@ func NewJournalHander(stg storage.Storage, logger *zap.Logger) *JournalHandler {
 }
 
 func (r *JournalHandler) Index(c *gin.Context) {
-	c.HTML(http.StatusOK, "journal", &templates.TemplateData{
+	c.HTML(http.StatusOK, "journal", &model.TemplateData{
 		Nav: "journal",
 	})
 }

@@ -9,8 +9,6 @@ import (
 	"github.com/devldavydov/myfood/internal/myfoodserver/templates"
 	"github.com/devldavydov/myfood/internal/storage"
 	"github.com/gin-contrib/gzip"
-	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
@@ -38,12 +36,8 @@ func (r *Service) Run(ctx context.Context) error {
 	router := gin.Default()
 
 	router.HTMLRender = templates.NewTemplateRenderer()
-
-	store := cookie.NewStore([]byte(r.settings.SessionSecret))
-
 	router.Use(
 		gzip.Gzip(gzip.DefaultCompression),
-		sessions.Sessions(SessionName, store),
 	)
 
 	handler.Init(router, r.stg, r.logger)

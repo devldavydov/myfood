@@ -5,15 +5,19 @@
 {{ end }}
 
 {{ define "content" }}
-    <div class="mb-3">
-        <a
-            role="button"
-            href="/food/set"
-            class="btn btn-primary"><i class="bi bi-plus-square"></i></a>
-        <a
-            role="button"
-            href="/food/search"
-            class="btn btn-primary"><i class="bi bi-search"></i></a>
+    <div class="row mb-3">
+        <div class="col-4">
+            <a
+                role="button"
+                href="/food/set"
+                class="btn btn-primary"><i class="bi bi-plus-square"></i></a>
+        </div>
+        <div class="col-8">
+            <div class="input-group float-end">
+                <input type="text" class="form-control">
+                <button class="btn btn-outline-secondary" type="button" id="btnSearch"><i class="bi bi-search"></i></button>
+            </div>
+        </div>
     </div>
 
     {{ if not .Data }}
@@ -35,11 +39,11 @@
                 <tbody>
                     {{ range $food := .Data }}
                     <tr>
-                        <td class="align-middle col-md-4">{{ $food.name }}</td>
-                        <td class="align-middle col-md-2">{{ $food.brand }}</td>
-                        <td class="align-middle col-md-1">{{ $food.cal100 }}</td>
-                        <td class="align-middle col-md-4">{{ $food.comment }}</td>
-                        <td class="align-middle text-center col-md-1">
+                        <td class="align-middle col-4">{{ $food.name }}</td>
+                        <td class="align-middle col-2">{{ $food.brand }}</td>
+                        <td class="align-middle col-1">{{ $food.cal100 }}</td>
+                        <td class="align-middle col-4">{{ $food.comment }}</td>
+                        <td class="align-middle text-center col-1">
                             <a
                                 href="/food/view/{{ $food.key }}"
                                 class="btn btn-primary"><i class="bi bi-box-arrow-right"></i></a>
