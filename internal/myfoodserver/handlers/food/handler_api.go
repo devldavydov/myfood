@@ -12,7 +12,7 @@ import (
 	"go.uber.org/zap"
 )
 
-type FoodGetResponse struct {
+type FoodResponseItem struct {
 	Key     string  `json:"key"`
 	Name    string  `json:"name"`
 	Brand   string  `json:"brand"`
@@ -21,6 +21,36 @@ type FoodGetResponse struct {
 	Fat100  float64 `json:"fat100"`
 	Carb100 float64 `json:"carb100"`
 	Comment string  `json:"comment"`
+}
+
+func (r *FoodHandler) ListAPI(c *gin.Context) {
+	// Get from DB
+	ctx, cancel := context.WithTimeout(c.Request.Context(), storage.StorageOperationTimeout)
+	defer cancel()
+
+	foodList, err := r.stg.GetFoodList(ctx)
+	if err != nil && !errors.Is(err, storage.ErrFoodEmptyList) {
+		r.logger.Error(
+			"food list api DB error",
+			zap.Error(err),
+		)
+
+		c.JSON(http.StatusOK, model.NewErrorResponse(messages.MsgErrInternal))
+		return
+	}
+
+	data := make([]FoodResponseItem, 0, len(foodList))
+	for _, f := range foodList {
+		data = append(data, FoodResponseItem{
+			Key:     f.Key,
+			Name:    f.Name,
+			Brand:   f.Brand,
+			Cal100:  f.Cal100,
+			Comment: f.Comment,
+		})
+	}
+
+	c.JSON(http.StatusOK, model.NewDataResponse(data))
 }
 
 func (r *FoodHandler) GetAPI(c *gin.Context) {
@@ -44,7 +74,7 @@ func (r *FoodHandler) GetAPI(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, model.NewDataResponse(&FoodGetResponse{
+	c.JSON(http.StatusOK, model.NewDataResponse(&FoodResponseItem{
 		Key:     food.Key,
 		Name:    food.Name,
 		Brand:   food.Brand,

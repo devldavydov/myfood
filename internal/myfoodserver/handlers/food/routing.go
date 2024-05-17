@@ -11,11 +11,12 @@ func Attach(group *gin.RouterGroup, stg storage.Storage, logger *zap.Logger) {
 
 	// Pages
 	group.GET("/", foodHandler.IndexPage)
-	group.GET("/view/:key", foodHandler.ViewPage)
+	group.GET("/:key", foodHandler.ViewPage)
 	group.GET("/set/:key", foodHandler.SetPage)
 
 	// API
 	api := group.Group("/api")
+	api.GET("/list", foodHandler.ListAPI)
 	api.GET("/get/:key", foodHandler.GetAPI)
 	api.POST("/del", foodHandler.DeleteAPI)
 }

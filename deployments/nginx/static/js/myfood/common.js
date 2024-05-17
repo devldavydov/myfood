@@ -1,7 +1,8 @@
 const RootPage = "/";
 
 const FoodListPage = "/food";
-const FoodGetApi = "/food/api/get/:key"
+const FoodListAPI = "/food/api/list";
+const FoodGetAPI = "/food/api/get/:key";
 const FoodDeleteAPI = "/food/api/del";
 
 const NotifKey = "notifications";
@@ -43,7 +44,7 @@ function enqueueNotification(cls, msg) {
 }
 
 function showNotification(cls, msg) {
-    $('#notifications').append(`
+    $("#notifications").append(`
         <div class="alert alert-${cls} alert-dismissible fade show">
             ${msg}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>

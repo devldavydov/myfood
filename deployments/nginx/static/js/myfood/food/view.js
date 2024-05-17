@@ -1,7 +1,7 @@
 // On window load.
 $(function() {  
-    $('#btnDelete').on('click', function() {
-        if (!confirm('Удалить еду?'))
+    $("#btnDelete").on("click", function() {
+        if (!confirm("Удалить еду?"))
             return;
         
         apiPOST(FoodDeleteAPI, {key: foodKey})
@@ -17,12 +17,12 @@ $(function() {
         });
     });
 
-    $('#btnSet').on('click', function() {
+    $("#btnSet").on("click", function() {
         showNotification(NotifClassWarning, "Функционал в разработке!");
     })
 
     function loadFood() {
-        apiGET(FoodGetApi.replace(":key", foodKey))
+        apiGET(FoodGetAPI.replace(":key", foodKey))
         .done(function(resp) {
             if (resp.error !== "") {
                 showEl($("#blockError"));    
@@ -43,7 +43,7 @@ $(function() {
             showNotification(NotifClassError, errMsg);
         })
         .always(function() {
-            hideEl($('#blockLoader'));
+            hideEl($("#blockLoader"));
         });
     }
 
