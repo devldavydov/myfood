@@ -6,14 +6,16 @@ $(function() {
         
         apiPOST(FoodDeleteAPI, {key: foodKey})
         .done(function(resp) {
+            if (resp.error !== "") {
+                showNotification(NotifClassError, resp.error);    
+                return;
+            }
+            
             enqueueNotification(NotifClassInfo, "Еда была удалена")
             window.location.replace(FoodListPage);
         })
         .fail(function(errMsg) {
-            alert(errMsg);
-        })
-        .always(function() {
-            console.log('always');
+            showNotification(NotifClassError, errMsg);
         });
     });
 

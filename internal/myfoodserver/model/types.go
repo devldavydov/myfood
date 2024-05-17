@@ -17,3 +17,7 @@ func NewErrorResponse(err string) *ResponseData {
 func NewDataResponse(data any) *ResponseData {
 	return &ResponseData{Data: data}
 }
+
+func NewOKResponse() *ResponseData {
+	return &ResponseData{Data: "ok"}
+}

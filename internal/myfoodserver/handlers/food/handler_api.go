@@ -96,5 +96,22 @@ func (r *FoodHandler) DeleteAPI(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, map[string]string{"ok": "true"})
+	ctx, cancel := context.WithTimeout(context.Background(), storage.StorageOperationTimeout)
+	defer cancel()
+
+	if err := r.stg.DeleteFood(ctx, req.Key); err != nil {
+		if errors.Is(err, storage.ErrFoodIsUsed) {
+			c.JSON(http.StatusOK, model.NewErrorResponse(messages.MsgErrFoodIsUsed))
+			return
+		}
+
+		r.logger.Error(
+			"food del api DB error",
+			zap.Error(err),
+		)
+
+		c.JSON(http.StatusOK, model.NewErrorResponse(messages.MsgErrInternal))
+	}
+
+	c.JSON(http.StatusOK, model.NewOKResponse())
 }
