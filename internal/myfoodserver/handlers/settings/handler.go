@@ -3,7 +3,6 @@ package settings
 import (
 	"net/http"
 
-	"github.com/devldavydov/myfood/internal/myfoodserver/model"
 	"github.com/devldavydov/myfood/internal/storage"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -19,7 +18,5 @@ func NewSettingsHander(stg storage.Storage, logger *zap.Logger) *SettingsHandler
 }
 
 func (r *SettingsHandler) Index(c *gin.Context) {
-	c.HTML(http.StatusOK, "settings", &model.TemplateData{
-		Nav: "settings",
-	})
+	c.JSON(http.StatusOK, gin.H{"settings": true})
 }

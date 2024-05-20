@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	handler "github.com/devldavydov/myfood/internal/myfoodserver/handlers"
-	"github.com/devldavydov/myfood/internal/myfoodserver/templates"
 	"github.com/devldavydov/myfood/internal/storage"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
@@ -34,11 +33,7 @@ func (r *Service) Run(ctx context.Context) error {
 	// Init HTTP API
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.Default()
-
-	router.HTMLRender = templates.NewTemplateRenderer()
-	router.Use(
-		gzip.Gzip(gzip.DefaultCompression),
-	)
+	router.Use(gzip.Gzip(gzip.DefaultCompression))
 
 	handler.Init(router, r.stg, r.logger)
 

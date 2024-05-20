@@ -3,7 +3,6 @@ package handler
 import (
 	"github.com/devldavydov/myfood/internal/myfoodserver/handlers/food"
 	"github.com/devldavydov/myfood/internal/myfoodserver/handlers/journal"
-	"github.com/devldavydov/myfood/internal/myfoodserver/handlers/root"
 	"github.com/devldavydov/myfood/internal/myfoodserver/handlers/settings"
 	"github.com/devldavydov/myfood/internal/myfoodserver/handlers/weight"
 	"github.com/devldavydov/myfood/internal/storage"
@@ -12,9 +11,10 @@ import (
 )
 
 func Init(router *gin.Engine, stg storage.Storage, logger *zap.Logger) {
-	root.Attach(router.Group("/"), stg, logger)
-	food.Attach(router.Group("/food"), stg, logger)
-	journal.Attach(router.Group("/journal"), stg, logger)
-	settings.Attach(router.Group("/settings"), stg, logger)
-	weight.Attach(router.Group("/weight"), stg, logger)
+	api := router.Group("/api")
+
+	food.Attach(api.Group("/food"), stg, logger)
+	journal.Attach(api.Group("/journal"), stg, logger)
+	settings.Attach(api.Group("/settings"), stg, logger)
+	weight.Attach(api.Group("/weight"), stg, logger)
 }

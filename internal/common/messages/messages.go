@@ -17,9 +17,3 @@ const (
 
 	MsgOK = "OK"
 )
-
-const (
-	MsgClassError   = "danger"
-	MsgClassWarning = "warning"
-	MsgClassInfo    = "primary"
-)

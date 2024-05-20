@@ -12,6 +12,15 @@ import (
 	"go.uber.org/zap"
 )
 
+type FoodHandler struct {
+	stg    storage.Storage
+	logger *zap.Logger
+}
+
+func NewFoodHander(stg storage.Storage, logger *zap.Logger) *FoodHandler {
+	return &FoodHandler{stg: stg, logger: logger}
+}
+
 type FoodResponseItem struct {
 	Key     string  `json:"key"`
 	Name    string  `json:"name"`
