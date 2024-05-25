@@ -95,20 +95,11 @@ func (r *FoodHandler) GetAPI(c *gin.Context) {
 	}))
 }
 
-type DeleteFoodRequest struct {
-	Key string `json:"key"`
-}
-
 func (r *FoodHandler) DeleteAPI(c *gin.Context) {
-	req := &DeleteFoodRequest{}
-	if err := c.BindJSON(&req); err != nil {
-		return
-	}
-
 	ctx, cancel := context.WithTimeout(context.Background(), storage.StorageOperationTimeout)
 	defer cancel()
 
-	if err := r.stg.DeleteFood(ctx, req.Key); err != nil {
+	if err := r.stg.DeleteFood(ctx, c.Param("key")); err != nil {
 		if errors.Is(err, storage.ErrFoodIsUsed) {
 			c.JSON(http.StatusOK, model.NewErrorResponse(messages.MsgErrFoodIsUsed))
 			return
