@@ -5,6 +5,7 @@ const (
 	MsgErrUnderCon       = "Функционал находится в разработке"
 	MsgErrInvalidCommand = "Неправильная команда"
 	MsgErrEmptyList      = "Пустой результат"
+	MsgErrBadRequest     = "Неправильный запрос"
 
 	MsgErrFoodNotFound = "Еда не найдена в базе данных"
 	MsgErrFoodIsUsed   = "Еда уже используется в журнале приема пищи"
