@@ -33,6 +33,8 @@ func (r *CmdProcessor) processFood(cmdParts []string, userID int64) []CmdRespons
 		resp = r.foodSetCommand(cmdParts[1:], userID)
 	case "sc":
 		resp = r.foodSetCommentCommand(cmdParts[1:], userID)
+	case "st":
+		resp = r.foodSetTemplateCommand(cmdParts[1:], userID)
 	case "find":
 		resp = r.foodFindCommand(cmdParts[1:], userID)
 	case "calc":
@@ -178,6 +180,51 @@ func (r *CmdProcessor) foodSetCommentCommand(cmdParts []string, userID int64) []
 	}
 
 	return NewSingleCmdResponse(messages.MsgOK)
+}
+
+func (r *CmdProcessor) foodSetTemplateCommand(cmdParts []string, userID int64) []CmdResponse {
+	if len(cmdParts) != 1 {
+		r.logger.Error(
+			"invalid food set template command",
+			zap.String("reason", "len parts"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+		)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
+	}
+
+	// Get food from DB
+	ctx, cancel := context.WithTimeout(context.Background(), storage.StorageOperationTimeout)
+	defer cancel()
+
+	food, err := r.stg.GetFood(ctx, cmdParts[0])
+	if err != nil {
+		if errors.Is(err, storage.ErrFoodNotFound) {
+			return NewSingleCmdResponse(messages.MsgErrFoodNotFound)
+		}
+
+		r.logger.Error(
+			"food set template command DB error",
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
+
+		return NewSingleCmdResponse(messages.MsgErrInternal)
+	}
+
+	foodSetTemplate := fmt.Sprintf(
+		"f,set,%s,%s,%s,%.2f,%.2f,%.2f,%.2f,%s",
+		food.Key,
+		food.Name,
+		food.Brand,
+		food.Cal100,
+		food.Prot100,
+		food.Fat100,
+		food.Carb100,
+		food.Comment,
+	)
+	return NewSingleCmdResponse(foodSetTemplate, optsHTML)
 }
 
 func (r *CmdProcessor) foodFindCommand(cmdParts []string, userID int64) []CmdResponse {

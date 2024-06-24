@@ -786,7 +786,7 @@ func (r *CmdProcessor) journalTemplateMealCommand(cmdParts []string, userID int6
 }
 
 func (r *CmdProcessor) journalFoodAvgWeightCommand(cmdParts []string, userID int64) []CmdResponse {
-	if len(cmdParts) != 3 {
+	if len(cmdParts) != 1 {
 		r.logger.Error(
 			"invalid journal fa command",
 			zap.String("reason", "len parts"),
@@ -796,36 +796,14 @@ func (r *CmdProcessor) journalFoodAvgWeightCommand(cmdParts []string, userID int
 		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
-	// Parse timestamp
-	tsFrom, err := r.parseTimestamp(cmdParts[0])
-	if err != nil {
-		r.logger.Error(
-			"invalid journal fa command",
-			zap.String("reason", "ts from format"),
-			zap.Strings("command", cmdParts),
-			zap.Int64("userid", userID),
-			zap.Error(err),
-		)
-		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
-	}
-
-	tsTo, err := r.parseTimestamp(cmdParts[1])
-	if err != nil {
-		r.logger.Error(
-			"invalid journal fa command",
-			zap.String("reason", "ts to format"),
-			zap.Strings("command", cmdParts),
-			zap.Int64("userid", userID),
-			zap.Error(err),
-		)
-		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
-	}
+	tsTo := time.Now()
+	tsFrom := tsTo.AddDate(-1, 0, 0)
 
 	// Get data from DB
 	ctx, cancel := context.WithTimeout(context.Background(), storage.StorageOperationTimeout*2)
 	defer cancel()
 
-	avgW, err := r.stg.GetJournalFoodAvgWeight(ctx, userID, tsFrom, tsTo, cmdParts[2])
+	avgW, err := r.stg.GetJournalFoodAvgWeight(ctx, userID, tsFrom, tsTo, cmdParts[0])
 	if err != nil {
 		if errors.Is(err, storage.ErrJournalInvalidFood) {
 			return NewSingleCmdResponse(messages.MsgErrFoodNotFound)
@@ -841,7 +819,7 @@ func (r *CmdProcessor) journalFoodAvgWeightCommand(cmdParts []string, userID int
 		return NewSingleCmdResponse(messages.MsgErrInternal)
 	}
 
-	return NewSingleCmdResponse(fmt.Sprintf("Средний вес за все приемы пищи: %.1fг.", avgW))
+	return NewSingleCmdResponse(fmt.Sprintf("Средний вес прима пищи за год: %.1fг.", avgW))
 }
 
 func calDiffSnippet(us *storage.UserSettings, cal float64) html.IELement {
