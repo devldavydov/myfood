@@ -18,6 +18,7 @@ type Storage interface {
 	SetBundle(ctx context.Context, userID int64, bndl *Bundle) error
 	GetBundle(ctx context.Context, userID int64, key string) (*Bundle, error)
 	GetBundleList(ctx context.Context, userID int64) ([]Bundle, error)
+	GetBundleFood(ctx context.Context, userID int64, key string) (map[string]float64, error)
 	DeleteBundle(ctx context.Context, userID int64, key string) error
 
 	// Weight

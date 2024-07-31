@@ -397,15 +397,26 @@ func (r *StorageSQLite) SetBundle(ctx context.Context, userID int64, bndl *Bundl
 
 func (r *StorageSQLite) GetBundle(ctx context.Context, userID int64, key string) (*Bundle, error) {
 	res, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
-		return tx.Bundle.
-			Query().
-			Where(
-				bundle.Userid(userID),
-				bundle.Key(key),
-			).
-			First(ctx)
+		return r.getBundle(ctx, tx, userID, key)
 	})
 
+	if err != nil {
+		return nil, err
+	}
+
+	bndl, _ := res.(*ent.Bundle)
+
+	return &Bundle{Key: bndl.Key, Data: bndl.Data}, nil
+}
+
+func (r *StorageSQLite) getBundle(ctx context.Context, tx *ent.Tx, userID int64, key string) (*ent.Bundle, error) {
+	res, err := tx.Bundle.
+		Query().
+		Where(
+			bundle.Userid(userID),
+			bundle.Key(key),
+		).
+		First(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, ErrBundleNotFound
@@ -413,9 +424,7 @@ func (r *StorageSQLite) GetBundle(ctx context.Context, userID int64, key string)
 		return nil, err
 	}
 
-	bndl, _ := res.(*ent.Bundle)
-
-	return &Bundle{Key: bndl.Key, Data: bndl.Data}, nil
+	return res, nil
 }
 
 func (r *StorageSQLite) GetBundleList(ctx context.Context, userID int64) ([]Bundle, error) {
@@ -441,6 +450,45 @@ func (r *StorageSQLite) GetBundleList(ctx context.Context, userID int64) ([]Bund
 	}
 
 	return bLst, nil
+}
+
+func (r *StorageSQLite) GetBundleFood(ctx context.Context, userID int64, key string) (map[string]float64, error) {
+	resFood := make(map[string]float64)
+
+	_, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+		// Get bundle.
+		bndl, err := r.getBundle(ctx, tx, userID, key)
+		if err != nil {
+			return nil, err
+		}
+
+		// Get bundle food items.
+		return nil, r.getBundleFoodItems(ctx, tx, userID, bndl.Data, resFood)
+	})
+
+	return resFood, err
+}
+
+func (r *StorageSQLite) getBundleFoodItems(ctx context.Context, tx *ent.Tx, userID int64, bndlData, foodItems map[string]float64) error {
+	for k, v := range bndlData {
+		if v > 0 {
+			// If food - add to result map.
+			foodItems[k] = v
+			continue
+		}
+
+		// If bundle - get from DB and call recursive.
+		bndl, err := r.getBundle(ctx, tx, userID, k)
+		if err != nil {
+			return err
+		}
+
+		if err := r.getBundleFoodItems(ctx, tx, userID, bndl.Data, foodItems); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (r *StorageSQLite) DeleteBundle(ctx context.Context, userID int64, key string) error {

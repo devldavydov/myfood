@@ -787,6 +787,108 @@ func (r *StorageSQLiteTestSuite) TestBundleCRUD() {
 	})
 }
 
+func (r *StorageSQLiteTestSuite) TestGetBundleFood() {
+	r.Run("add food", func() {
+		r.NoError(r.stg.SetFood(context.TODO(), &Food{
+			Key: "food_a", Name: "aaa", Brand: "brand a", Cal100: 1, Prot100: 2, Fat100: 3, Carb100: 4, Comment: "Comment",
+		}))
+		r.NoError(r.stg.SetFood(context.TODO(), &Food{
+			Key: "food_b", Name: "bbb", Brand: "brand b", Cal100: 5, Prot100: 6, Fat100: 7, Carb100: 8, Comment: "",
+		}))
+		r.NoError(r.stg.SetFood(context.TODO(), &Food{
+			Key: "food_c", Name: "ccc", Brand: "brand c", Cal100: 1, Prot100: 1, Fat100: 1, Carb100: 1, Comment: "ccc",
+		}))
+		r.NoError(r.stg.SetFood(context.TODO(), &Food{
+			Key: "food_d", Name: "ddd", Brand: "brand d", Cal100: 1, Prot100: 1, Fat100: 1, Carb100: 1, Comment: "ccc",
+		}))
+		r.NoError(r.stg.SetFood(context.TODO(), &Food{
+			Key: "food_e", Name: "eee", Brand: "brand e", Cal100: 1, Prot100: 1, Fat100: 1, Carb100: 1, Comment: "ccc",
+		}))
+	})
+
+	r.Run("create bundles", func() {
+		r.NoError(r.stg.SetBundle(context.TODO(), 1, &Bundle{
+			Key: "bndl1",
+			Data: map[string]float64{
+				"food_a": 1,
+			},
+		}))
+		r.NoError(r.stg.SetBundle(context.TODO(), 1, &Bundle{
+			Key: "bndl2",
+			Data: map[string]float64{
+				"food_b": 2,
+				"bndl1":  0,
+			},
+		}))
+		r.NoError(r.stg.SetBundle(context.TODO(), 1, &Bundle{
+			Key: "bndl3",
+			Data: map[string]float64{
+				"food_c": 3,
+				"bndl2":  0,
+			},
+		}))
+		r.NoError(r.stg.SetBundle(context.TODO(), 1, &Bundle{
+			Key: "bndl4",
+			Data: map[string]float64{
+				"food_d": 4,
+				"bndl3":  0,
+			},
+		}))
+		r.NoError(r.stg.SetBundle(context.TODO(), 1, &Bundle{
+			Key: "bndl5",
+			Data: map[string]float64{
+				"food_e": 5,
+				"bndl4":  0,
+			},
+		}))
+		//
+		r.NoError(r.stg.SetBundle(context.TODO(), 1, &Bundle{
+			Key: "bndlA",
+			Data: map[string]float64{
+				"food_a": 1,
+				"food_b": 2,
+			},
+		}))
+		r.NoError(r.stg.SetBundle(context.TODO(), 1, &Bundle{
+			Key: "bndlB",
+			Data: map[string]float64{
+				"food_c": 3,
+				"food_d": 4,
+			},
+		}))
+		r.NoError(r.stg.SetBundle(context.TODO(), 1, &Bundle{
+			Key: "bndlC",
+			Data: map[string]float64{
+				"food_e": 5,
+				"bndlA":  0,
+				"bndlB":  0,
+			},
+		}))
+	})
+
+	r.Run("get bundle food", func() {
+		res, err := r.stg.GetBundleFood(context.TODO(), 1, "bndl5")
+		r.NoError(err)
+		r.Equal(map[string]float64{
+			"food_a": 1,
+			"food_b": 2,
+			"food_c": 3,
+			"food_d": 4,
+			"food_e": 5,
+		}, res)
+		//
+		res, err = r.stg.GetBundleFood(context.TODO(), 1, "bndlC")
+		r.NoError(err)
+		r.Equal(map[string]float64{
+			"food_a": 1,
+			"food_b": 2,
+			"food_c": 3,
+			"food_d": 4,
+			"food_e": 5,
+		}, res)
+	})
+}
+
 //
 // Suite setup
 //
