@@ -128,3 +128,26 @@ type UserSettings struct {
 func (r *UserSettings) Validate() bool {
 	return r.CalLimit > 0
 }
+
+type Bundle struct {
+	Key string
+	// Map of bundle data
+	// Variants:
+	// if food: food_key -> weight > 0
+	// if bundle: bundle_key -> 0
+	Data map[string]float64
+}
+
+func (r *Bundle) Validate() bool {
+	if r.Key == "" || len(r.Data) == 0 {
+		return false
+	}
+
+	for _, v := range r.Data {
+		if v < 0 {
+			return false
+		}
+	}
+
+	return true
+}

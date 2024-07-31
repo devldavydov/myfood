@@ -12,9 +12,8 @@ const (
 
 	MsgErrUserSettingsNotFound = "Не найдены пользовательские настройки"
 
-	MsgErrJournalNotStartOfWeek = "Дата не является началом недели"
-	MsgErrJournalCopy           = "Не пустое назначение копирования"
-	MsgJournalCopied            = "Скопировано записей: %d"
+	MsgErrJournalCopy = "Не пустое назначение копирования"
+	MsgJournalCopied  = "Скопировано записей: %d"
 
 	MsgOK = "OK"
 )

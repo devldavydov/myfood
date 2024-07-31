@@ -9,6 +9,15 @@ var (
 	ErrFoodEmptyList = errors.New("empty food list")
 	ErrFoodIsUsed    = errors.New("food is used")
 
+	// Bundle
+	ErrBundleInvalid           = errors.New("invalid bundle")
+	ErrBundleNotFound          = errors.New("bundle not found")
+	ErrBundleEmptyList         = errors.New("empty bundle list")
+	ErrBundleDepBundleNotFound = errors.New("dependent bundle not found")
+	ErrBundleDepFoodNotFound   = errors.New("dependent food not found")
+	ErrBundleDepRecursive      = errors.New("dependent recursive bundle not allowed")
+	ErrBundleIsUsed            = errors.New("bundle is used")
+
 	// Journal
 	ErrJournalInvalid         = errors.New("journal invalid")
 	ErrJournalMealReportEmpty = errors.New("empty journal meal report")

@@ -14,6 +14,12 @@ type Storage interface {
 	FindFood(ctx context.Context, pattern string) ([]Food, error)
 	DeleteFood(ctx context.Context, key string) error
 
+	// Bundle
+	SetBundle(ctx context.Context, userID int64, bndl *Bundle) error
+	GetBundle(ctx context.Context, userID int64, key string) (*Bundle, error)
+	GetBundleList(ctx context.Context, userID int64) ([]Bundle, error)
+	DeleteBundle(ctx context.Context, userID int64, key string) error
+
 	// Weight
 	GetWeightList(ctx context.Context, userID int64, from, to time.Time) ([]Weight, error)
 	SetWeight(ctx context.Context, userID int64, weight *Weight) error

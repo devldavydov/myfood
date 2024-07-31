@@ -616,6 +616,178 @@ func (r *StorageSQLiteTestSuite) TestJournalCopy() {
 }
 
 //
+// Bundle
+//
+
+func (r *StorageSQLiteTestSuite) TestBundleCRUD() {
+	r.Run("add food", func() {
+		r.NoError(r.stg.SetFood(context.TODO(), &Food{
+			Key: "food_a", Name: "aaa", Brand: "brand a", Cal100: 1, Prot100: 2, Fat100: 3, Carb100: 4, Comment: "Comment",
+		}))
+		r.NoError(r.stg.SetFood(context.TODO(), &Food{
+			Key: "food_b", Name: "bbb", Brand: "brand b", Cal100: 5, Prot100: 6, Fat100: 7, Carb100: 8, Comment: "",
+		}))
+		r.NoError(r.stg.SetFood(context.TODO(), &Food{
+			Key: "food_c", Name: "ccc", Brand: "brand c", Cal100: 1, Prot100: 1, Fat100: 1, Carb100: 1, Comment: "ccc",
+		}))
+	})
+
+	r.Run("set invalid bundle", func() {
+		r.ErrorIs(r.stg.SetBundle(
+			context.TODO(), 1, &Bundle{},
+		), ErrBundleInvalid)
+		r.ErrorIs(r.stg.SetBundle(
+			context.TODO(), 1, &Bundle{Key: "bndl"},
+		), ErrBundleInvalid)
+		r.ErrorIs(r.stg.SetBundle(
+			context.TODO(), 1, &Bundle{Data: map[string]float64{"food_a": 10}},
+		), ErrBundleInvalid)
+		r.ErrorIs(r.stg.SetBundle(
+			context.TODO(), 1, &Bundle{Data: map[string]float64{"food_a": -10}, Key: "bndl"},
+		), ErrBundleInvalid)
+	})
+
+	r.Run("set bundle with unknown food", func() {
+		r.ErrorIs(r.stg.SetBundle(context.TODO(), 1, &Bundle{
+			Key: "bndl1",
+			Data: map[string]float64{
+				"food_a": 10,
+				"food_d": 11,
+			},
+		}), ErrBundleDepFoodNotFound)
+	})
+
+	r.Run("set bundle success", func() {
+		r.NoError(r.stg.SetBundle(context.TODO(), 1, &Bundle{
+			Key: "bndl1",
+			Data: map[string]float64{
+				"food_a": 10,
+				"food_b": 11,
+			},
+		}))
+	})
+
+	r.Run("set bundle success for another user", func() {
+		r.NoError(r.stg.SetBundle(context.TODO(), 2, &Bundle{
+			Key: "bndl3",
+			Data: map[string]float64{
+				"food_a": 10,
+				"food_b": 11,
+			},
+		}))
+	})
+
+	r.Run("set bundle with not found dependent bundle", func() {
+		r.ErrorIs(r.stg.SetBundle(context.TODO(), 1, &Bundle{
+			Key: "bndl2",
+			Data: map[string]float64{
+				"food_a": 10,
+				"food_b": 11,
+				"bndl3":  0, // not work, because bundle3 for user 2.
+			},
+		}), ErrBundleDepBundleNotFound)
+	})
+
+	r.Run("set bundle with dependent bundle", func() {
+		r.NoError(r.stg.SetBundle(context.TODO(), 1, &Bundle{
+			Key: "bndl2",
+			Data: map[string]float64{
+				"food_a": 10,
+				"food_b": 11,
+				"bndl1":  0,
+			},
+		}))
+	})
+
+	r.Run("set bundle with recursive dependent bundle", func() {
+		r.ErrorIs(r.stg.SetBundle(context.TODO(), 1, &Bundle{
+			Key: "bndl2",
+			Data: map[string]float64{
+				"food_a": 10,
+				"food_b": 11,
+				"bndl2":  0,
+			},
+		}), ErrBundleDepRecursive)
+	})
+
+	r.Run("get unknown bundle", func() {
+		_, err := r.stg.GetBundle(context.TODO(), 1, "bndl3")
+		r.ErrorIs(err, ErrBundleNotFound)
+	})
+
+	r.Run("get bundle", func() {
+		bndl, err := r.stg.GetBundle(context.TODO(), 1, "bndl2")
+		r.NoError(err)
+		r.Equal(bndl, &Bundle{
+			Key: "bndl2",
+			Data: map[string]float64{
+				"bndl1":  0,
+				"food_a": 10,
+				"food_b": 11,
+			},
+		})
+	})
+
+	r.Run("get bundle list", func() {
+		bndls, err := r.stg.GetBundleList(context.TODO(), 1)
+		r.NoError(err)
+		r.Equal(bndls, []Bundle{
+			{Key: "bndl1", Data: map[string]float64{
+				"food_a": 10,
+				"food_b": 11,
+			}},
+			{Key: "bndl2", Data: map[string]float64{
+				"food_a": 10,
+				"food_b": 11,
+				"bndl1":  0,
+			}},
+		})
+	})
+
+	r.Run("update bundle", func() {
+		r.NoError(r.stg.SetBundle(context.TODO(), 1, &Bundle{
+			Key: "bndl2",
+			Data: map[string]float64{
+				"food_a": 20,
+				"food_b": 30,
+				"bndl1":  0,
+			},
+		}))
+	})
+
+	r.Run("get bundle", func() {
+		bndl, err := r.stg.GetBundle(context.TODO(), 1, "bndl2")
+		r.NoError(err)
+		r.Equal(bndl, &Bundle{
+			Key: "bndl2",
+			Data: map[string]float64{
+				"bndl1":  0,
+				"food_a": 20,
+				"food_b": 30,
+			},
+		})
+	})
+
+	r.Run("try delete when bundle is used", func() {
+		r.ErrorIs(r.stg.DeleteBundle(context.TODO(), 1, "bndl1"), ErrBundleIsUsed)
+	})
+
+	r.Run("try delete food used in bundle", func() {
+		r.ErrorIs(r.stg.DeleteFood(context.TODO(), "food_a"), ErrFoodIsUsed)
+	})
+
+	r.Run("delete bundles success", func() {
+		r.NoError(r.stg.DeleteBundle(context.TODO(), 1, "bndl2"))
+		r.NoError(r.stg.DeleteBundle(context.TODO(), 1, "bndl1"))
+	})
+
+	r.Run("empty bundle list", func() {
+		_, err := r.stg.GetBundleList(context.TODO(), 1)
+		r.ErrorIs(err, ErrBundleEmptyList)
+	})
+}
+
+//
 // Suite setup
 //
 

@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
 	"github.com/devldavydov/myfood/internal/storage/ent"
+	"github.com/devldavydov/myfood/internal/storage/ent/bundle"
 	"github.com/devldavydov/myfood/internal/storage/ent/food"
 	"github.com/devldavydov/myfood/internal/storage/ent/journal"
 	"github.com/devldavydov/myfood/internal/storage/ent/usersettings"
@@ -290,6 +291,21 @@ func (r *StorageSQLite) FindFood(ctx context.Context, pattern string) ([]Food, e
 
 func (r *StorageSQLite) DeleteFood(ctx context.Context, key string) error {
 	_, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+		// Check food in bundles.
+		bndls, err := tx.Bundle.Query().All(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, bndl := range bndls {
+			for k, v := range bndl.Data {
+				if v > 0 && k == key {
+					return nil, ErrFoodIsUsed
+				}
+			}
+		}
+
+		// Delete food.
 		return tx.Food.
 			Delete().
 			Where(food.Key(key)).
@@ -314,6 +330,147 @@ func foodFromEntFood(ef *ent.Food) *Food {
 		Carb100: ef.Carb100,
 		Comment: ef.Comment,
 	}
+}
+
+//
+// Bundle
+//
+
+func (r *StorageSQLite) SetBundle(ctx context.Context, userID int64, bndl *Bundle) error {
+	if !bndl.Validate() {
+		return ErrBundleInvalid
+	}
+
+	_, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+		// Check bundle data
+		for k, v := range bndl.Data {
+			if v == 0 {
+				// Dependent bundle.
+
+				// Check in DB.
+				_, err := tx.Bundle.
+					Query().
+					Where(
+						bundle.Key(k),
+						bundle.Userid(userID),
+					).
+					First(ctx)
+				if err != nil {
+					if ent.IsNotFound(err) {
+						return nil, ErrBundleDepBundleNotFound
+					}
+					return nil, err
+				}
+
+				// If same key - recursive not allowed.
+				if k == bndl.Key {
+					return nil, ErrBundleDepRecursive
+				}
+			} else {
+				// Dependent food, check in DB
+				_, err := tx.Food.
+					Query().
+					Where(food.Key(k)).
+					First(ctx)
+				if err != nil {
+					if ent.IsNotFound(err) {
+						return nil, ErrBundleDepFoodNotFound
+					}
+					return nil, err
+				}
+			}
+		}
+
+		// Set bundle in DB
+		return tx.Bundle.
+			Create().
+			SetUserid(userID).
+			SetKey(bndl.Key).
+			SetData(bndl.Data).
+			OnConflict().
+			UpdateNewValues().
+			ID(ctx)
+	})
+
+	return err
+}
+
+func (r *StorageSQLite) GetBundle(ctx context.Context, userID int64, key string) (*Bundle, error) {
+	res, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+		return tx.Bundle.
+			Query().
+			Where(
+				bundle.Userid(userID),
+				bundle.Key(key),
+			).
+			First(ctx)
+	})
+
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, ErrBundleNotFound
+		}
+		return nil, err
+	}
+
+	bndl, _ := res.(*ent.Bundle)
+
+	return &Bundle{Key: bndl.Key, Data: bndl.Data}, nil
+}
+
+func (r *StorageSQLite) GetBundleList(ctx context.Context, userID int64) ([]Bundle, error) {
+	res, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+		return tx.Bundle.
+			Query().
+			Where(bundle.Userid(userID)).
+			Order(bundle.ByKey()).
+			All(ctx)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	beLst, _ := res.([]*ent.Bundle)
+	if len(beLst) == 0 {
+		return nil, ErrBundleEmptyList
+	}
+
+	bLst := make([]Bundle, 0, len(beLst))
+	for _, b := range beLst {
+		bLst = append(bLst, Bundle{Key: b.Key, Data: b.Data})
+	}
+
+	return bLst, nil
+}
+
+func (r *StorageSQLite) DeleteBundle(ctx context.Context, userID int64, key string) error {
+	_, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+		// Check that bundle not used in other bundles.
+		bndls, err := tx.Bundle.
+			Query().
+			Where(bundle.Userid(userID)).
+			All(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, bndl := range bndls {
+			for k, v := range bndl.Data {
+				if v == 0 && k == key {
+					return nil, ErrBundleIsUsed
+				}
+			}
+		}
+
+		return tx.Bundle.
+			Delete().
+			Where(
+				bundle.Userid(userID),
+				bundle.Key(key),
+			).Exec(ctx)
+	})
+
+	return err
 }
 
 //
