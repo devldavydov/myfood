@@ -8,6 +8,26 @@ import (
 )
 
 var (
+	// BundlesColumns holds the columns for the "bundles" table.
+	BundlesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "userid", Type: field.TypeInt64},
+		{Name: "key", Type: field.TypeString},
+		{Name: "data", Type: field.TypeJSON},
+	}
+	// BundlesTable holds the schema information for the "bundles" table.
+	BundlesTable = &schema.Table{
+		Name:       "bundles",
+		Columns:    BundlesColumns,
+		PrimaryKey: []*schema.Column{BundlesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "bundle_userid_key",
+				Unique:  true,
+				Columns: []*schema.Column{BundlesColumns[1], BundlesColumns[2]},
+			},
+		},
+	}
 	// FoodsColumns holds the columns for the "foods" table.
 	FoodsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -90,6 +110,7 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		BundlesTable,
 		FoodsTable,
 		JournalsTable,
 		UserSettingsTable,

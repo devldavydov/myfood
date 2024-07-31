@@ -6,6 +6,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// Bundle is the predicate function for bundle builders.
+type Bundle func(*sql.Selector)
+
 // Food is the predicate function for food builders.
 type Food func(*sql.Selector)
 

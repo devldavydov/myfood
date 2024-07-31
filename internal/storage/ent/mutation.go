@@ -11,6 +11,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/devldavydov/myfood/internal/storage/ent/bundle"
 	"github.com/devldavydov/myfood/internal/storage/ent/food"
 	"github.com/devldavydov/myfood/internal/storage/ent/journal"
 	"github.com/devldavydov/myfood/internal/storage/ent/predicate"
@@ -27,11 +28,482 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
+	TypeBundle       = "Bundle"
 	TypeFood         = "Food"
 	TypeJournal      = "Journal"
 	TypeUserSettings = "UserSettings"
 	TypeWeight       = "Weight"
 )
+
+// BundleMutation represents an operation that mutates the Bundle nodes in the graph.
+type BundleMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *int
+	userid        *int64
+	adduserid     *int64
+	key           *string
+	data          *map[string]float64
+	clearedFields map[string]struct{}
+	done          bool
+	oldValue      func(context.Context) (*Bundle, error)
+	predicates    []predicate.Bundle
+}
+
+var _ ent.Mutation = (*BundleMutation)(nil)
+
+// bundleOption allows management of the mutation configuration using functional options.
+type bundleOption func(*BundleMutation)
+
+// newBundleMutation creates new mutation for the Bundle entity.
+func newBundleMutation(c config, op Op, opts ...bundleOption) *BundleMutation {
+	m := &BundleMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeBundle,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withBundleID sets the ID field of the mutation.
+func withBundleID(id int) bundleOption {
+	return func(m *BundleMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Bundle
+		)
+		m.oldValue = func(ctx context.Context) (*Bundle, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Bundle.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withBundle sets the old Bundle of the mutation.
+func withBundle(node *Bundle) bundleOption {
+	return func(m *BundleMutation) {
+		m.oldValue = func(context.Context) (*Bundle, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m BundleMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m BundleMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *BundleMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *BundleMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().Bundle.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetUserid sets the "userid" field.
+func (m *BundleMutation) SetUserid(i int64) {
+	m.userid = &i
+	m.adduserid = nil
+}
+
+// Userid returns the value of the "userid" field in the mutation.
+func (m *BundleMutation) Userid() (r int64, exists bool) {
+	v := m.userid
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUserid returns the old "userid" field's value of the Bundle entity.
+// If the Bundle object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BundleMutation) OldUserid(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUserid is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUserid requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUserid: %w", err)
+	}
+	return oldValue.Userid, nil
+}
+
+// AddUserid adds i to the "userid" field.
+func (m *BundleMutation) AddUserid(i int64) {
+	if m.adduserid != nil {
+		*m.adduserid += i
+	} else {
+		m.adduserid = &i
+	}
+}
+
+// AddedUserid returns the value that was added to the "userid" field in this mutation.
+func (m *BundleMutation) AddedUserid() (r int64, exists bool) {
+	v := m.adduserid
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetUserid resets all changes to the "userid" field.
+func (m *BundleMutation) ResetUserid() {
+	m.userid = nil
+	m.adduserid = nil
+}
+
+// SetKey sets the "key" field.
+func (m *BundleMutation) SetKey(s string) {
+	m.key = &s
+}
+
+// Key returns the value of the "key" field in the mutation.
+func (m *BundleMutation) Key() (r string, exists bool) {
+	v := m.key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldKey returns the old "key" field's value of the Bundle entity.
+// If the Bundle object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BundleMutation) OldKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKey: %w", err)
+	}
+	return oldValue.Key, nil
+}
+
+// ResetKey resets all changes to the "key" field.
+func (m *BundleMutation) ResetKey() {
+	m.key = nil
+}
+
+// SetData sets the "data" field.
+func (m *BundleMutation) SetData(value map[string]float64) {
+	m.data = &value
+}
+
+// Data returns the value of the "data" field in the mutation.
+func (m *BundleMutation) Data() (r map[string]float64, exists bool) {
+	v := m.data
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldData returns the old "data" field's value of the Bundle entity.
+// If the Bundle object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BundleMutation) OldData(ctx context.Context) (v map[string]float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldData is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldData requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldData: %w", err)
+	}
+	return oldValue.Data, nil
+}
+
+// ResetData resets all changes to the "data" field.
+func (m *BundleMutation) ResetData() {
+	m.data = nil
+}
+
+// Where appends a list predicates to the BundleMutation builder.
+func (m *BundleMutation) Where(ps ...predicate.Bundle) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the BundleMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *BundleMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.Bundle, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *BundleMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *BundleMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (Bundle).
+func (m *BundleMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *BundleMutation) Fields() []string {
+	fields := make([]string, 0, 3)
+	if m.userid != nil {
+		fields = append(fields, bundle.FieldUserid)
+	}
+	if m.key != nil {
+		fields = append(fields, bundle.FieldKey)
+	}
+	if m.data != nil {
+		fields = append(fields, bundle.FieldData)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *BundleMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case bundle.FieldUserid:
+		return m.Userid()
+	case bundle.FieldKey:
+		return m.Key()
+	case bundle.FieldData:
+		return m.Data()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *BundleMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case bundle.FieldUserid:
+		return m.OldUserid(ctx)
+	case bundle.FieldKey:
+		return m.OldKey(ctx)
+	case bundle.FieldData:
+		return m.OldData(ctx)
+	}
+	return nil, fmt.Errorf("unknown Bundle field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BundleMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case bundle.FieldUserid:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUserid(v)
+		return nil
+	case bundle.FieldKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetKey(v)
+		return nil
+	case bundle.FieldData:
+		v, ok := value.(map[string]float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetData(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Bundle field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *BundleMutation) AddedFields() []string {
+	var fields []string
+	if m.adduserid != nil {
+		fields = append(fields, bundle.FieldUserid)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *BundleMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case bundle.FieldUserid:
+		return m.AddedUserid()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BundleMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case bundle.FieldUserid:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddUserid(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Bundle numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *BundleMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *BundleMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *BundleMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown Bundle nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *BundleMutation) ResetField(name string) error {
+	switch name {
+	case bundle.FieldUserid:
+		m.ResetUserid()
+		return nil
+	case bundle.FieldKey:
+		m.ResetKey()
+		return nil
+	case bundle.FieldData:
+		m.ResetData()
+		return nil
+	}
+	return fmt.Errorf("unknown Bundle field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *BundleMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *BundleMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *BundleMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *BundleMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *BundleMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *BundleMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *BundleMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown Bundle unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *BundleMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown Bundle edge %s", name)
+}
 
 // FoodMutation represents an operation that mutates the Food nodes in the graph.
 type FoodMutation struct {

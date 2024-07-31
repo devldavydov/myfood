@@ -15,6 +15,7 @@ import (
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/devldavydov/myfood/internal/storage/ent/bundle"
 	"github.com/devldavydov/myfood/internal/storage/ent/food"
 	"github.com/devldavydov/myfood/internal/storage/ent/journal"
 	"github.com/devldavydov/myfood/internal/storage/ent/usersettings"
@@ -26,6 +27,8 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// Bundle is the client for interacting with the Bundle builders.
+	Bundle *BundleClient
 	// Food is the client for interacting with the Food builders.
 	Food *FoodClient
 	// Journal is the client for interacting with the Journal builders.
@@ -45,6 +48,7 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.Bundle = NewBundleClient(c.config)
 	c.Food = NewFoodClient(c.config)
 	c.Journal = NewJournalClient(c.config)
 	c.UserSettings = NewUserSettingsClient(c.config)
@@ -141,6 +145,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	return &Tx{
 		ctx:          ctx,
 		config:       cfg,
+		Bundle:       NewBundleClient(cfg),
 		Food:         NewFoodClient(cfg),
 		Journal:      NewJournalClient(cfg),
 		UserSettings: NewUserSettingsClient(cfg),
@@ -164,6 +169,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	return &Tx{
 		ctx:          ctx,
 		config:       cfg,
+		Bundle:       NewBundleClient(cfg),
 		Food:         NewFoodClient(cfg),
 		Journal:      NewJournalClient(cfg),
 		UserSettings: NewUserSettingsClient(cfg),
@@ -174,7 +180,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		Food.
+//		Bundle.
 //		Query().
 //		Count(ctx)
 func (c *Client) Debug() *Client {
@@ -196,6 +202,7 @@ func (c *Client) Close() error {
 // Use adds the mutation hooks to all the entity clients.
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
+	c.Bundle.Use(hooks...)
 	c.Food.Use(hooks...)
 	c.Journal.Use(hooks...)
 	c.UserSettings.Use(hooks...)
@@ -205,6 +212,7 @@ func (c *Client) Use(hooks ...Hook) {
 // Intercept adds the query interceptors to all the entity clients.
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
+	c.Bundle.Intercept(interceptors...)
 	c.Food.Intercept(interceptors...)
 	c.Journal.Intercept(interceptors...)
 	c.UserSettings.Intercept(interceptors...)
@@ -214,6 +222,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 // Mutate implements the ent.Mutator interface.
 func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
+	case *BundleMutation:
+		return c.Bundle.mutate(ctx, m)
 	case *FoodMutation:
 		return c.Food.mutate(ctx, m)
 	case *JournalMutation:
@@ -224,6 +234,139 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Weight.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
+	}
+}
+
+// BundleClient is a client for the Bundle schema.
+type BundleClient struct {
+	config
+}
+
+// NewBundleClient returns a client for the Bundle from the given config.
+func NewBundleClient(c config) *BundleClient {
+	return &BundleClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `bundle.Hooks(f(g(h())))`.
+func (c *BundleClient) Use(hooks ...Hook) {
+	c.hooks.Bundle = append(c.hooks.Bundle, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `bundle.Intercept(f(g(h())))`.
+func (c *BundleClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Bundle = append(c.inters.Bundle, interceptors...)
+}
+
+// Create returns a builder for creating a Bundle entity.
+func (c *BundleClient) Create() *BundleCreate {
+	mutation := newBundleMutation(c.config, OpCreate)
+	return &BundleCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Bundle entities.
+func (c *BundleClient) CreateBulk(builders ...*BundleCreate) *BundleCreateBulk {
+	return &BundleCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *BundleClient) MapCreateBulk(slice any, setFunc func(*BundleCreate, int)) *BundleCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &BundleCreateBulk{err: fmt.Errorf("calling to BundleClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*BundleCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &BundleCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Bundle.
+func (c *BundleClient) Update() *BundleUpdate {
+	mutation := newBundleMutation(c.config, OpUpdate)
+	return &BundleUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *BundleClient) UpdateOne(b *Bundle) *BundleUpdateOne {
+	mutation := newBundleMutation(c.config, OpUpdateOne, withBundle(b))
+	return &BundleUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *BundleClient) UpdateOneID(id int) *BundleUpdateOne {
+	mutation := newBundleMutation(c.config, OpUpdateOne, withBundleID(id))
+	return &BundleUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Bundle.
+func (c *BundleClient) Delete() *BundleDelete {
+	mutation := newBundleMutation(c.config, OpDelete)
+	return &BundleDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *BundleClient) DeleteOne(b *Bundle) *BundleDeleteOne {
+	return c.DeleteOneID(b.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *BundleClient) DeleteOneID(id int) *BundleDeleteOne {
+	builder := c.Delete().Where(bundle.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &BundleDeleteOne{builder}
+}
+
+// Query returns a query builder for Bundle.
+func (c *BundleClient) Query() *BundleQuery {
+	return &BundleQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeBundle},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Bundle entity by its id.
+func (c *BundleClient) Get(ctx context.Context, id int) (*Bundle, error) {
+	return c.Query().Where(bundle.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *BundleClient) GetX(ctx context.Context, id int) *Bundle {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *BundleClient) Hooks() []Hook {
+	return c.hooks.Bundle
+}
+
+// Interceptors returns the client interceptors.
+func (c *BundleClient) Interceptors() []Interceptor {
+	return c.inters.Bundle
+}
+
+func (c *BundleClient) mutate(ctx context.Context, m *BundleMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&BundleCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&BundleUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&BundleUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&BundleDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Bundle mutation op: %q", m.Op())
 	}
 }
 
@@ -794,9 +937,9 @@ func (c *WeightClient) mutate(ctx context.Context, m *WeightMutation) (Value, er
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Food, Journal, UserSettings, Weight []ent.Hook
+		Bundle, Food, Journal, UserSettings, Weight []ent.Hook
 	}
 	inters struct {
-		Food, Journal, UserSettings, Weight []ent.Interceptor
+		Bundle, Food, Journal, UserSettings, Weight []ent.Interceptor
 	}
 )
