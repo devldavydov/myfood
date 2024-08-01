@@ -452,23 +452,6 @@ func (r *StorageSQLite) GetBundleList(ctx context.Context, userID int64) ([]Bund
 	return bLst, nil
 }
 
-func (r *StorageSQLite) GetBundleFood(ctx context.Context, userID int64, key string) (map[string]float64, error) {
-	resFood := make(map[string]float64)
-
-	_, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
-		// Get bundle.
-		bndl, err := r.getBundle(ctx, tx, userID, key)
-		if err != nil {
-			return nil, err
-		}
-
-		// Get bundle food items.
-		return nil, r.getBundleFoodItems(ctx, tx, userID, bndl.Data, resFood)
-	})
-
-	return resFood, err
-}
-
 func (r *StorageSQLite) getBundleFoodItems(ctx context.Context, tx *ent.Tx, userID int64, bndlData, foodItems map[string]float64) error {
 	for k, v := range bndlData {
 		if v > 0 {
@@ -598,10 +581,7 @@ func (r *StorageSQLite) SetJournal(ctx context.Context, userID int64, journal *J
 	}
 
 	_, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
-		food, err := tx.Food.
-			Query().
-			Where(food.Key(journal.FoodKey)).
-			First(ctx)
+		food, err := r.getFoodForJournal(ctx, tx, journal.FoodKey)
 		if err != nil {
 			return nil, err
 		}
@@ -618,11 +598,66 @@ func (r *StorageSQLite) SetJournal(ctx context.Context, userID int64, journal *J
 			ID(ctx)
 	})
 
-	if ent.IsNotFound(err) {
-		return ErrJournalInvalidFood
-	}
+	return err
+}
+
+func (r *StorageSQLite) SetJournalBundle(ctx context.Context, userID int64, timestamp time.Time, meal Meal, bndlKey string) error {
+	_, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+		// Get bundle
+		bndl, err := r.getBundle(ctx, tx, userID, bndlKey)
+		if err != nil {
+			return nil, err
+		}
+
+		// Get food items from bundle.
+		resFood := make(map[string]float64)
+		err = r.getBundleFoodItems(ctx, tx, userID, bndl.Data, resFood)
+		if err != nil {
+			return nil, err
+		}
+
+		// Add food to journal.
+		for foodKey, foodWeight := range resFood {
+			food, err := r.getFoodForJournal(ctx, tx, foodKey)
+			if err != nil {
+				return nil, err
+			}
+
+			_, err = tx.Journal.
+				Create().
+				SetUserid(userID).
+				SetTimestamp(timestamp).
+				SetMeal(int64(meal)).
+				SetFoodweight(foodWeight).
+				SetFood(food).
+				OnConflict().
+				UpdateNewValues().
+				ID(ctx)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		return nil, nil
+	})
 
 	return err
+}
+
+func (r *StorageSQLite) getFoodForJournal(ctx context.Context, tx *ent.Tx, key string) (*ent.Food, error) {
+	food, err := tx.Food.
+		Query().
+		Where(food.Key(key)).
+		First(ctx)
+
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, ErrJournalInvalidFood
+		}
+		return nil, err
+	}
+
+	return food, nil
 }
 
 func (r *StorageSQLite) DeleteJournal(ctx context.Context, userID int64, timestamp time.Time, meal Meal, foodkey string) error {

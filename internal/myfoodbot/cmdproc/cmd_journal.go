@@ -33,6 +33,8 @@ func (r *CmdProcessor) processJournal(cmdParts []string, userID int64) []CmdResp
 	switch cmdParts[0] {
 	case "set":
 		resp = r.journalSetCommand(cmdParts[1:], userID)
+	case "sb":
+		resp = r.journalSetBundleCommand(cmdParts[1:], userID)
 	case "del":
 		resp = r.journalDelCommand(cmdParts[1:], userID)
 	case "dm":
@@ -132,6 +134,58 @@ func (r *CmdProcessor) journalSetCommand(cmdParts []string, userID int64) []CmdR
 	return NewSingleCmdResponse(messages.MsgOK)
 }
 
+func (r *CmdProcessor) journalSetBundleCommand(cmdParts []string, userID int64) []CmdResponse {
+	if len(cmdParts) != 3 {
+		r.logger.Error(
+			"invalid journal set bundle command",
+			zap.String("reason", "len parts"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+		)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
+	}
+
+	// Parse timestamp
+	ts, err := r.parseTimestamp(cmdParts[0])
+	if err != nil {
+		r.logger.Error(
+			"invalid journal set bundle command",
+			zap.String("reason", "ts format"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
+	}
+
+	meal := storage.NewMealFromString(cmdParts[1])
+	bndlKey := cmdParts[2]
+
+	// Save in DB
+	ctx, cancel := context.WithTimeout(context.Background(), storage.StorageOperationTimeout)
+	defer cancel()
+
+	if err := r.stg.SetJournalBundle(ctx, userID, ts, meal, bndlKey); err != nil {
+		if errors.Is(err, storage.ErrJournalInvalidFood) {
+			return NewSingleCmdResponse(messages.MsgErrFoodNotFound)
+		}
+		if errors.Is(err, storage.ErrBundleNotFound) {
+			return NewSingleCmdResponse(messages.MsgErrBundleNotFound)
+		}
+
+		r.logger.Error(
+			"journal set bundle command DB error",
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
+
+		return NewSingleCmdResponse(messages.MsgErrInternal)
+	}
+
+	return NewSingleCmdResponse(messages.MsgOK)
+}
+
 func (r *CmdProcessor) journalDelCommand(cmdParts []string, userID int64) []CmdResponse {
 	if len(cmdParts) != 3 {
 		r.logger.Error(
@@ -161,7 +215,7 @@ func (r *CmdProcessor) journalDelCommand(cmdParts []string, userID int64) []CmdR
 
 	if err := r.stg.DeleteJournal(ctx, userID, ts, storage.NewMealFromString(cmdParts[1]), cmdParts[2]); err != nil {
 		r.logger.Error(
-			"weight journal command DB error",
+			"journal del command DB error",
 			zap.Strings("command", cmdParts),
 			zap.Int64("userid", userID),
 			zap.Error(err),

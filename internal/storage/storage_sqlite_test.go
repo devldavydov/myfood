@@ -787,7 +787,7 @@ func (r *StorageSQLiteTestSuite) TestBundleCRUD() {
 	})
 }
 
-func (r *StorageSQLiteTestSuite) TestGetBundleFood() {
+func (r *StorageSQLiteTestSuite) TestSetJournalBundle() {
 	r.Run("add food", func() {
 		r.NoError(r.stg.SetFood(context.TODO(), &Food{
 			Key: "food_a", Name: "aaa", Brand: "brand a", Cal100: 1, Prot100: 2, Fat100: 3, Carb100: 4, Comment: "Comment",
@@ -796,13 +796,13 @@ func (r *StorageSQLiteTestSuite) TestGetBundleFood() {
 			Key: "food_b", Name: "bbb", Brand: "brand b", Cal100: 5, Prot100: 6, Fat100: 7, Carb100: 8, Comment: "",
 		}))
 		r.NoError(r.stg.SetFood(context.TODO(), &Food{
-			Key: "food_c", Name: "ccc", Brand: "brand c", Cal100: 1, Prot100: 1, Fat100: 1, Carb100: 1, Comment: "ccc",
+			Key: "food_c", Name: "ccc", Brand: "brand c", Cal100: 9, Prot100: 10, Fat100: 11, Carb100: 12, Comment: "ccc",
 		}))
 		r.NoError(r.stg.SetFood(context.TODO(), &Food{
-			Key: "food_d", Name: "ddd", Brand: "brand d", Cal100: 1, Prot100: 1, Fat100: 1, Carb100: 1, Comment: "ccc",
+			Key: "food_d", Name: "ddd", Brand: "brand d", Cal100: 13, Prot100: 14, Fat100: 15, Carb100: 16, Comment: "ccc",
 		}))
 		r.NoError(r.stg.SetFood(context.TODO(), &Food{
-			Key: "food_e", Name: "eee", Brand: "brand e", Cal100: 1, Prot100: 1, Fat100: 1, Carb100: 1, Comment: "ccc",
+			Key: "food_e", Name: "eee", Brand: "brand e", Cal100: 17, Prot100: 18, Fat100: 19, Carb100: 20, Comment: "ccc",
 		}))
 	})
 
@@ -810,34 +810,34 @@ func (r *StorageSQLiteTestSuite) TestGetBundleFood() {
 		r.NoError(r.stg.SetBundle(context.TODO(), 1, &Bundle{
 			Key: "bndl1",
 			Data: map[string]float64{
-				"food_a": 1,
+				"food_a": 100,
 			},
 		}))
 		r.NoError(r.stg.SetBundle(context.TODO(), 1, &Bundle{
 			Key: "bndl2",
 			Data: map[string]float64{
-				"food_b": 2,
+				"food_b": 200,
 				"bndl1":  0,
 			},
 		}))
 		r.NoError(r.stg.SetBundle(context.TODO(), 1, &Bundle{
 			Key: "bndl3",
 			Data: map[string]float64{
-				"food_c": 3,
+				"food_c": 300,
 				"bndl2":  0,
 			},
 		}))
 		r.NoError(r.stg.SetBundle(context.TODO(), 1, &Bundle{
 			Key: "bndl4",
 			Data: map[string]float64{
-				"food_d": 4,
+				"food_d": 400,
 				"bndl3":  0,
 			},
 		}))
 		r.NoError(r.stg.SetBundle(context.TODO(), 1, &Bundle{
 			Key: "bndl5",
 			Data: map[string]float64{
-				"food_e": 5,
+				"food_e": 500,
 				"bndl4":  0,
 			},
 		}))
@@ -845,47 +845,58 @@ func (r *StorageSQLiteTestSuite) TestGetBundleFood() {
 		r.NoError(r.stg.SetBundle(context.TODO(), 1, &Bundle{
 			Key: "bndlA",
 			Data: map[string]float64{
-				"food_a": 1,
-				"food_b": 2,
+				"food_a": 100,
+				"food_b": 200,
 			},
 		}))
 		r.NoError(r.stg.SetBundle(context.TODO(), 1, &Bundle{
 			Key: "bndlB",
 			Data: map[string]float64{
-				"food_c": 3,
-				"food_d": 4,
+				"food_c": 300,
+				"food_d": 400,
 			},
 		}))
 		r.NoError(r.stg.SetBundle(context.TODO(), 1, &Bundle{
 			Key: "bndlC",
 			Data: map[string]float64{
-				"food_e": 5,
+				"food_e": 500,
 				"bndlA":  0,
 				"bndlB":  0,
 			},
 		}))
 	})
 
-	r.Run("get bundle food", func() {
-		res, err := r.stg.GetBundleFood(context.TODO(), 1, "bndl5")
+	r.Run("set journal bundle", func() {
+		r.NoError(r.stg.SetJournalBundle(context.TODO(), 1, T(1), Meal(0), "bndl5"))
+		r.NoError(r.stg.SetJournalBundle(context.TODO(), 1, T(1), Meal(1), "bndlC"))
+	})
+
+	r.Run("check journal", func() {
+		rep, err := r.stg.GetJournalReport(context.TODO(), 1, T(1), T(2))
 		r.NoError(err)
-		r.Equal(map[string]float64{
-			"food_a": 1,
-			"food_b": 2,
-			"food_c": 3,
-			"food_d": 4,
-			"food_e": 5,
-		}, res)
-		//
-		res, err = r.stg.GetBundleFood(context.TODO(), 1, "bndlC")
-		r.NoError(err)
-		r.Equal(map[string]float64{
-			"food_a": 1,
-			"food_b": 2,
-			"food_c": 3,
-			"food_d": 4,
-			"food_e": 5,
-		}, res)
+		r.Equal([]JournalReport{
+			{Timestamp: T(1), Meal: Meal(0), FoodKey: "food_a", FoodName: "aaa", FoodBrand: "brand a",
+				FoodWeight: 100, Cal: 1, Prot: 2, Fat: 3, Carb: 4},
+			{Timestamp: T(1), Meal: Meal(0), FoodKey: "food_b", FoodName: "bbb", FoodBrand: "brand b",
+				FoodWeight: 200, Cal: 10, Prot: 12, Fat: 14, Carb: 16},
+			{Timestamp: T(1), Meal: Meal(0), FoodKey: "food_c", FoodName: "ccc", FoodBrand: "brand c",
+				FoodWeight: 300, Cal: 27, Prot: 30, Fat: 33, Carb: 36},
+			{Timestamp: T(1), Meal: Meal(0), FoodKey: "food_d", FoodName: "ddd", FoodBrand: "brand d",
+				FoodWeight: 400, Cal: 52, Prot: 56, Fat: 60, Carb: 64},
+			{Timestamp: T(1), Meal: Meal(0), FoodKey: "food_e", FoodName: "eee", FoodBrand: "brand e",
+				FoodWeight: 500, Cal: 85, Prot: 90, Fat: 95, Carb: 100},
+			//
+			{Timestamp: T(1), Meal: Meal(1), FoodKey: "food_a", FoodName: "aaa", FoodBrand: "brand a",
+				FoodWeight: 100, Cal: 1, Prot: 2, Fat: 3, Carb: 4},
+			{Timestamp: T(1), Meal: Meal(1), FoodKey: "food_b", FoodName: "bbb", FoodBrand: "brand b",
+				FoodWeight: 200, Cal: 10, Prot: 12, Fat: 14, Carb: 16},
+			{Timestamp: T(1), Meal: Meal(1), FoodKey: "food_c", FoodName: "ccc", FoodBrand: "brand c",
+				FoodWeight: 300, Cal: 27, Prot: 30, Fat: 33, Carb: 36},
+			{Timestamp: T(1), Meal: Meal(1), FoodKey: "food_d", FoodName: "ddd", FoodBrand: "brand d",
+				FoodWeight: 400, Cal: 52, Prot: 56, Fat: 60, Carb: 64},
+			{Timestamp: T(1), Meal: Meal(1), FoodKey: "food_e", FoodName: "eee", FoodBrand: "brand e",
+				FoodWeight: 500, Cal: 85, Prot: 90, Fat: 95, Carb: 100},
+		}, rep)
 	})
 }
 

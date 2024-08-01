@@ -18,7 +18,6 @@ type Storage interface {
 	SetBundle(ctx context.Context, userID int64, bndl *Bundle) error
 	GetBundle(ctx context.Context, userID int64, key string) (*Bundle, error)
 	GetBundleList(ctx context.Context, userID int64) ([]Bundle, error)
-	GetBundleFood(ctx context.Context, userID int64, key string) (map[string]float64, error)
 	DeleteBundle(ctx context.Context, userID int64, key string) error
 
 	// Weight
@@ -28,6 +27,7 @@ type Storage interface {
 
 	// Journal
 	SetJournal(ctx context.Context, userID int64, journal *Journal) error
+	SetJournalBundle(ctx context.Context, userID int64, timestamp time.Time, meal Meal, bndlKey string) error
 	DeleteJournal(ctx context.Context, userID int64, timestamp time.Time, meal Meal, foodkey string) error
 	DeleteJournalMeal(ctx context.Context, userID int64, timestamp time.Time, meal Meal) error
 	GetJournalMealReport(ctx context.Context, userID int64, timestamp time.Time, meal Meal) (*JournalMealReport, error)
