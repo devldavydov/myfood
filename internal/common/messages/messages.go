@@ -13,7 +13,7 @@ const (
 	MsgErrBundleDepBundleNotFound  = "Зависимый бандл не найден в базе данных"
 	MsgErrBundleDepFoodNotFound    = "Зависимая еда не найдена в базе данных"
 	MsgErrBundleDepBundleRecursive = "Зависимый бандл не может быть рекурсивным"
-	MsgErrBundleNotFound           = "Бандл не найден"
+	MsgErrBundleNotFound           = "Бандл не найден в базе данных"
 	MsgErrBundleIsUsed             = "Бандл уже используется в другом бандле"
 
 	MsgErrUserSettingsNotFound = "Не найдены пользовательские настройки"
