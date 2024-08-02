@@ -1,249 +1,527 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MyFoodBot - Руководство</title>
+    <link
+      href="https://devldavydov.github.io/css/bootstrap/bootstrap.min.css"
+      rel="stylesheet"
+    />
+  </head>
 
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MyFoodBot - Руководство</title>
-  <link href="https://devldavydov.github.io/css/bootstrap/bootstrap.min.css" rel="stylesheet">
-</head>
-
-<body>
-  <div class="container">
-    <div class="accordion" id="accordionHelp">
-      <div class="accordion-item">
-        <h2 class="accordion-header">
-          <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseMain"
-            aria-expanded="true" aria-controls="collapseMain">
-            <b>Общее описание</b>
-          </button>
-        </h2>
-        <div id="collapseMain" class="accordion-collapse collapse show" data-bs-parent="#accordionHelp">
-          <div class="accordion-body">
-            <p>Бот MyFoodBot предназначен для учета веса и потребляемых калорий</p>
-            <p>Взаимодействие с ботом осуществляется посредством команд</p>
-            <p>Бот работает в таймзоне Europe/Moscow, настроек таймзоны под пользователя на данный момент нет</p>
-            <div class="alert alert-primary" role="alert">
-              Формат команд
+  <body>
+    <div class="container">
+      <div class="accordion" id="accordionHelp">
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button
+              class="accordion-button"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#collapseMain"
+              aria-expanded="true"
+              aria-controls="collapseMain"
+            >
+              <b>Общее описание</b>
+            </button>
+          </h2>
+          <div
+            id="collapseMain"
+            class="accordion-collapse collapse show"
+            data-bs-parent="#accordionHelp"
+          >
+            <div class="accordion-body">
+              <p>
+                Бот MyFoodBot предназначен для учета веса и потребляемых калорий
+              </p>
+              <p>Взаимодействие с ботом осуществляется посредством команд</p>
+              <p>
+                Бот работает в таймзоне Europe/Moscow, настроек таймзоны под
+                пользователя на данный момент нет
+              </p>
+              <div class="alert alert-primary" role="alert">Формат команд</div>
+              <p>
+                Команды задаются в формате значений, разделенных запятой:
+                <code>command,subcommand,arg1,arg2,...</code>
+              </p>
+              <p>Если после или до запятых есть пробелы, то они удаляются</p>
+              <p>Команды и подкоманды задаются в нижнем регистре</p>
             </div>
-            <p>Команды задаются в формате значений, разделенных запятой: <code>command,subcommand,arg1,arg2,...</code></p>
-            <p>Если после или до запятых есть пробелы, то они удаляются</p>
-            <p>Команды и подкоманды задаются в нижнем регистре</p>
           </div>
         </div>
-      </div>
-      <div class="accordion-item">
-        <h2 class="accordion-header">
-          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-            data-bs-target="#collapseHelp" aria-expanded="false" aria-controls="collapseHelp">
-            <b>Помощь (h)</b>
-          </button>
-        </h2>
-        <div id="collapseHelp" class="accordion-collapse collapse" data-bs-parent="#accordionHelp">
-          <div class="accordion-body">
-            <p>Для получения руководства необходимо отправить: <code>h</code></p>
+        <!-- Help -->
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button
+              class="accordion-button collapsed"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#collapseHelp"
+              aria-expanded="false"
+              aria-controls="collapseHelp"
+            >
+              <b>Помощь (h)</b>
+            </button>
+          </h2>
+          <div
+            id="collapseHelp"
+            class="accordion-collapse collapse"
+            data-bs-parent="#accordionHelp"
+          >
+            <div class="accordion-body">
+              <p>
+                Для получения руководства необходимо отправить: <code>h</code>
+              </p>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="accordion-item">
-        <h2 class="accordion-header">
-          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-            data-bs-target="#collapseCalcCal" aria-expanded="false" aria-controls="collapseCalcCal">
-            <b>Расчет нормы калорий (cc)</b>
-          </button>
-        </h2>
-        <div id="collapseCalcCal" class="accordion-collapse collapse" data-bs-parent="#accordionHelp">
-          <div class="accordion-body">
-            <p>Для получения расчета калорий необходимо отправить:
-              <code>cc,&lt;Пол 'm'|'f'&gt;,&lt;Вес (кг.)&gt;,&lt;Рост (см.)&gt;,&lt;Возраст (лет)&gt;</code></p>
-            <p>Значения веса, роста, возраста > 0</p>
-            <p>Рассчитываемые активности:</p>
-            <p><b>Сидячая: </b>если нет физических нагрузок и сидячая работа</p>
-            <p><b>Легкая: </b>если есть небольшие пробежки или легкая гимнастика 1–3 раза в неделю</p>
-            <p><b>Средняя: </b>если есть занятия спортом со средними нагрузками 3–5 раз в неделю</p>
-            <p><b>Полноценная: </b>если есть тренировки 6–7 раз в неделю</p>
-            <p><b>Супер: </b>если работа связана с физическим трудом, или есть тренировки 2 раза в день с силовыми
-              упражнениями</p>
+        <!-- Calories calc -->
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button
+              class="accordion-button collapsed"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#collapseCalcCal"
+              aria-expanded="false"
+              aria-controls="collapseCalcCal"
+            >
+              <b>Расчет нормы калорий (cc)</b>
+            </button>
+          </h2>
+          <div
+            id="collapseCalcCal"
+            class="accordion-collapse collapse"
+            data-bs-parent="#accordionHelp"
+          >
+            <div class="accordion-body">
+              <p>
+                Для получения расчета калорий необходимо отправить:
+                <code
+                  >cc,&lt;Пол 'm'|'f'&gt;,&lt;Вес (кг.)&gt;,&lt;Рост
+                  (см.)&gt;,&lt;Возраст (лет)&gt;</code
+                >
+              </p>
+              <p>Значения веса, роста, возраста > 0</p>
+              <p>Рассчитываемые активности:</p>
+              <p>
+                <b>Сидячая: </b>если нет физических нагрузок и сидячая работа
+              </p>
+              <p>
+                <b>Легкая: </b>если есть небольшие пробежки или легкая
+                гимнастика 1–3 раза в неделю
+              </p>
+              <p>
+                <b>Средняя: </b>если есть занятия спортом со средними нагрузками
+                3–5 раз в неделю
+              </p>
+              <p><b>Полноценная: </b>если есть тренировки 6–7 раз в неделю</p>
+              <p>
+                <b>Супер: </b>если работа связана с физическим трудом, или есть
+                тренировки 2 раза в день с силовыми упражнениями
+              </p>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="accordion-item">
-        <h2 class="accordion-header">
-          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-            data-bs-target="#collapseUS" aria-expanded="false" aria-controls="collapseUS">
-            <b>Пользовательские настройки (us)</b>
-          </button>
-        </h2>
-        <div id="collapseUS" class="accordion-collapse collapse" data-bs-parent="#accordionHelp">
-          <div class="accordion-body">
-            <p>Команды для управления пользовательскими настройками начинаются с: <code>us</code></p>
-            <div class="alert alert-primary" role="alert">
-              Установка настроек
+        <!-- User settings -->
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button
+              class="accordion-button collapsed"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#collapseUS"
+              aria-expanded="false"
+              aria-controls="collapseUS"
+            >
+              <b>Пользовательские настройки (us)</b>
+            </button>
+          </h2>
+          <div
+            id="collapseUS"
+            class="accordion-collapse collapse"
+            data-bs-parent="#accordionHelp"
+          >
+            <div class="accordion-body">
+              <p>
+                Команды для управления пользовательскими настройками начинаются
+                с: <code>us</code>
+              </p>
+              <!-- set -->
+              <div class="alert alert-primary" role="alert">
+                Установка настроек
+              </div>
+              <p>Команда: <code>us,set,&lt;Лимит калорий&gt;</code></p>
+              <p>Значение Лимита калорий > 0</p>
+              <!-- get -->
+              <div class="alert alert-primary" role="alert">
+                Получение настроек
+              </div>
+              <p>Команда: <code>us,get</code></p>
             </div>
-            <p>Команда: <code>us,set,&lt;Лимит калорий&gt;</code>
-            <p>Значение Лимита калорий > 0</p>
-            <div class="alert alert-primary" role="alert">
-              Получение настроек
-            </div>
-            <p>Команда: <code>us,get</code>
           </div>
         </div>
-      </div>      
-      <div class="accordion-item">
-        <h2 class="accordion-header">
-          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-            data-bs-target="#collapseWeight" aria-expanded="false" aria-controls="collapseWeight">
-            <b>Управление весом (w)</b>
-          </button>
-        </h2>
-        <div id="collapseWeight" class="accordion-collapse collapse" data-bs-parent="#accordionHelp">
-          <div class="accordion-body">
-            <p>Команды для управления весом начинаются с: <code>w</code></p>
-            <div class="alert alert-primary" role="alert">
-              Установка веса
+        <!-- Weight -->
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button
+              class="accordion-button collapsed"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#collapseWeight"
+              aria-expanded="false"
+              aria-controls="collapseWeight"
+            >
+              <b>Управление весом (w)</b>
+            </button>
+          </h2>
+          <div
+            id="collapseWeight"
+            class="accordion-collapse collapse"
+            data-bs-parent="#accordionHelp"
+          >
+            <div class="accordion-body">
+              <p>Команды для управления весом начинаются с: <code>w</code></p>
+              <!-- set -->
+              <div class="alert alert-primary" role="alert">Установка веса</div>
+              <p>
+                Команда:
+                <code>w,set,&lt;Дата MM.DD.YYYY&gt;,&lt;Значение&gt;</code>
+              </p>
+              <p>Значение веса > 0</p>
+              <p>Если дата пустая, то подразумевается текущая дата</p>
+              <!-- del -->
+              <div class="alert alert-primary" role="alert">Удаление веса</div>
+              <p>Команда: <code>w,del,&lt;Дата MM.DD.YYYY&gt;</code></p>
+              <p>Если дата пустая, то подразумевается текущая дата</p>
+              <!-- list -->
+              <div class="alert alert-primary" role="alert">
+                Вес за диапазон дат
+              </div>
+              <p>
+                Команда:
+                <code
+                  >w,list,&lt;Дата С MM.DD.YYYY&gt;,&lt;Дата По
+                  MM.DD.YYYY&gt;</code
+                >
+              </p>
+              <p>Если дата пустая, то подразумевается текущая дата</p>
             </div>
-            <p>Команда: <code>w,set,&lt;Дата MM.DD.YYYY&gt;,&lt;Значение&gt;</code>
-            <p>Значение веса > 0</p>
-            <p>Если дата пустая, то подразумевается текущая дата</p>
-            <div class="alert alert-primary" role="alert">
-              Удаление веса
-            </div>
-            <p>Команда: <code>w,del,&lt;Дата MM.DD.YYYY&gt;</code>
-            <p>Если дата пустая, то подразумевается текущая дата</p>
-            <div class="alert alert-primary" role="alert">
-              Вес за диапазон дат
-            </div>
-            <p>Команда: <code>w,list,&lt;Дата С MM.DD.YYYY&gt;,&lt;Дата По MM.DD.YYYY&gt;</code>
-            <p>Если дата пустая, то подразумевается текущая дата</p>
           </div>
         </div>
-      </div>
-      <div class="accordion-item">
-        <h2 class="accordion-header">
-          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-            data-bs-target="#collapseFood" aria-expanded="false" aria-controls="collapseFood">
-            <b>Управление едой (f)</b>
-          </button>
-        </h2>
-        <div id="collapseFood" class="accordion-collapse collapse" data-bs-parent="#accordionHelp">
-          <div class="accordion-body">
-            <p>Команды для управления едой начинаются с: <code>f</code></p>
-            <div class="alert alert-primary" role="alert">
-              Установка еды
+        <!-- Food -->
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button
+              class="accordion-button collapsed"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#collapseFood"
+              aria-expanded="false"
+              aria-controls="collapseFood"
+            >
+              <b>Управление едой (f)</b>
+            </button>
+          </h2>
+          <div
+            id="collapseFood"
+            class="accordion-collapse collapse"
+            data-bs-parent="#accordionHelp"
+          >
+            <div class="accordion-body">
+              <p>Команды для управления едой начинаются с: <code>f</code></p>
+              <!-- set -->
+              <div class="alert alert-primary" role="alert">Установка еды</div>
+              <p>
+                Команда:
+                <code
+                  >f,set,&lt;Ключ&gt;,&lt;Наименование&gt;,&lt;Бренд&gt;,&lt;ККал100&gt;,&lt;Бел100&gt;,&lt;Жир100&gt;,&lt;Угл100&gt;,&lt;Комментарий&gt;</code
+                >
+              </p>
+              <p>Ключ - уникальная строка для данной записи</p>
+              <p>Наименование - название еды</p>
+              <p>Бренд - производитель еды (необязательное поле)</p>
+              <p>ККал100 - значение ккал в 100г.</p>
+              <p>Бел100 - значение белков в 100г.</p>
+              <p>Жир100 - значение жиров в 100г.</p>
+              <p>Угл100 - значение углеводов в 100г.</p>
+              <p>Комментарий (необязательное поле)</p>
+              <!-- sc -->
+              <div class="alert alert-primary" role="alert">
+                Установка комментария для еды
+              </div>
+              <p>Команда: <code>f,sc,&lt;Ключ&gt;,&lt;Комментарий&gt;</code></p>
+              <!-- st -->
+              <div class="alert alert-primary" role="alert">
+                Шаблон для установки параметров еды
+              </div>
+              <p>Команда: <code>f,st,&lt;Ключ&gt;</code></p>
+              <!-- find -->
+              <div class="alert alert-primary" role="alert">Поиск еды</div>
+              <p>Команда: <code>f,find,&lt;Шаблон&gt;</code></p>
+              <p>
+                Осуществляется поиск записей еды по совпадению шаблона в полях
+                Ключ, Наименование, Бренд и Комментарий
+              </p>
+              <p>Выводится не более 10 записей</p>
+              <!-- list -->
+              <div class="alert alert-primary" role="alert">
+                Весь список еды
+              </div>
+              <p>Команда: <code>f,list</code></p>
+              <!-- calc -->
+              <div class="alert alert-primary" role="alert">
+                Расчет энергетической ценности еды
+              </div>
+              <p>
+                Команда: <code>f,calc,&lt;Ключ&gt;,&lt;Вес еды в гр.&gt;</code>
+              </p>
+              <!-- del -->
+              <div class="alert alert-primary" role="alert">Удаление еды</div>
+              <p>Команда: <code>f,del,&lt;Ключ&gt;</code></p>
+              <p>
+                Нельзя удалить еду, которая уже используется в журнале приема
+                пищи или бандле
+              </p>
             </div>
-            <p>Команда: <code>f,set,&lt;Ключ&gt;,&lt;Наименование&gt;,&lt;Бренд&gt;,&lt;ККал100&gt;,&lt;Бел100&gt;,&lt;Жир100&gt;,&lt;Угл100&gt;,&lt;Комментарий&gt;</code></p>
-            <p>Ключ - уникальная строка для данной записи</p>
-            <p>Наименование - название еды</p>
-            <p>Бренд - производитель еды (необязательное поле)</p>
-            <p>ККал100 - значение ккал в 100г.</p>
-            <p>Бел100 - значение белков в 100г.</p>
-            <p>Жир100 - значение жиров в 100г.</p>
-            <p>Угл100 - значение углеводов в 100г.</p>
-            <p>Комментарий (необязательное поле)</p>
-            <div class="alert alert-primary" role="alert">
-              Установка комментария для еды
-            </div>
-            <p>Команда: <code>f,sc,&lt;Ключ&gt;,&lt;Комментарий&gt;</code></p>
-            <div class="alert alert-primary" role="alert">
-              Шаблон для установки параметров еды
-            </div>
-            <p>Команда: <code>f,st,&lt;Ключ&gt;</code></p>
-            <div class="alert alert-primary" role="alert">
-              Поиск еды
-            </div>
-            <p>Команда: <code>f,find,&lt;Шаблон&gt;</code></p>
-            <p>Осуществляется поиск записей еды по совпадению шаблона в полях Ключ, Наименование, Бренд и Комментарий</p>
-            <p>Выводится не более 10 записей</p>
-            <div class="alert alert-primary" role="alert">
-              Весь список еды
-            </div>
-            <p>Команда: <code>f,list</code></p>
-            <div class="alert alert-primary" role="alert">
-              Расчет энергетической ценности еды
-            </div>
-            <p>Команда: <code>f,calc,&lt;Ключ&gt;,&lt;Вес еды в гр.&gt;</code></p>            
-            <div class="alert alert-primary" role="alert">
-              Удаление еды
-            </div>
-            <p>Команда: <code>f,del,&lt;Ключ&gt;</code></p>
           </div>
         </div>
-      </div>
-      <div class="accordion-item">
-        <h2 class="accordion-header">
-          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-            data-bs-target="#collapseJournal" aria-expanded="false" aria-controls="collapseJournal">
-            <b>Управление журналом приема пищи (j)</b>
-          </button>
-        </h2>
-        <div id="collapseJournal" class="accordion-collapse collapse" data-bs-parent="#accordionHelp">
-          <div class="accordion-body">
-            <p>Команды для управления журналом приема пищи с: <code>j</code></p>
-            <div class="alert alert-primary" role="alert">
-              Установка записи приема пищи
+        <!-- Bundles -->
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button
+              class="accordion-button collapsed"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#collapseBndl"
+              aria-expanded="false"
+              aria-controls="collapseBndl"
+            >
+              <b>Бандлы (b)</b>
+            </button>
+          </h2>
+          <div
+            id="collapseBndl"
+            class="accordion-collapse collapse"
+            data-bs-parent="#accordionHelp"
+          >
+            <div class="accordion-body">
+              <p>Команды для управления бандлами с: <code>b</code></p>
+              <p>
+                Бандл - это группировка еды и других бандлов для быстрого
+                добавления записей в журнал еды
+              </p>
+              <!-- set -->
+              <div class="alert alert-primary" role="alert">
+                Установка бандла
+              </div>
+              <p>
+                Команда:
+                <code
+                  >b,set,&lt;Ключ бандла&gt;,&lt;Ключ еды:вес&gt;,&lt;Ключ
+                  дочернего бандла&gt;,...</code
+                >
+              </p>
+              <p>
+                В бандл можно добавлять как еду так и другие бандлы (кроме
+                самого себя)
+              </p>
+              <p>В случае если указывается ключ еды, то вес > 0</p>
+              <!-- st -->
+              <div class="alert alert-primary" role="alert">
+                Шаблон для установки параметров бандла
+              </div>
+              <p>Команда: <code>b,st,&lt;Ключ бандла&gt;</code></p>
+              <!-- list -->
+              <div class="alert alert-primary" role="alert">Список бандлов</div>
+              <p>Команда: <code>b,list</code></p>
+              <!-- del -->
+              <div class="alert alert-primary" role="alert">
+                Удаление бандла
+              </div>
+              <p>Команда: <code>b,del,&lt;Ключ бандла&gt;</code></p>
+              <p>
+                Нельзя удалить бандл, который является дочерним для другого
+                бандла
+              </p>
             </div>
-            <p>Команда: <code>j,set,&lt;Дата MM.DD.YYYY&gt;,&lt;Прием пищи&gt;,&lt;Ключ еды&gt;,&lt;Вес гр.&gt;</code></p>
-            <p>Варианты приема пищи: Завтрак, До обеда, Обед, Полдник, До ужина, Ужин, Перекус</p>
-            <p>Если указан какой-то другой прием пищи (или пустой), то сохраняется прием пищи - Перекус</p>
-            <p>Ключ еды - значение ключа из списка еды</p>
-            <p>Если дата пустая, то подразумевается текущая дата</p>
-            <div class="alert alert-primary" role="alert">
-              Удаление записи приема пищи
+          </div>
+        </div>
+        <!-- Journal -->
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button
+              class="accordion-button collapsed"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#collapseJournal"
+              aria-expanded="false"
+              aria-controls="collapseJournal"
+            >
+              <b>Управление журналом приема пищи (j)</b>
+            </button>
+          </h2>
+          <div
+            id="collapseJournal"
+            class="accordion-collapse collapse"
+            data-bs-parent="#accordionHelp"
+          >
+            <div class="accordion-body">
+              <p>
+                Команды для управления журналом приема пищи с: <code>j</code>
+              </p>
+              <!-- set -->
+              <div class="alert alert-primary" role="alert">
+                Установка записи приема пищи
+              </div>
+              <p>
+                Команда:
+                <code
+                  >j,set,&lt;Дата MM.DD.YYYY&gt;,&lt;Прием пищи&gt;,&lt;Ключ
+                  еды&gt;,&lt;Вес гр.&gt;</code
+                >
+              </p>
+              <p>
+                Варианты приема пищи: Завтрак, До обеда, Обед, Полдник, До
+                ужина, Ужин, Перекус
+              </p>
+              <p>
+                Если указан какой-то другой прием пищи (или пустой), то
+                сохраняется прием пищи - Перекус
+              </p>
+              <p>Ключ еды - значение ключа из списка еды</p>
+              <p>Если дата пустая, то подразумевается текущая дата</p>
+              <!-- sb -->
+              <div class="alert alert-primary" role="alert">
+                Установка бандла для записи приема пищи
+              </div>
+              <p>
+                Команда:
+                <code
+                  >j,sb,&lt;Дата MM.DD.YYYY&gt;,&lt;Прием пищи&gt;,&lt;Ключ
+                  бандла&gt;</code
+                >
+              </p>
+              <p>Ключ бандла - значение ключа из списка бандлов</p>
+              <p>
+                Варианты приема пищи: Завтрак, До обеда, Обед, Полдник, До
+                ужина, Ужин, Перекус
+              </p>
+              <p>
+                Если указан какой-то другой прием пищи (или пустой), то
+                сохраняется прием пищи - Перекус
+              </p>
+              <p>Если дата пустая, то подразумевается текущая дата</p>
+              <!-- del -->
+              <div class="alert alert-primary" role="alert">
+                Удаление записи приема пищи
+              </div>
+              <p>
+                Команда:
+                <code
+                  >j,del,&lt;Дата MM.DD.YYYY&gt;,&lt;Прием пищи&gt;,&lt;Ключ
+                  еды&gt;</code
+                >
+              </p>
+              <p>
+                Варианты приема пищи: Завтрак, До обеда, Обед, Полдник, До
+                ужина, Ужин, Перекус
+              </p>
+              <p>
+                Если указан какой-то другой прием пищи (или пустой), то будет
+                подразумеваться - Перекус
+              </p>
+              <p>Ключ еды - значение ключа из списка еды</p>
+              <p>Если дата пустая, то подразумевается текущая дата</p>
+              <!-- dm -->
+              <div class="alert alert-primary" role="alert">
+                Удаление приема пищи
+              </div>
+              <p>
+                Команда:
+                <code>j,dm,&lt;Дата MM.DD.YYYY&gt;,&lt;Прием пищи&gt;</code>
+              </p>
+              <p>
+                Варианты приема пищи: Завтрак, До обеда, Обед, Полдник, До
+                ужина, Ужин, Перекус
+              </p>
+              <p>
+                Если указан какой-то другой прием пищи (или пустой), то будет
+                подразумеваться - Перекус
+              </p>
+              <p>Если дата пустая, то подразумевается текущая дата</p>
+              <!-- cp -->
+              <div class="alert alert-primary" role="alert">
+                Копирование приема пищи
+              </div>
+              <p>
+                Команда:
+                <code
+                  >j,cp,&lt;Дата откуда MM.DD.YYYY&gt;,&lt;Прием
+                  пищи&gt;,&lt;Дата куда MM.DD.YYYY&gt;,&lt;Прием пищи&gt;</code
+                >
+              </p>
+              <p>
+                Для копирования указывается дата и прием пищи откуда копировать
+                и дата и прием пищи куда копировать
+              </p>
+              <p>
+                Если в дате назначения уже есть записи у указанного приема пищи,
+                то будет ошибка копирования
+              </p>
+              <p>Приемы пищи источника и назначения могут быть разными</p>
+              <p>Если дата пустая, то подразумевается текущая дата</p>
+              <!-- rm -->
+              <div class="alert alert-primary" role="alert">
+                Отчет по приему пищи за дату
+              </div>
+              <p>
+                Команда:
+                <code>j,rm,&lt;Дата MM.DD.YYYY&gt;,&lt;Прием пищи&gt;</code>
+              </p>
+              <p>Если дата пустая, то подразумевается текущая дата</p>
+              <!-- rd -->
+              <div class="alert alert-primary" role="alert">
+                Ежедневный отчет
+              </div>
+              <p>Команда: <code>j,rd,&lt;Дата MM.DD.YYYY&gt;</code></p>
+              <p>Если дата пустая, то подразумевается текущая дата</p>
+              <!-- rw -->
+              <div class="alert alert-primary" role="alert">
+                Еженедельный отчет
+              </div>
+              <p>Команда: <code>j,rw,&lt;Дата MM.DD.YYYY&gt;</code></p>
+              <p>
+                По дате определяется начало недели, относительного которого
+                формируется отчет
+              </p>
+              <p>Если дата пустая, то подразумевается текущая дата</p>
+              <!-- tm -->
+              <div class="alert alert-primary" role="alert">
+                Шаблоны команд по приему пищи за дату
+              </div>
+              <p>
+                Команда:
+                <code>j,tm,&lt;Дата MM.DD.YYYY&gt;,&lt;Прием пищи&gt;</code>
+              </p>
+              <p>Если дата пустая, то подразумевается текущая дата</p>
+              <!-- fa -->
+              <div class="alert alert-primary" role="alert">
+                Средний вес приема пищи за год
+              </div>
+              <p>Команда: <code>j,fa,&lt;Ключ еды&gt;</code></p>
+              <p>Ключ еды - значение ключа из списка еды</p>
+              <p>
+                Год рассчитывается как &lt;текущая дата - 1 год, текущая
+                дата&gt;
+              </p>
             </div>
-            <p>Команда: <code>j,del,&lt;Дата MM.DD.YYYY&gt;,&lt;Прием пищи&gt;,&lt;Ключ еды&gt;</code></p>
-            <p>Варианты приема пищи: Завтрак, До обеда, Обед, Полдник, До ужина, Ужин, Перекус</p>
-            <p>Если указан какой-то другой прием пищи (или пустой), то будет подразумеваться - Перекус</p>
-            <p>Ключ еды - значение ключа из списка еды</p>
-            <p>Если дата пустая, то подразумевается текущая дата</p>
-            <div class="alert alert-primary" role="alert">
-              Удаление приема пищи
-            </div>
-            <p>Команда: <code>j,dm,&lt;Дата MM.DD.YYYY&gt;,&lt;Прием пищи&gt;</code></p>            
-            <p>Варианты приема пищи: Завтрак, До обеда, Обед, Полдник, До ужина, Ужин, Перекус</p>
-            <p>Если указан какой-то другой прием пищи (или пустой), то будет подразумеваться - Перекус</p>
-            <p>Если дата пустая, то подразумевается текущая дата</p>
-            <div class="alert alert-primary" role="alert">
-              Копирование приема пищи
-            </div>     
-            <p>Команда: <code>j,cp,&lt;Дата откуда MM.DD.YYYY&gt;,&lt;Прием пищи&gt;,&lt;Дата куда MM.DD.YYYY&gt;,&lt;Прием пищи&gt;</code></p>
-            <p>Для копирования указывается дата и прием пищи откуда копировать и дата и прием пищи куда копировать</p>
-            <p>Если в дате назначения уже есть записи у указанного приема пищи, то будет ошибка копирования</p>
-            <p>Приемы пищи источника и назначения могут быть разными</p>
-            <p>Если дата пустая, то подразумевается текущая дата</p>
-            <div class="alert alert-primary" role="alert">
-              Отчет по приему пищи за дату
-            </div>
-            <p>Команда: <code>j,rm,&lt;Дата MM.DD.YYYY&gt;,&lt;Прием пищи&gt;</code></p>
-            <p>Если дата пустая, то подразумевается текущая дата</p>
-            <div class="alert alert-primary" role="alert">
-              Ежедневный отчет
-            </div>
-            <p>Команда: <code>j,rd,&lt;Дата MM.DD.YYYY&gt;</code></p>
-            <p>Если дата пустая, то подразумевается текущая дата</p>
-            <div class="alert alert-primary" role="alert">
-              Еженедельный отчет
-            </div>
-            <p>Команда: <code>j,rw,&lt;Дата MM.DD.YYYY&gt;</code></p>
-            <p>По дате определяется начало недели, относительного которого формируется отчет</p>
-            <p>Если дата пустая, то подразумевается текущая дата</p>
-            <div class="alert alert-primary" role="alert">
-              Шаблоны команд по приему пищи за дату
-            </div>
-            <p>Команда: <code>j,tm,&lt;Дата MM.DD.YYYY&gt;,&lt;Прием пищи&gt;</code></p>
-            <p>Если дата пустая, то подразумевается текущая дата</p>
-            <div class="alert alert-primary" role="alert">
-              Средний вес приема пищи за год
-            </div>
-            <p>Команда: <code>j,fa,&lt;Ключ еды&gt;</code></p>
-            <p>Ключ еды - значение ключа из списка еды</p>
-            <p>Год рассчитывается как &lt;текущая дата - 1 год, текущая дата&gt;</p>
           </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <script src="https://devldavydov.github.io/js/bootstrap/bootstrap.bundle.min.js"></script>
-</body>
-
+    <script src="https://devldavydov.github.io/js/bootstrap/bootstrap.bundle.min.js"></script>
+  </body>
 </html>
