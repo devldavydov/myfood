@@ -47,6 +47,8 @@ func (r *CmdProcessor) processJournal(cmdParts []string, userID int64) []CmdResp
 		resp = r.journalReportDayCommand(cmdParts[1:], userID)
 	case "rw":
 		resp = r.journalReportWeekCommand(cmdParts[1:], userID)
+	case "rr":
+		resp = r.journalReportRangeCommand(cmdParts[1:], userID)
 	case "tm":
 		resp = r.journalTemplateMealCommand(cmdParts[1:], userID)
 	case "fa":
@@ -773,6 +775,117 @@ func (r *CmdProcessor) journalReportWeekCommand(cmdParts []string, userID int64)
 		File:     tele.FromReader(bytes.NewBufferString(htmlBuilder.Build())),
 		MIME:     "text/html",
 		FileName: fmt.Sprintf("stats_%s_%s.html", tsStartStr, tsEndStr),
+	})
+}
+
+func (r *CmdProcessor) journalReportRangeCommand(cmdParts []string, userID int64) []CmdResponse {
+	if len(cmdParts) != 2 {
+		r.logger.Error(
+			"invalid journal rr command",
+			zap.String("reason", "len parts"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+		)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
+	}
+
+	tsStart, err := r.parseTimestamp(cmdParts[0])
+	if err != nil {
+		r.logger.Error(
+			"invalid journal rr command",
+			zap.String("reason", "ts format"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
+	}
+
+	tsEnd, err := r.parseTimestamp(cmdParts[1])
+	if err != nil {
+		r.logger.Error(
+			"invalid journal rr command",
+			zap.String("reason", "ts format"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
+	}
+
+	// Get list from DB
+	ctx, cancel := context.WithTimeout(context.Background(), storage.StorageOperationTimeout*2)
+	defer cancel()
+
+	lst, err := r.stg.GetJournalStats(ctx, userID, tsStart, tsEnd)
+	if err != nil {
+		if errors.Is(err, storage.ErrJournalStatsEmpty) {
+			return NewSingleCmdResponse(messages.MsgErrEmptyList)
+		}
+
+		r.logger.Error(
+			"journal rr command DB error",
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
+
+		return NewSingleCmdResponse(messages.MsgErrInternal)
+	}
+
+	// Get chart data
+	xlabels := make([]string, 0, len(lst))
+	data := make([]float64, 0, len(lst))
+	for _, w := range lst {
+		xlabels = append(xlabels, formatTimestamp(w.Timestamp))
+		data = append(data, w.TotalCal)
+	}
+
+	// HTML report
+	tsStartStr := formatTimestamp(tsStart)
+	tsEndStr := formatTimestamp(tsEnd)
+
+	// Chart
+	chartSnip, err := GetChartSnippet(&ChardData{
+		ElemID:  "chart",
+		XLabels: xlabels,
+		Data:    data,
+		Label:   "ККал",
+		Type:    "line",
+	})
+	if err != nil {
+		r.logger.Error(
+			"weight list command chart error",
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
+
+		return NewSingleCmdResponse(messages.MsgErrInternal)
+	}
+
+	// Doc
+	htmlBuilder := html.
+		NewBuilder("График ККал за период").
+		Add(
+			html.NewContainer().Add(
+				html.NewH(
+					fmt.Sprintf(fmt.Sprintf("График ККал за период %s - %s", tsStartStr, tsEndStr)),
+					5,
+					html.Attrs{"align": "center"},
+				),
+				html.NewCanvas("chart"),
+				html.NewScript(_jsBootstrapURL),
+				html.NewScript(_jsChartURL),
+				html.NewS(chartSnip),
+			),
+		)
+
+	// Response
+	return NewSingleCmdResponse(&tele.Document{
+		File:     tele.FromReader(bytes.NewBufferString(htmlBuilder.Build())),
+		MIME:     "text/html",
+		FileName: fmt.Sprintf("report_range_%s_%s.html", tsStartStr, tsEndStr),
 	})
 }
 
