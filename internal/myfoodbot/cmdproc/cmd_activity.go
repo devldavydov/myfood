@@ -32,6 +32,8 @@ func (r *CmdProcessor) processActivity(cmdParts []string, userID int64) []CmdRes
 		resp = r.activitySetCommand(cmdParts[1:], userID)
 	case "list":
 		resp = r.activityListCommand(cmdParts[1:], userID)
+	case "del":
+		resp = r.activityDelCommand(cmdParts[1:], userID)
 	default:
 		r.logger.Error(
 			"invalid activity command",
@@ -227,4 +229,45 @@ func (r *CmdProcessor) activityListCommand(cmdParts []string, userID int64) []Cm
 		MIME:     "text/html",
 		FileName: fmt.Sprintf("activity_%s_%s.html", tsFromStr, tsToStr),
 	})
+}
+
+func (r *CmdProcessor) activityDelCommand(cmdParts []string, userID int64) []CmdResponse {
+	if len(cmdParts) != 1 {
+		r.logger.Error(
+			"invalid activity del command",
+			zap.String("reason", "len parts"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+		)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
+	}
+
+	// Parse timestamp
+	ts, err := r.parseTimestamp(cmdParts[0])
+	if err != nil {
+		r.logger.Error(
+			"invalid activity del command",
+			zap.String("reason", "ts format"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+		)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
+	}
+
+	// Delete from DB
+	ctx, cancel := context.WithTimeout(context.Background(), storage.StorageOperationTimeout)
+	defer cancel()
+
+	if err := r.stg.DeleteActivity(ctx, userID, ts); err != nil {
+		r.logger.Error(
+			"activity del command DB error",
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
+
+		return NewSingleCmdResponse(messages.MsgErrInternal)
+	}
+
+	return NewSingleCmdResponse(messages.MsgOK)
 }

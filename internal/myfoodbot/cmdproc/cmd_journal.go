@@ -558,30 +558,40 @@ func (r *CmdProcessor) journalReportDayCommand(cmdParts []string, userID int64) 
 			html.NewTr(nil).
 				AddTd(html.NewTd(
 					html.NewSpan(
-						html.NewB("Всего, ккал: ", nil),
+						html.NewB("Всего потреблено, ккал: ", nil),
 						html.NewS(fmt.Sprintf("%.2f", totalCal)),
 					),
 					html.Attrs{"colspan": "6"})))
 
 	if us != nil {
+		activeCalStr := "Активность по умолчанию"
 		activeCal := us.DefaultActiveCal
 		if ua != nil {
+			activeCalStr = "Активность"
 			activeCal = ua.ActiveCal
 		}
 
-		tbl.AddFooterElement(html.NewTr(nil).
-			AddTd(html.NewTd(
-				html.NewSpan(
-					html.NewB("УБМ, ккал: ", nil),
-					html.NewS(fmt.Sprintf("%.2f", us.CalLimit)),
-					html.NewNbsp(),
-					html.NewB("Активность, ккал: ", nil),
-					html.NewS(fmt.Sprintf("%.2f", activeCal)),
-					html.NewNbsp(),
-					html.NewB("Разница, ккал: ", nil),
-					calDiffSnippet2(us.CalLimit+activeCal-totalCal),
-				),
-				html.Attrs{"colspan": "6"})))
+		tbl.
+			AddFooterElement(html.NewTr(nil).
+				AddTd(html.NewTd(
+					html.NewSpan(
+						html.NewB("УБМ, ккал: ", nil),
+						html.NewS(fmt.Sprintf("%.2f", us.CalLimit)),
+						html.NewNbsp(),
+						html.NewB(fmt.Sprintf("%s, ккал: ", activeCalStr), nil),
+						html.NewS(fmt.Sprintf("%.2f", activeCal)),
+						html.NewNbsp(),
+						html.NewB("Всего потрачено, ккал: ", nil),
+						html.NewS(fmt.Sprintf("%.2f", us.CalLimit+activeCal)),
+					),
+					html.Attrs{"colspan": "6"}))).
+			AddFooterElement(html.NewTr(nil).
+				AddTd(html.NewTd(
+					html.NewSpan(
+						html.NewB("Разница, ккал: ", nil),
+						calDiffSnippet2(us.CalLimit+activeCal-totalCal),
+					),
+					html.Attrs{"colspan": "6"})))
 	}
 
 	tbl.

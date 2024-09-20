@@ -1163,5 +1163,14 @@ func (r *StorageSQLite) SetActivity(ctx context.Context, userID int64, activity 
 }
 
 func (r *StorageSQLite) DeleteActivity(ctx context.Context, userID int64, timestamp time.Time) error {
-	return nil
+	_, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+		return tx.Activity.
+			Delete().
+			Where(
+				activity.Userid(userID),
+				activity.Timestamp(timestamp),
+			).
+			Exec(ctx)
+	})
+	return err
 }
