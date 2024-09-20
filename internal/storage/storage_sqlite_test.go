@@ -142,26 +142,40 @@ func (r *StorageSQLiteTestSuite) TestUserSettingsCRU() {
 
 	r.Run("set invalid settings", func() {
 		r.ErrorIs(r.stg.SetUserSettings(context.TODO(), 1, &UserSettings{CalLimit: -1}), ErrUserSettingsInvalid)
+		r.ErrorIs(r.stg.SetUserSettings(
+			context.TODO(),
+			1,
+			&UserSettings{CalLimit: -1, DefaultActiveCal: -1}),
+			ErrUserSettingsInvalid)
 	})
 
 	r.Run("set valid settings and get", func() {
-		r.NoError(r.stg.SetUserSettings(context.TODO(), 1, &UserSettings{CalLimit: 100}))
+		r.NoError(r.stg.SetUserSettings(
+			context.TODO(),
+			1,
+			&UserSettings{CalLimit: 100, DefaultActiveCal: 200}))
 
 		stgs, err := r.stg.GetUserSettings(context.TODO(), 1)
 		r.NoError(err)
 		r.Equal(float64(100), stgs.CalLimit)
+		r.Equal(float64(200), stgs.DefaultActiveCal)
 	})
 
 	r.Run("update valid settings and get", func() {
 		stgs, err := r.stg.GetUserSettings(context.TODO(), 1)
 		r.NoError(err)
 		r.Equal(float64(100), stgs.CalLimit)
+		r.Equal(float64(200), stgs.DefaultActiveCal)
 
-		r.NoError(r.stg.SetUserSettings(context.TODO(), 1, &UserSettings{CalLimit: 200}))
+		r.NoError(r.stg.SetUserSettings(
+			context.TODO(),
+			1,
+			&UserSettings{CalLimit: 300, DefaultActiveCal: 300}))
 
 		stgs, err = r.stg.GetUserSettings(context.TODO(), 1)
 		r.NoError(err)
-		r.Equal(float64(200), stgs.CalLimit)
+		r.Equal(float64(300), stgs.CalLimit)
+		r.Equal(float64(300), stgs.DefaultActiveCal)
 	})
 }
 

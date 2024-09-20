@@ -2138,17 +2138,19 @@ func (m *JournalMutation) ResetEdge(name string) error {
 // UserSettingsMutation represents an operation that mutates the UserSettings nodes in the graph.
 type UserSettingsMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *int
-	userid        *int64
-	adduserid     *int64
-	cal_limit     *float64
-	addcal_limit  *float64
-	clearedFields map[string]struct{}
-	done          bool
-	oldValue      func(context.Context) (*UserSettings, error)
-	predicates    []predicate.UserSettings
+	op                    Op
+	typ                   string
+	id                    *int
+	userid                *int64
+	adduserid             *int64
+	cal_limit             *float64
+	addcal_limit          *float64
+	default_active_cal    *float64
+	adddefault_active_cal *float64
+	clearedFields         map[string]struct{}
+	done                  bool
+	oldValue              func(context.Context) (*UserSettings, error)
+	predicates            []predicate.UserSettings
 }
 
 var _ ent.Mutation = (*UserSettingsMutation)(nil)
@@ -2361,6 +2363,62 @@ func (m *UserSettingsMutation) ResetCalLimit() {
 	m.addcal_limit = nil
 }
 
+// SetDefaultActiveCal sets the "default_active_cal" field.
+func (m *UserSettingsMutation) SetDefaultActiveCal(f float64) {
+	m.default_active_cal = &f
+	m.adddefault_active_cal = nil
+}
+
+// DefaultActiveCal returns the value of the "default_active_cal" field in the mutation.
+func (m *UserSettingsMutation) DefaultActiveCal() (r float64, exists bool) {
+	v := m.default_active_cal
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDefaultActiveCal returns the old "default_active_cal" field's value of the UserSettings entity.
+// If the UserSettings object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserSettingsMutation) OldDefaultActiveCal(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDefaultActiveCal is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDefaultActiveCal requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDefaultActiveCal: %w", err)
+	}
+	return oldValue.DefaultActiveCal, nil
+}
+
+// AddDefaultActiveCal adds f to the "default_active_cal" field.
+func (m *UserSettingsMutation) AddDefaultActiveCal(f float64) {
+	if m.adddefault_active_cal != nil {
+		*m.adddefault_active_cal += f
+	} else {
+		m.adddefault_active_cal = &f
+	}
+}
+
+// AddedDefaultActiveCal returns the value that was added to the "default_active_cal" field in this mutation.
+func (m *UserSettingsMutation) AddedDefaultActiveCal() (r float64, exists bool) {
+	v := m.adddefault_active_cal
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetDefaultActiveCal resets all changes to the "default_active_cal" field.
+func (m *UserSettingsMutation) ResetDefaultActiveCal() {
+	m.default_active_cal = nil
+	m.adddefault_active_cal = nil
+}
+
 // Where appends a list predicates to the UserSettingsMutation builder.
 func (m *UserSettingsMutation) Where(ps ...predicate.UserSettings) {
 	m.predicates = append(m.predicates, ps...)
@@ -2395,12 +2453,15 @@ func (m *UserSettingsMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *UserSettingsMutation) Fields() []string {
-	fields := make([]string, 0, 2)
+	fields := make([]string, 0, 3)
 	if m.userid != nil {
 		fields = append(fields, usersettings.FieldUserid)
 	}
 	if m.cal_limit != nil {
 		fields = append(fields, usersettings.FieldCalLimit)
+	}
+	if m.default_active_cal != nil {
+		fields = append(fields, usersettings.FieldDefaultActiveCal)
 	}
 	return fields
 }
@@ -2414,6 +2475,8 @@ func (m *UserSettingsMutation) Field(name string) (ent.Value, bool) {
 		return m.Userid()
 	case usersettings.FieldCalLimit:
 		return m.CalLimit()
+	case usersettings.FieldDefaultActiveCal:
+		return m.DefaultActiveCal()
 	}
 	return nil, false
 }
@@ -2427,6 +2490,8 @@ func (m *UserSettingsMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldUserid(ctx)
 	case usersettings.FieldCalLimit:
 		return m.OldCalLimit(ctx)
+	case usersettings.FieldDefaultActiveCal:
+		return m.OldDefaultActiveCal(ctx)
 	}
 	return nil, fmt.Errorf("unknown UserSettings field %s", name)
 }
@@ -2450,6 +2515,13 @@ func (m *UserSettingsMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetCalLimit(v)
 		return nil
+	case usersettings.FieldDefaultActiveCal:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDefaultActiveCal(v)
+		return nil
 	}
 	return fmt.Errorf("unknown UserSettings field %s", name)
 }
@@ -2464,6 +2536,9 @@ func (m *UserSettingsMutation) AddedFields() []string {
 	if m.addcal_limit != nil {
 		fields = append(fields, usersettings.FieldCalLimit)
 	}
+	if m.adddefault_active_cal != nil {
+		fields = append(fields, usersettings.FieldDefaultActiveCal)
+	}
 	return fields
 }
 
@@ -2476,6 +2551,8 @@ func (m *UserSettingsMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedUserid()
 	case usersettings.FieldCalLimit:
 		return m.AddedCalLimit()
+	case usersettings.FieldDefaultActiveCal:
+		return m.AddedDefaultActiveCal()
 	}
 	return nil, false
 }
@@ -2498,6 +2575,13 @@ func (m *UserSettingsMutation) AddField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddCalLimit(v)
+		return nil
+	case usersettings.FieldDefaultActiveCal:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddDefaultActiveCal(v)
 		return nil
 	}
 	return fmt.Errorf("unknown UserSettings numeric field %s", name)
@@ -2531,6 +2615,9 @@ func (m *UserSettingsMutation) ResetField(name string) error {
 		return nil
 	case usersettings.FieldCalLimit:
 		m.ResetCalLimit()
+		return nil
+	case usersettings.FieldDefaultActiveCal:
+		m.ResetDefaultActiveCal()
 		return nil
 	}
 	return fmt.Errorf("unknown UserSettings field %s", name)

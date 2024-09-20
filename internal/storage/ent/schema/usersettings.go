@@ -15,6 +15,7 @@ func (UserSettings) Fields() []ent.Field {
 	return []ent.Field{
 		field.Int64("userid").Unique(),
 		field.Float("cal_limit"),
+		field.Float("default_active_cal"),
 	}
 }
 

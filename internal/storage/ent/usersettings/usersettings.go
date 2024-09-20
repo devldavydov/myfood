@@ -15,6 +15,8 @@ const (
 	FieldUserid = "userid"
 	// FieldCalLimit holds the string denoting the cal_limit field in the database.
 	FieldCalLimit = "cal_limit"
+	// FieldDefaultActiveCal holds the string denoting the default_active_cal field in the database.
+	FieldDefaultActiveCal = "default_active_cal"
 	// Table holds the table name of the usersettings in the database.
 	Table = "user_settings"
 )
@@ -24,6 +26,7 @@ var Columns = []string{
 	FieldID,
 	FieldUserid,
 	FieldCalLimit,
+	FieldDefaultActiveCal,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -52,4 +55,9 @@ func ByUserid(opts ...sql.OrderTermOption) OrderOption {
 // ByCalLimit orders the results by the cal_limit field.
 func ByCalLimit(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCalLimit, opts...).ToFunc()
+}
+
+// ByDefaultActiveCal orders the results by the default_active_cal field.
+func ByDefaultActiveCal(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDefaultActiveCal, opts...).ToFunc()
 }

@@ -70,6 +70,27 @@ func (usu *UserSettingsUpdate) AddCalLimit(f float64) *UserSettingsUpdate {
 	return usu
 }
 
+// SetDefaultActiveCal sets the "default_active_cal" field.
+func (usu *UserSettingsUpdate) SetDefaultActiveCal(f float64) *UserSettingsUpdate {
+	usu.mutation.ResetDefaultActiveCal()
+	usu.mutation.SetDefaultActiveCal(f)
+	return usu
+}
+
+// SetNillableDefaultActiveCal sets the "default_active_cal" field if the given value is not nil.
+func (usu *UserSettingsUpdate) SetNillableDefaultActiveCal(f *float64) *UserSettingsUpdate {
+	if f != nil {
+		usu.SetDefaultActiveCal(*f)
+	}
+	return usu
+}
+
+// AddDefaultActiveCal adds f to the "default_active_cal" field.
+func (usu *UserSettingsUpdate) AddDefaultActiveCal(f float64) *UserSettingsUpdate {
+	usu.mutation.AddDefaultActiveCal(f)
+	return usu
+}
+
 // Mutation returns the UserSettingsMutation object of the builder.
 func (usu *UserSettingsUpdate) Mutation() *UserSettingsMutation {
 	return usu.mutation
@@ -128,6 +149,12 @@ func (usu *UserSettingsUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := usu.mutation.AddedCalLimit(); ok {
 		_spec.AddField(usersettings.FieldCalLimit, field.TypeFloat64, value)
+	}
+	if value, ok := usu.mutation.DefaultActiveCal(); ok {
+		_spec.SetField(usersettings.FieldDefaultActiveCal, field.TypeFloat64, value)
+	}
+	if value, ok := usu.mutation.AddedDefaultActiveCal(); ok {
+		_spec.AddField(usersettings.FieldDefaultActiveCal, field.TypeFloat64, value)
 	}
 	_spec.AddModifiers(usu.modifiers...)
 	if n, err = sqlgraph.UpdateNodes(ctx, usu.driver, _spec); err != nil {
@@ -190,6 +217,27 @@ func (usuo *UserSettingsUpdateOne) SetNillableCalLimit(f *float64) *UserSettings
 // AddCalLimit adds f to the "cal_limit" field.
 func (usuo *UserSettingsUpdateOne) AddCalLimit(f float64) *UserSettingsUpdateOne {
 	usuo.mutation.AddCalLimit(f)
+	return usuo
+}
+
+// SetDefaultActiveCal sets the "default_active_cal" field.
+func (usuo *UserSettingsUpdateOne) SetDefaultActiveCal(f float64) *UserSettingsUpdateOne {
+	usuo.mutation.ResetDefaultActiveCal()
+	usuo.mutation.SetDefaultActiveCal(f)
+	return usuo
+}
+
+// SetNillableDefaultActiveCal sets the "default_active_cal" field if the given value is not nil.
+func (usuo *UserSettingsUpdateOne) SetNillableDefaultActiveCal(f *float64) *UserSettingsUpdateOne {
+	if f != nil {
+		usuo.SetDefaultActiveCal(*f)
+	}
+	return usuo
+}
+
+// AddDefaultActiveCal adds f to the "default_active_cal" field.
+func (usuo *UserSettingsUpdateOne) AddDefaultActiveCal(f float64) *UserSettingsUpdateOne {
+	usuo.mutation.AddDefaultActiveCal(f)
 	return usuo
 }
 
@@ -281,6 +329,12 @@ func (usuo *UserSettingsUpdateOne) sqlSave(ctx context.Context) (_node *UserSett
 	}
 	if value, ok := usuo.mutation.AddedCalLimit(); ok {
 		_spec.AddField(usersettings.FieldCalLimit, field.TypeFloat64, value)
+	}
+	if value, ok := usuo.mutation.DefaultActiveCal(); ok {
+		_spec.SetField(usersettings.FieldDefaultActiveCal, field.TypeFloat64, value)
+	}
+	if value, ok := usuo.mutation.AddedDefaultActiveCal(); ok {
+		_spec.AddField(usersettings.FieldDefaultActiveCal, field.TypeFloat64, value)
 	}
 	_spec.AddModifiers(usuo.modifiers...)
 	_node = &UserSettings{config: usuo.config}

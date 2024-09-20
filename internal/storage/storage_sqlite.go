@@ -1060,7 +1060,10 @@ func (r *StorageSQLite) GetUserSettings(ctx context.Context, userID int64) (*Use
 
 	us, _ := res.(*ent.UserSettings)
 
-	return &UserSettings{CalLimit: us.CalLimit}, nil
+	return &UserSettings{
+		CalLimit:         us.CalLimit,
+		DefaultActiveCal: us.DefaultActiveCal,
+	}, nil
 }
 
 func (r *StorageSQLite) SetUserSettings(ctx context.Context, userID int64, settings *UserSettings) error {
@@ -1073,6 +1076,7 @@ func (r *StorageSQLite) SetUserSettings(ctx context.Context, userID int64, setti
 			Create().
 			SetUserid(userID).
 			SetCalLimit(settings.CalLimit).
+			SetDefaultActiveCal(settings.DefaultActiveCal).
 			OnConflict().
 			UpdateNewValues().
 			ID(ctx)

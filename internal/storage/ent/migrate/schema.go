@@ -81,6 +81,7 @@ var (
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "userid", Type: field.TypeInt64, Unique: true},
 		{Name: "cal_limit", Type: field.TypeFloat64},
+		{Name: "default_active_cal", Type: field.TypeFloat64},
 	}
 	// UserSettingsTable holds the schema information for the "user_settings" table.
 	UserSettingsTable = &schema.Table{

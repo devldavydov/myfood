@@ -122,11 +122,12 @@ func (r *Weight) Validate() bool {
 }
 
 type UserSettings struct {
-	CalLimit float64
+	CalLimit         float64
+	DefaultActiveCal float64
 }
 
 func (r *UserSettings) Validate() bool {
-	return r.CalLimit > 0
+	return r.CalLimit > 0 && r.DefaultActiveCal > 0
 }
 
 type Bundle struct {

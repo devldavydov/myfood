@@ -19,8 +19,10 @@ type UserSettings struct {
 	// Userid holds the value of the "userid" field.
 	Userid int64 `json:"userid,omitempty"`
 	// CalLimit holds the value of the "cal_limit" field.
-	CalLimit     float64 `json:"cal_limit,omitempty"`
-	selectValues sql.SelectValues
+	CalLimit float64 `json:"cal_limit,omitempty"`
+	// DefaultActiveCal holds the value of the "default_active_cal" field.
+	DefaultActiveCal float64 `json:"default_active_cal,omitempty"`
+	selectValues     sql.SelectValues
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -28,7 +30,7 @@ func (*UserSettings) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case usersettings.FieldCalLimit:
+		case usersettings.FieldCalLimit, usersettings.FieldDefaultActiveCal:
 			values[i] = new(sql.NullFloat64)
 		case usersettings.FieldID, usersettings.FieldUserid:
 			values[i] = new(sql.NullInt64)
@@ -64,6 +66,12 @@ func (us *UserSettings) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field cal_limit", values[i])
 			} else if value.Valid {
 				us.CalLimit = value.Float64
+			}
+		case usersettings.FieldDefaultActiveCal:
+			if value, ok := values[i].(*sql.NullFloat64); !ok {
+				return fmt.Errorf("unexpected type %T for field default_active_cal", values[i])
+			} else if value.Valid {
+				us.DefaultActiveCal = value.Float64
 			}
 		default:
 			us.selectValues.Set(columns[i], values[i])
@@ -106,6 +114,9 @@ func (us *UserSettings) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("cal_limit=")
 	builder.WriteString(fmt.Sprintf("%v", us.CalLimit))
+	builder.WriteString(", ")
+	builder.WriteString("default_active_cal=")
+	builder.WriteString(fmt.Sprintf("%v", us.DefaultActiveCal))
 	builder.WriteByte(')')
 	return builder.String()
 }

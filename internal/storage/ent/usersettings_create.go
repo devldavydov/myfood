@@ -33,6 +33,12 @@ func (usc *UserSettingsCreate) SetCalLimit(f float64) *UserSettingsCreate {
 	return usc
 }
 
+// SetDefaultActiveCal sets the "default_active_cal" field.
+func (usc *UserSettingsCreate) SetDefaultActiveCal(f float64) *UserSettingsCreate {
+	usc.mutation.SetDefaultActiveCal(f)
+	return usc
+}
+
 // Mutation returns the UserSettingsMutation object of the builder.
 func (usc *UserSettingsCreate) Mutation() *UserSettingsMutation {
 	return usc.mutation
@@ -73,6 +79,9 @@ func (usc *UserSettingsCreate) check() error {
 	if _, ok := usc.mutation.CalLimit(); !ok {
 		return &ValidationError{Name: "cal_limit", err: errors.New(`ent: missing required field "UserSettings.cal_limit"`)}
 	}
+	if _, ok := usc.mutation.DefaultActiveCal(); !ok {
+		return &ValidationError{Name: "default_active_cal", err: errors.New(`ent: missing required field "UserSettings.default_active_cal"`)}
+	}
 	return nil
 }
 
@@ -107,6 +116,10 @@ func (usc *UserSettingsCreate) createSpec() (*UserSettings, *sqlgraph.CreateSpec
 	if value, ok := usc.mutation.CalLimit(); ok {
 		_spec.SetField(usersettings.FieldCalLimit, field.TypeFloat64, value)
 		_node.CalLimit = value
+	}
+	if value, ok := usc.mutation.DefaultActiveCal(); ok {
+		_spec.SetField(usersettings.FieldDefaultActiveCal, field.TypeFloat64, value)
+		_node.DefaultActiveCal = value
 	}
 	return _node, _spec
 }
@@ -196,6 +209,24 @@ func (u *UserSettingsUpsert) AddCalLimit(v float64) *UserSettingsUpsert {
 	return u
 }
 
+// SetDefaultActiveCal sets the "default_active_cal" field.
+func (u *UserSettingsUpsert) SetDefaultActiveCal(v float64) *UserSettingsUpsert {
+	u.Set(usersettings.FieldDefaultActiveCal, v)
+	return u
+}
+
+// UpdateDefaultActiveCal sets the "default_active_cal" field to the value that was provided on create.
+func (u *UserSettingsUpsert) UpdateDefaultActiveCal() *UserSettingsUpsert {
+	u.SetExcluded(usersettings.FieldDefaultActiveCal)
+	return u
+}
+
+// AddDefaultActiveCal adds v to the "default_active_cal" field.
+func (u *UserSettingsUpsert) AddDefaultActiveCal(v float64) *UserSettingsUpsert {
+	u.Add(usersettings.FieldDefaultActiveCal, v)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create.
 // Using this option is equivalent to using:
 //
@@ -275,6 +306,27 @@ func (u *UserSettingsUpsertOne) AddCalLimit(v float64) *UserSettingsUpsertOne {
 func (u *UserSettingsUpsertOne) UpdateCalLimit() *UserSettingsUpsertOne {
 	return u.Update(func(s *UserSettingsUpsert) {
 		s.UpdateCalLimit()
+	})
+}
+
+// SetDefaultActiveCal sets the "default_active_cal" field.
+func (u *UserSettingsUpsertOne) SetDefaultActiveCal(v float64) *UserSettingsUpsertOne {
+	return u.Update(func(s *UserSettingsUpsert) {
+		s.SetDefaultActiveCal(v)
+	})
+}
+
+// AddDefaultActiveCal adds v to the "default_active_cal" field.
+func (u *UserSettingsUpsertOne) AddDefaultActiveCal(v float64) *UserSettingsUpsertOne {
+	return u.Update(func(s *UserSettingsUpsert) {
+		s.AddDefaultActiveCal(v)
+	})
+}
+
+// UpdateDefaultActiveCal sets the "default_active_cal" field to the value that was provided on create.
+func (u *UserSettingsUpsertOne) UpdateDefaultActiveCal() *UserSettingsUpsertOne {
+	return u.Update(func(s *UserSettingsUpsert) {
+		s.UpdateDefaultActiveCal()
 	})
 }
 
@@ -520,6 +572,27 @@ func (u *UserSettingsUpsertBulk) AddCalLimit(v float64) *UserSettingsUpsertBulk 
 func (u *UserSettingsUpsertBulk) UpdateCalLimit() *UserSettingsUpsertBulk {
 	return u.Update(func(s *UserSettingsUpsert) {
 		s.UpdateCalLimit()
+	})
+}
+
+// SetDefaultActiveCal sets the "default_active_cal" field.
+func (u *UserSettingsUpsertBulk) SetDefaultActiveCal(v float64) *UserSettingsUpsertBulk {
+	return u.Update(func(s *UserSettingsUpsert) {
+		s.SetDefaultActiveCal(v)
+	})
+}
+
+// AddDefaultActiveCal adds v to the "default_active_cal" field.
+func (u *UserSettingsUpsertBulk) AddDefaultActiveCal(v float64) *UserSettingsUpsertBulk {
+	return u.Update(func(s *UserSettingsUpsert) {
+		s.AddDefaultActiveCal(v)
+	})
+}
+
+// UpdateDefaultActiveCal sets the "default_active_cal" field to the value that was provided on create.
+func (u *UserSettingsUpsertBulk) UpdateDefaultActiveCal() *UserSettingsUpsertBulk {
+	return u.Update(func(s *UserSettingsUpsert) {
+		s.UpdateDefaultActiveCal()
 	})
 }
 

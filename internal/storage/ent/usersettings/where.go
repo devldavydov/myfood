@@ -62,6 +62,11 @@ func CalLimit(v float64) predicate.UserSettings {
 	return predicate.UserSettings(sql.FieldEQ(FieldCalLimit, v))
 }
 
+// DefaultActiveCal applies equality check predicate on the "default_active_cal" field. It's identical to DefaultActiveCalEQ.
+func DefaultActiveCal(v float64) predicate.UserSettings {
+	return predicate.UserSettings(sql.FieldEQ(FieldDefaultActiveCal, v))
+}
+
 // UseridEQ applies the EQ predicate on the "userid" field.
 func UseridEQ(v int64) predicate.UserSettings {
 	return predicate.UserSettings(sql.FieldEQ(FieldUserid, v))
@@ -140,6 +145,46 @@ func CalLimitLT(v float64) predicate.UserSettings {
 // CalLimitLTE applies the LTE predicate on the "cal_limit" field.
 func CalLimitLTE(v float64) predicate.UserSettings {
 	return predicate.UserSettings(sql.FieldLTE(FieldCalLimit, v))
+}
+
+// DefaultActiveCalEQ applies the EQ predicate on the "default_active_cal" field.
+func DefaultActiveCalEQ(v float64) predicate.UserSettings {
+	return predicate.UserSettings(sql.FieldEQ(FieldDefaultActiveCal, v))
+}
+
+// DefaultActiveCalNEQ applies the NEQ predicate on the "default_active_cal" field.
+func DefaultActiveCalNEQ(v float64) predicate.UserSettings {
+	return predicate.UserSettings(sql.FieldNEQ(FieldDefaultActiveCal, v))
+}
+
+// DefaultActiveCalIn applies the In predicate on the "default_active_cal" field.
+func DefaultActiveCalIn(vs ...float64) predicate.UserSettings {
+	return predicate.UserSettings(sql.FieldIn(FieldDefaultActiveCal, vs...))
+}
+
+// DefaultActiveCalNotIn applies the NotIn predicate on the "default_active_cal" field.
+func DefaultActiveCalNotIn(vs ...float64) predicate.UserSettings {
+	return predicate.UserSettings(sql.FieldNotIn(FieldDefaultActiveCal, vs...))
+}
+
+// DefaultActiveCalGT applies the GT predicate on the "default_active_cal" field.
+func DefaultActiveCalGT(v float64) predicate.UserSettings {
+	return predicate.UserSettings(sql.FieldGT(FieldDefaultActiveCal, v))
+}
+
+// DefaultActiveCalGTE applies the GTE predicate on the "default_active_cal" field.
+func DefaultActiveCalGTE(v float64) predicate.UserSettings {
+	return predicate.UserSettings(sql.FieldGTE(FieldDefaultActiveCal, v))
+}
+
+// DefaultActiveCalLT applies the LT predicate on the "default_active_cal" field.
+func DefaultActiveCalLT(v float64) predicate.UserSettings {
+	return predicate.UserSettings(sql.FieldLT(FieldDefaultActiveCal, v))
+}
+
+// DefaultActiveCalLTE applies the LTE predicate on the "default_active_cal" field.
+func DefaultActiveCalLTE(v float64) predicate.UserSettings {
+	return predicate.UserSettings(sql.FieldLTE(FieldDefaultActiveCal, v))
 }
 
 // And groups predicates with the AND operator between them.

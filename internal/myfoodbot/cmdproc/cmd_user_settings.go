@@ -29,6 +29,8 @@ func (r *CmdProcessor) processUserSettings(cmdParts []string, userID int64) []Cm
 		resp = r.userSettingsSetCommand(cmdParts[1:], userID)
 	case "get":
 		resp = r.userSettingsGetCommand(userID)
+	case "st":
+		resp = r.userSettingsSetTemplateCommand(userID)
 	default:
 		r.logger.Error(
 			"invalid user settings command",
@@ -43,7 +45,7 @@ func (r *CmdProcessor) processUserSettings(cmdParts []string, userID int64) []Cm
 }
 
 func (r *CmdProcessor) userSettingsSetCommand(cmdParts []string, userID int64) []CmdResponse {
-	if len(cmdParts) != 1 {
+	if len(cmdParts) != 2 {
 		r.logger.Error(
 			"invalid user settings set command",
 			zap.String("reason", "len parts"),
@@ -66,11 +68,29 @@ func (r *CmdProcessor) userSettingsSetCommand(cmdParts []string, userID int64) [
 		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
+	defaultActiveCal, err := strconv.ParseFloat(cmdParts[1], 64)
+	if err != nil {
+		r.logger.Error(
+			"invalid user settings set command",
+			zap.String("reason", "default active cal format"),
+			zap.Strings("command", cmdParts),
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
+		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
+	}
+
 	// Save in DB
 	ctx, cancel := context.WithTimeout(context.Background(), storage.StorageOperationTimeout)
 	defer cancel()
 
-	if err := r.stg.SetUserSettings(ctx, userID, &storage.UserSettings{CalLimit: calLimit}); err != nil {
+	if err := r.stg.SetUserSettings(
+		ctx,
+		userID,
+		&storage.UserSettings{
+			CalLimit:         calLimit,
+			DefaultActiveCal: defaultActiveCal,
+		}); err != nil {
 		if errors.Is(err, storage.ErrUserSettingsInvalid) {
 			return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 		}
@@ -108,5 +128,34 @@ func (r *CmdProcessor) userSettingsGetCommand(userID int64) []CmdResponse {
 		return NewSingleCmdResponse(messages.MsgErrInternal)
 	}
 
-	return NewSingleCmdResponse(fmt.Sprintf("Лимит калорий: %.2f", stgs.CalLimit))
+	return NewSingleCmdResponse(fmt.Sprintf("УБМ: %.2f\nАктивные ккал по-умолчанию: %.2f", stgs.CalLimit, stgs.DefaultActiveCal))
+}
+
+func (r *CmdProcessor) userSettingsSetTemplateCommand(userID int64) []CmdResponse {
+	// Get from DB
+	ctx, cancel := context.WithTimeout(context.Background(), storage.StorageOperationTimeout)
+	defer cancel()
+
+	stgs, err := r.stg.GetUserSettings(ctx, userID)
+	if err != nil {
+		if errors.Is(err, storage.ErrUserSettingsNotFound) {
+			return NewSingleCmdResponse(messages.MsgErrUserSettingsNotFound)
+		}
+
+		r.logger.Error(
+			"user setting set template command DB error",
+			zap.Int64("userid", userID),
+			zap.Error(err),
+		)
+
+		return NewSingleCmdResponse(messages.MsgErrInternal)
+	}
+
+	usSetTemplate := fmt.Sprintf(
+		"us,set,%.2f,%.2f",
+		stgs.CalLimit,
+		stgs.DefaultActiveCal,
+	)
+
+	return NewSingleCmdResponse(usSetTemplate)
 }
