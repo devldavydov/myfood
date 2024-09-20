@@ -1084,3 +1084,23 @@ func (r *StorageSQLite) SetUserSettings(ctx context.Context, userID int64, setti
 
 	return err
 }
+
+//
+// Activity.
+//
+
+func (r *StorageSQLite) GetActivityList(ctx context.Context, userID int64, from, to time.Time) ([]Activity, error) {
+	return nil, nil
+}
+
+func (r *StorageSQLite) GetActivity(ctx context.Context, userID int64, timestamp time.Time) (*Activity, error) {
+	return nil, nil
+}
+
+func (r *StorageSQLite) SetActivity(ctx context.Context, userID int64, activity *Activity) error {
+	return nil
+}
+
+func (r *StorageSQLite) DeleteActivity(ctx context.Context, userID int64, timestamp time.Time) error {
+	return nil
+}

@@ -6,6 +6,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// Activity is the predicate function for activity builders.
+type Activity func(*sql.Selector)
+
 // Bundle is the predicate function for bundle builders.
 type Bundle func(*sql.Selector)
 

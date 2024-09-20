@@ -36,6 +36,12 @@ type Storage interface {
 	CopyJournal(ctx context.Context, userID int64, from time.Time, mealFrom Meal, to time.Time, mealTo Meal) (int, error)
 	GetJournalFoodAvgWeight(ctx context.Context, userID int64, from, to time.Time, foodkey string) (float64, error)
 
+	// Activity
+	GetActivityList(ctx context.Context, userID int64, from, to time.Time) ([]Activity, error)
+	GetActivity(ctx context.Context, userID int64, timestamp time.Time) (*Activity, error)
+	SetActivity(ctx context.Context, userID int64, activity *Activity) error
+	DeleteActivity(ctx context.Context, userID int64, timestamp time.Time) error
+
 	// UserSettings
 	GetUserSettings(ctx context.Context, userID int64) (*UserSettings, error)
 	SetUserSettings(ctx context.Context, userID int64, settings *UserSettings) error

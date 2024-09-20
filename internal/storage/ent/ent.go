@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/devldavydov/myfood/internal/storage/ent/activity"
 	"github.com/devldavydov/myfood/internal/storage/ent/bundle"
 	"github.com/devldavydov/myfood/internal/storage/ent/food"
 	"github.com/devldavydov/myfood/internal/storage/ent/journal"
@@ -77,6 +78,7 @@ var (
 func checkColumn(table, column string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
+			activity.Table:     activity.ValidColumn,
 			bundle.Table:       bundle.ValidColumn,
 			food.Table:         food.ValidColumn,
 			journal.Table:      journal.ValidColumn,

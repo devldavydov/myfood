@@ -12,6 +12,8 @@ import (
 // Tx is a transactional client that is created by calling Client.Tx().
 type Tx struct {
 	config
+	// Activity is the client for interacting with the Activity builders.
+	Activity *ActivityClient
 	// Bundle is the client for interacting with the Bundle builders.
 	Bundle *BundleClient
 	// Food is the client for interacting with the Food builders.
@@ -153,6 +155,7 @@ func (tx *Tx) Client() *Client {
 }
 
 func (tx *Tx) init() {
+	tx.Activity = NewActivityClient(tx.config)
 	tx.Bundle = NewBundleClient(tx.config)
 	tx.Food = NewFoodClient(tx.config)
 	tx.Journal = NewJournalClient(tx.config)
@@ -167,7 +170,7 @@ func (tx *Tx) init() {
 // of them in order to commit or rollback the transaction.
 //
 // If a closed transaction is embedded in one of the generated entities, and the entity
-// applies a query, for example: Bundle.QueryXXX(), the query will be executed
+// applies a query, for example: Activity.QueryXXX(), the query will be executed
 // through the driver which created this transaction.
 //
 // Note that txDriver is not goroutine safe.

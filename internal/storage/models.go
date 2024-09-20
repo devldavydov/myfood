@@ -152,3 +152,8 @@ func (r *Bundle) Validate() bool {
 
 	return true
 }
+
+type Activity struct {
+	Timestamp time.Time
+	ActiveCal float64
+}

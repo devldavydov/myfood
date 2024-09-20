@@ -8,6 +8,26 @@ import (
 )
 
 var (
+	// ActivitiesColumns holds the columns for the "activities" table.
+	ActivitiesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "userid", Type: field.TypeInt64},
+		{Name: "timestamp", Type: field.TypeTime},
+		{Name: "active_cal", Type: field.TypeFloat64},
+	}
+	// ActivitiesTable holds the schema information for the "activities" table.
+	ActivitiesTable = &schema.Table{
+		Name:       "activities",
+		Columns:    ActivitiesColumns,
+		PrimaryKey: []*schema.Column{ActivitiesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "activity_userid_timestamp",
+				Unique:  true,
+				Columns: []*schema.Column{ActivitiesColumns[1], ActivitiesColumns[2]},
+			},
+		},
+	}
 	// BundlesColumns holds the columns for the "bundles" table.
 	BundlesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -111,6 +131,7 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		ActivitiesTable,
 		BundlesTable,
 		FoodsTable,
 		JournalsTable,
