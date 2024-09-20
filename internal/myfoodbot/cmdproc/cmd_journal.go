@@ -544,9 +544,27 @@ func (r *CmdProcessor) journalReportDayCommand(cmdParts []string, userID int64) 
 				AddTd(html.NewTd(
 					html.NewSpan(
 						html.NewB("Всего, ккал: ", nil),
-						calDiffSnippet(us, totalCal),
+						html.NewS(fmt.Sprintf("%.2f", totalCal)),
 					),
-					html.Attrs{"colspan": "6"}))).
+					html.Attrs{"colspan": "6"})))
+
+	if us != nil {
+		tbl.AddFooterElement(html.NewTr(nil).
+			AddTd(html.NewTd(
+				html.NewSpan(
+					html.NewB("УБМ, ккал: ", nil),
+					html.NewS(fmt.Sprintf("%.2f", us.CalLimit)),
+					html.NewNbsp(),
+					html.NewB("Активность, ккал: ", nil),
+					html.NewS(fmt.Sprintf("%.2f", us.DefaultActiveCal)),
+					html.NewNbsp(),
+					html.NewB("Разница, ккал: ", nil),
+					calDiffSnippet2(totalCal-us.CalLimit-us.DefaultActiveCal),
+				),
+				html.Attrs{"colspan": "6"})))
+	}
+
+	tbl.
 		AddFooterElement(
 			html.NewTr(nil).
 				AddTd(html.NewTd(
@@ -1010,6 +1028,21 @@ func calDiffSnippet(us *storage.UserSettings, cal float64) html.IELement {
 		default:
 			return html.NewS(fmt.Sprintf("%.2f", cal))
 		}
+	}
+}
+
+func calDiffSnippet2(diff float64) html.IELement {
+	switch {
+	case diff < 0 && math.Abs(diff) > 0.01:
+		return html.NewSpan(
+			html.NewB(fmt.Sprintf("%+.2f", diff), html.Attrs{"class": "text-danger"}),
+		)
+	case diff >= 0 && math.Abs(diff) > 0.01:
+		return html.NewSpan(
+			html.NewB(fmt.Sprintf("%+.2f", diff), html.Attrs{"class": "text-success"}),
+		)
+	default:
+		return html.NewS(fmt.Sprintf("%.2f", diff))
 	}
 }
 
