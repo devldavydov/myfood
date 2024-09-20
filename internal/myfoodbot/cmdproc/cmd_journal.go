@@ -559,7 +559,7 @@ func (r *CmdProcessor) journalReportDayCommand(cmdParts []string, userID int64) 
 					html.NewS(fmt.Sprintf("%.2f", us.DefaultActiveCal)),
 					html.NewNbsp(),
 					html.NewB("Разница, ккал: ", nil),
-					calDiffSnippet2(totalCal-us.CalLimit-us.DefaultActiveCal),
+					calDiffSnippet2(us.CalLimit+us.DefaultActiveCal-totalCal),
 				),
 				html.Attrs{"colspan": "6"})))
 	}
