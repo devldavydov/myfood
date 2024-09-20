@@ -436,7 +436,7 @@ func (r *CmdProcessor) journalReportDayCommand(cmdParts []string, userID int64) 
 	}
 	tsStr := formatTimestamp(ts)
 
-	// Get list from DB and user settings
+	// Get list from DB, user settings and activity
 	ctx, cancel := context.WithTimeout(context.Background(), storage.StorageOperationTimeout*2)
 	defer cancel()
 
@@ -446,6 +446,21 @@ func (r *CmdProcessor) journalReportDayCommand(cmdParts []string, userID int64) 
 		if !errors.Is(err, storage.ErrUserSettingsNotFound) {
 			r.logger.Error(
 				"journal rd command DB error for user settings",
+				zap.Strings("command", cmdParts),
+				zap.Int64("userid", userID),
+				zap.Error(err),
+			)
+
+			return NewSingleCmdResponse(messages.MsgErrInternal)
+		}
+	}
+
+	var ua *storage.Activity
+	ua, err = r.stg.GetActivity(ctx, userID, ts)
+	if err != nil {
+		if !errors.Is(err, storage.ErrActivityNotFound) {
+			r.logger.Error(
+				"journal rd command DB error for activity",
 				zap.Strings("command", cmdParts),
 				zap.Int64("userid", userID),
 				zap.Error(err),
@@ -549,6 +564,11 @@ func (r *CmdProcessor) journalReportDayCommand(cmdParts []string, userID int64) 
 					html.Attrs{"colspan": "6"})))
 
 	if us != nil {
+		activeCal := us.DefaultActiveCal
+		if ua != nil {
+			activeCal = ua.ActiveCal
+		}
+
 		tbl.AddFooterElement(html.NewTr(nil).
 			AddTd(html.NewTd(
 				html.NewSpan(
@@ -556,10 +576,10 @@ func (r *CmdProcessor) journalReportDayCommand(cmdParts []string, userID int64) 
 					html.NewS(fmt.Sprintf("%.2f", us.CalLimit)),
 					html.NewNbsp(),
 					html.NewB("Активность, ккал: ", nil),
-					html.NewS(fmt.Sprintf("%.2f", us.DefaultActiveCal)),
+					html.NewS(fmt.Sprintf("%.2f", activeCal)),
 					html.NewNbsp(),
 					html.NewB("Разница, ккал: ", nil),
-					calDiffSnippet2(us.CalLimit+us.DefaultActiveCal-totalCal),
+					calDiffSnippet2(us.CalLimit+activeCal-totalCal),
 				),
 				html.Attrs{"colspan": "6"})))
 	}

@@ -53,6 +53,8 @@ func (r *CmdProcessor) Process(c tele.Context, cmd string, userID int64) error {
 		resp = r.calcCalCommand(cmdParts[1:])
 	case "us":
 		resp = r.processUserSettings(cmdParts[1:], userID)
+	case "a":
+		resp = r.processActivity(cmdParts[1:], userID)
 	default:
 		r.logger.Error(
 			"invalid command",

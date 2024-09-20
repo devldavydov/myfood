@@ -34,4 +34,9 @@ var (
 	// UserSettings
 	ErrUserSettingsNotFound = errors.New("user settings not found")
 	ErrUserSettingsInvalid  = errors.New("invalid user settings")
+
+	// Activity
+	ErrActivityNotFound  = errors.New("activity not found")
+	ErrActivityInvalid   = errors.New("activity invalid")
+	ErrActivityEmptyList = errors.New("activity empty list")
 )

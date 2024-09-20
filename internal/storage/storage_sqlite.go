@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
 	"github.com/devldavydov/myfood/internal/storage/ent"
+	"github.com/devldavydov/myfood/internal/storage/ent/activity"
 	"github.com/devldavydov/myfood/internal/storage/ent/bundle"
 	"github.com/devldavydov/myfood/internal/storage/ent/food"
 	"github.com/devldavydov/myfood/internal/storage/ent/journal"
@@ -1090,15 +1091,75 @@ func (r *StorageSQLite) SetUserSettings(ctx context.Context, userID int64, setti
 //
 
 func (r *StorageSQLite) GetActivityList(ctx context.Context, userID int64, from, to time.Time) ([]Activity, error) {
-	return nil, nil
+	res, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+		return tx.Activity.
+			Query().
+			Where(
+				activity.Userid(userID),
+				activity.TimestampGTE(from),
+				activity.TimestampLTE(to),
+			).
+			Order(
+				activity.ByTimestamp(),
+			).
+			All(ctx)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	aeLst, _ := res.([]*ent.Activity)
+	if len(aeLst) == 0 {
+		return nil, ErrActivityEmptyList
+	}
+
+	aLst := make([]Activity, 0, len(aeLst))
+	for _, a := range aeLst {
+		aLst = append(aLst, Activity{Timestamp: a.Timestamp, ActiveCal: a.ActiveCal})
+	}
+
+	return aLst, nil
 }
 
 func (r *StorageSQLite) GetActivity(ctx context.Context, userID int64, timestamp time.Time) (*Activity, error) {
-	return nil, nil
+	res, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+		return tx.Activity.
+			Query().
+			Where(activity.UseridEQ(userID), activity.Timestamp(timestamp)).
+			First(ctx)
+	})
+
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, ErrActivityNotFound
+		}
+		return nil, err
+	}
+
+	a, _ := res.(*ent.Activity)
+	return &Activity{
+		Timestamp: a.Timestamp,
+		ActiveCal: a.ActiveCal,
+	}, nil
 }
 
 func (r *StorageSQLite) SetActivity(ctx context.Context, userID int64, activity *Activity) error {
-	return nil
+	if !activity.Validate() {
+		return ErrActivityInvalid
+	}
+
+	_, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+		return tx.Activity.
+			Create().
+			SetUserid(userID).
+			SetTimestamp(activity.Timestamp).
+			SetActiveCal(activity.ActiveCal).
+			OnConflict().
+			UpdateNewValues().
+			ID(ctx)
+	})
+
+	return err
 }
 
 func (r *StorageSQLite) DeleteActivity(ctx context.Context, userID int64, timestamp time.Time) error {

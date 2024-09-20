@@ -157,3 +157,7 @@ type Activity struct {
 	Timestamp time.Time
 	ActiveCal float64
 }
+
+func (r *Activity) Validate() bool {
+	return r.ActiveCal > 0
+}
