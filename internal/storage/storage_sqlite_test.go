@@ -915,6 +915,122 @@ func (r *StorageSQLiteTestSuite) TestSetJournalBundle() {
 }
 
 //
+// Activity
+//
+
+func (r *StorageSQLiteTestSuite) TestGetActivityList() {
+	r.Run("empty list", func() {
+		_, err := r.stg.GetActivityList(context.TODO(), 1, T(0), T(10))
+		r.ErrorIs(err, ErrActivityEmptyList)
+	})
+
+	r.Run("add data", func() {
+		r.NoError(r.stg.SetActivity(context.TODO(), 1, &Activity{Timestamp: T(1), ActiveCal: 1}))
+		r.NoError(r.stg.SetActivity(context.TODO(), 1, &Activity{Timestamp: T(2), ActiveCal: 2}))
+		r.NoError(r.stg.SetActivity(context.TODO(), 1, &Activity{Timestamp: T(3), ActiveCal: 3}))
+
+		r.NoError(r.stg.SetActivity(context.TODO(), 2, &Activity{Timestamp: T(4), ActiveCal: 4}))
+	})
+
+	r.Run("get list for different users", func() {
+		lst, err := r.stg.GetActivityList(context.TODO(), 1, T(1), T(3))
+		r.NoError(err)
+		r.Equal([]Activity{
+			{Timestamp: T(1), ActiveCal: 1},
+			{Timestamp: T(2), ActiveCal: 2},
+			{Timestamp: T(3), ActiveCal: 3},
+		}, lst)
+
+		lst, err = r.stg.GetActivityList(context.TODO(), 2, T(4), T(4))
+		r.NoError(err)
+		r.Equal([]Activity{
+			{Timestamp: T(4), ActiveCal: 4},
+		}, lst)
+	})
+
+	r.Run("get limited list", func() {
+		lst, err := r.stg.GetActivityList(context.TODO(), 1, T(2), T(3))
+		r.NoError(err)
+		r.Equal([]Activity{
+			{Timestamp: T(2), ActiveCal: 2},
+			{Timestamp: T(3), ActiveCal: 3},
+		}, lst)
+	})
+}
+
+func (r *StorageSQLiteTestSuite) TestDeleteActivity() {
+	r.Run("add data", func() {
+		r.NoError(r.stg.SetActivity(context.TODO(), 1, &Activity{Timestamp: T(1), ActiveCal: 1}))
+		r.NoError(r.stg.SetActivity(context.TODO(), 1, &Activity{Timestamp: T(2), ActiveCal: 2}))
+		r.NoError(r.stg.SetActivity(context.TODO(), 1, &Activity{Timestamp: T(3), ActiveCal: 3}))
+
+		r.NoError(r.stg.SetActivity(context.TODO(), 2, &Activity{Timestamp: T(4), ActiveCal: 4}))
+	})
+
+	r.Run("delete with incorrect user", func() {
+		r.NoError(r.stg.DeleteActivity(context.TODO(), 2, T(2)))
+
+		// Data not changed
+		lst, err := r.stg.GetActivityList(context.TODO(), 1, T(1), T(3))
+		r.NoError(err)
+		r.Equal([]Activity{
+			{Timestamp: T(1), ActiveCal: 1},
+			{Timestamp: T(2), ActiveCal: 2},
+			{Timestamp: T(3), ActiveCal: 3},
+		}, lst)
+
+		lst, err = r.stg.GetActivityList(context.TODO(), 2, T(4), T(4))
+		r.NoError(err)
+		r.Equal([]Activity{
+			{Timestamp: T(4), ActiveCal: 4},
+		}, lst)
+	})
+
+	r.Run("delete activity for user", func() {
+		r.NoError(r.stg.DeleteActivity(context.TODO(), 2, T(4)))
+		_, err := r.stg.GetActivityList(context.TODO(), 2, T(4), T(4))
+		r.ErrorIs(err, ErrActivityEmptyList)
+	})
+}
+
+func (r *StorageSQLiteTestSuite) TestActivityCRU() {
+	r.Run("get not existing activity", func() {
+		al, err := r.stg.GetActivityList(context.TODO(), 1, T(1), T(5))
+		r.ErrorIs(err, ErrActivityEmptyList)
+		r.Nil(al)
+	})
+
+	r.Run("set invalid activity", func() {
+		r.ErrorIs(r.stg.SetActivity(context.TODO(), 1, &Activity{Timestamp: T(1), ActiveCal: -1}), ErrActivityInvalid)
+	})
+
+	r.Run("set valid activity", func() {
+		r.NoError(r.stg.SetActivity(context.TODO(), 1, &Activity{Timestamp: T(1), ActiveCal: 1}))
+	})
+
+	r.Run("get activity", func() {
+		al, err := r.stg.GetActivityList(context.TODO(), 1, T(1), T(5))
+		r.NoError(err)
+		r.Equal([]Activity{{Timestamp: T(1), ActiveCal: 1}}, al)
+
+		a, err := r.stg.GetActivity(context.TODO(), 1, T(1))
+		r.NoError(err)
+		r.Equal(&Activity{Timestamp: T(1), ActiveCal: 1}, a)
+	})
+
+	r.Run("set again with update one", func() {
+		r.NoError(r.stg.SetActivity(context.TODO(), 1, &Activity{Timestamp: T(1), ActiveCal: 2}))
+		r.NoError(r.stg.SetActivity(context.TODO(), 1, &Activity{Timestamp: T(2), ActiveCal: 2}))
+	})
+
+	r.Run("get activity list", func() {
+		al, err := r.stg.GetActivityList(context.TODO(), 1, T(1), T(5))
+		r.NoError(err)
+		r.Equal([]Activity{{Timestamp: T(1), ActiveCal: 2}, {Timestamp: T(2), ActiveCal: 2}}, al)
+	})
+}
+
+//
 // Suite setup
 //
 
