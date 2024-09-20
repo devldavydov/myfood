@@ -33,14 +33,18 @@ func (r *CmdProcessor) calcCalCommand(cmdParts []string) []CmdResponse {
 		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
-	cal := 10*weight + 6.25*height - 5*age
+	ubm := 10*weight + 6.25*height - 5*age
 	if gender == "m" {
-		cal += 5
+		ubm += 5
 	} else {
-		cal -= 161
+		ubm -= 161
 	}
 
 	var sb strings.Builder
+	sb.WriteString("<b>Уровень Базального Метаболизма (УБМ)</b>\n")
+	sb.WriteString(fmt.Sprintf("%d ккал\n\n", int64(ubm)))
+
+	sb.WriteString("<b>Усредненные значения по активностям</b>\n\n")
 	for _, i := range []struct {
 		name string
 		k    float64
@@ -52,10 +56,9 @@ func (r *CmdProcessor) calcCalCommand(cmdParts []string) []CmdResponse {
 		{name: "Супер активность", k: 1.9},
 	} {
 		sb.WriteString(fmt.Sprintf("<b>%s</b>\n", i.name))
-		norm := int64(cal * i.k)
-		sb.WriteString(fmt.Sprintf("Норма: %d\n", norm))
-		sb.WriteString(fmt.Sprintf("Медл. похудение: %d\n", norm-250))
-		sb.WriteString(fmt.Sprintf("Быст. похудение: %d\n", norm-500))
+		norm := int64(ubm * i.k)
+		sb.WriteString(fmt.Sprintf("ККал: %d\n", norm))
+		sb.WriteString(fmt.Sprintf("Из них активных: %d\n", norm-int64(ubm)))
 		sb.WriteString("\n")
 	}
 
