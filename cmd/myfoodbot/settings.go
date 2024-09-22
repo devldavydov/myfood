@@ -16,6 +16,7 @@ const (
 	_defaultDBFilePath  = ""
 	_defaultLogLevel    = "INFO"
 	_defaultTZ          = "Europe/Moscow"
+	_defaultDebugMode   = false
 )
 
 type IDList []int64
@@ -40,6 +41,7 @@ type Config struct {
 	LogLevel       string
 	TZ             string
 	AllowedUserIDs IDList
+	DebugMode      bool
 }
 
 func LoadConfig(flagSet flag.FlagSet, flags []string) (*Config, error) {
@@ -51,6 +53,7 @@ func LoadConfig(flagSet flag.FlagSet, flags []string) (*Config, error) {
 	flagSet.StringVar(&config.TZ, "z", _defaultTZ, "Timezone")
 	flagSet.DurationVar(&config.PollTimeOut, "p", _defaultPollTimeout, "Telegram API poll timeout")
 	flagSet.Var(&config.AllowedUserIDs, "u", "Allowed User ID")
+	flagSet.BoolVar(&config.DebugMode, "b", _defaultDebugMode, "Debug mode")
 
 	flagSet.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
@@ -80,5 +83,6 @@ func ServiceSettingsAdapt(config *Config, buildCommit string) (*bot.ServiceSetti
 		config.DBFilePath,
 		config.AllowedUserIDs,
 		config.TZ,
-		buildCommit)
+		buildCommit,
+		config.DebugMode)
 }

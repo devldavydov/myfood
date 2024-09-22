@@ -11,13 +11,14 @@ import (
 )
 
 type CmdProcessor struct {
-	stg    storage.Storage
-	tz     *time.Location
-	logger *zap.Logger
+	stg       storage.Storage
+	tz        *time.Location
+	logger    *zap.Logger
+	debugMode bool
 }
 
-func NewCmdProcessor(stg storage.Storage, tz *time.Location, logger *zap.Logger) *CmdProcessor {
-	return &CmdProcessor{stg: stg, tz: tz, logger: logger}
+func NewCmdProcessor(stg storage.Storage, tz *time.Location, debugMode bool, logger *zap.Logger) *CmdProcessor {
+	return &CmdProcessor{stg: stg, tz: tz, debugMode: debugMode, logger: logger}
 }
 
 func (r *CmdProcessor) Process(c tele.Context, cmd string, userID int64) error {
@@ -63,6 +64,12 @@ func (r *CmdProcessor) Process(c tele.Context, cmd string, userID int64) error {
 			zap.Int64("userid", userID),
 		)
 		resp = NewSingleCmdResponse(messages.MsgErrInvalidCommand)
+	}
+
+	if r.debugMode {
+		if err := c.Send("!!! ОТЛАДОЧНЫЙ РЕЖИМ !!!"); err != nil {
+			return err
+		}
 	}
 
 	for _, rItem := range resp {

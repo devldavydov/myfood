@@ -9,6 +9,7 @@ type ServiceSettings struct {
 	DBFilePath     string
 	AllowedUserIDs []int64
 	TZ             *time.Location
+	DebugMode      bool
 }
 
 func NewServiceSettings(
@@ -17,7 +18,8 @@ func NewServiceSettings(
 	dbFilePath string,
 	alloweUserIDs []int64,
 	stz string,
-	buildVersion string) (*ServiceSettings, error) {
+	buildVersion string,
+	debugMode bool) (*ServiceSettings, error) {
 
 	tz, err := time.LoadLocation(stz)
 	if err != nil {
@@ -31,5 +33,6 @@ func NewServiceSettings(
 		DBFilePath:     dbFilePath,
 		AllowedUserIDs: alloweUserIDs,
 		TZ:             tz,
+		DebugMode:      debugMode,
 	}, nil
 }

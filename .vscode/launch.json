@@ -10,7 +10,8 @@
             "args": [
                 "-t", "BOT_TOKEN",
                 "-d", "${workspaceFolder}/myfood.db",
-                "-u", "USER_ID"
+                "-u", "USER_ID",
+                "-b", "true"
             ]
         },
         {

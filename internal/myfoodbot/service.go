@@ -25,7 +25,7 @@ func NewService(settings *ServiceSettings, logger *zap.Logger) (*Service, error)
 
 	return &Service{
 		settings: settings,
-		cmdProc:  cmdproc.NewCmdProcessor(stg, settings.TZ, logger),
+		cmdProc:  cmdproc.NewCmdProcessor(stg, settings.TZ, settings.DebugMode, logger),
 	}, nil
 }
 
