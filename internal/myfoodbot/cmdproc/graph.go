@@ -5,15 +5,30 @@ import (
 	"text/template"
 )
 
-type ChardData struct {
-	ElemID  string
-	XLabels []string
-	Data    []float64
-	Label   string
-	Type    string
+const (
+	ChartColorRed    = "rgb(255, 99, 132)"
+	ChartColorOrange = "rgb(255, 159, 64)"
+	ChartColorYellow = "rgb(255, 205, 86)"
+	ChartColorGreen  = "rgb(75, 192, 192)"
+	ChartColorBlue   = "rgb(54, 162, 235)"
+	ChartColorPurple = "rgb(153, 102, 255)"
+	ChartColorGrey   = "rgb(201, 203, 207)"
+)
+
+type ChartData struct {
+	ElemID   string
+	XLabels  []string
+	Type     string
+	Datasets []ChartDataset
 }
 
-func GetChartSnippet(data *ChardData) (string, error) {
+type ChartDataset struct {
+	Data  []float64
+	Label string
+	Color string
+}
+
+func GetChartSnippet(data *ChartData) (string, error) {
 	tmpl := template.Must(template.
 		New("").
 		Parse(`
@@ -30,6 +45,7 @@ func GetChartSnippet(data *ChardData) (string, error) {
 				{{- end }}
 				],
 				datasets: [
+				{{- range .Datasets }}
 					{
 						label: '{{.Label}}',
 						data: [
@@ -38,9 +54,10 @@ func GetChartSnippet(data *ChardData) (string, error) {
 						{{- end }}
 						],
 						borderWidth: 2,
-						borderColor: 'rgb(255, 99, 132)',
-						backgroundColor: 'rgb(255, 99, 132)'
-					}
+						borderColor: '{{.Color}}',
+						backgroundColor: '{{.Color}}'
+					},
+				{{- end}}					
 				]
 			}
 		});		

@@ -769,9 +769,38 @@ func (r *CmdProcessor) journalReportRangeCommand(cmdParts []string, userID int64
 		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
 	}
 
-	// Get list from DB
+	// Get list from DB, user settings and activities
 	ctx, cancel := context.WithTimeout(context.Background(), storage.StorageOperationTimeout*2)
 	defer cancel()
+
+	var us *storage.UserSettings
+	us, err = r.stg.GetUserSettings(ctx, userID)
+	if err != nil {
+		if !errors.Is(err, storage.ErrUserSettingsNotFound) {
+			r.logger.Error(
+				"journal rr command DB error for user settings",
+				zap.Strings("command", cmdParts),
+				zap.Int64("userid", userID),
+				zap.Error(err),
+			)
+
+			return NewSingleCmdResponse(messages.MsgErrInternal)
+		}
+	}
+
+	actList, err := r.stg.GetActivityList(ctx, userID, tsStart, tsEnd)
+	if err != nil {
+		if !errors.Is(err, storage.ErrActivityEmptyList) {
+			r.logger.Error(
+				"journal rr command DB error for user activities",
+				zap.Strings("command", cmdParts),
+				zap.Int64("userid", userID),
+				zap.Error(err),
+			)
+
+			return NewSingleCmdResponse(messages.MsgErrInternal)
+		}
+	}
 
 	lst, err := r.stg.GetJournalStats(ctx, userID, tsStart, tsEnd)
 	if err != nil {
@@ -789,6 +818,12 @@ func (r *CmdProcessor) journalReportRangeCommand(cmdParts []string, userID int64
 		return NewSingleCmdResponse(messages.MsgErrInternal)
 	}
 
+	// Get activity map
+	mapAct := make(map[time.Time]float64, 0)
+	for _, act := range actList {
+		mapAct[act.Timestamp] = act.ActiveCal
+	}
+
 	// Get chart data
 	xlabels := make([]string, 0, len(lst))
 	data := make([]float64, 0, len(lst))
@@ -796,18 +831,41 @@ func (r *CmdProcessor) journalReportRangeCommand(cmdParts []string, userID int64
 		xlabels = append(xlabels, formatTimestamp(w.Timestamp))
 		data = append(data, w.TotalCal)
 	}
+	datasets := []ChartDataset{
+		{
+			Data:  data,
+			Label: "Потреблено ККал",
+			Color: ChartColorBlue,
+		},
+	}
+
+	if us != nil {
+		actData := make([]float64, 0, len(lst))
+		for _, w := range lst {
+			actCal := mapAct[w.Timestamp]
+			if actCal == 0 {
+				actCal = us.DefaultActiveCal
+			}
+			actData = append(actData, us.CalLimit+actCal)
+		}
+
+		datasets = append(datasets, ChartDataset{
+			Data:  actData,
+			Label: "Активных ККал",
+			Color: ChartColorRed,
+		})
+	}
 
 	// HTML report
 	tsStartStr := formatTimestamp(tsStart)
 	tsEndStr := formatTimestamp(tsEnd)
 
 	// Chart
-	chartSnip, err := GetChartSnippet(&ChardData{
-		ElemID:  "chart",
-		XLabels: xlabels,
-		Data:    data,
-		Label:   "ККал",
-		Type:    "line",
+	chartSnip, err := GetChartSnippet(&ChartData{
+		ElemID:   "chart",
+		XLabels:  xlabels,
+		Type:     "line",
+		Datasets: datasets,
 	})
 	if err != nil {
 		r.logger.Error(

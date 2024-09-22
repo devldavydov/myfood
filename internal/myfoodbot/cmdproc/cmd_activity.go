@@ -195,12 +195,17 @@ func (r *CmdProcessor) activityListCommand(cmdParts []string, userID int64) []Cm
 			fmt.Sprintf("График ккал активности за %s - %s", tsFromStr, tsToStr),
 			chart))
 
-	chartSnip, err := GetChartSnippet(&ChardData{
+	chartSnip, err := GetChartSnippet(&ChartData{
 		ElemID:  "chart",
 		XLabels: xlabels,
-		Data:    data,
-		Label:   "ККал",
 		Type:    "line",
+		Datasets: []ChartDataset{
+			{
+				Data:  data,
+				Label: "ККал",
+				Color: ChartColorBlue,
+			},
+		},
 	})
 	if err != nil {
 		r.logger.Error(

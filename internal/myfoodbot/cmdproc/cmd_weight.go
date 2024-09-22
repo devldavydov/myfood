@@ -236,12 +236,17 @@ func (r *CmdProcessor) weightListCommand(cmdParts []string, userID int64) []CmdR
 			fmt.Sprintf("График веса за %s - %s", tsFromStr, tsToStr),
 			chart))
 
-	chartSnip, err := GetChartSnippet(&ChardData{
+	chartSnip, err := GetChartSnippet(&ChartData{
 		ElemID:  "chart",
 		XLabels: xlabels,
-		Data:    data,
-		Label:   "Вес",
 		Type:    "line",
+		Datasets: []ChartDataset{
+			{
+				Data:  data,
+				Label: "Вес",
+				Color: ChartColorBlue,
+			},
+		},
 	})
 	if err != nil {
 		r.logger.Error(
