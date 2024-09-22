@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/devldavydov/myfood/internal/common/html"
@@ -41,8 +40,6 @@ func (r *CmdProcessor) processJournal(cmdParts []string, userID int64) []CmdResp
 		resp = r.journalDelMealCommand(cmdParts[1:], userID)
 	case "cp":
 		resp = r.journalCopyCommand(cmdParts[1:], userID)
-	case "rm":
-		resp = r.journalReportMealCommand(cmdParts[1:], userID)
 	case "rd":
 		resp = r.journalReportDayCommand(cmdParts[1:], userID)
 	case "rw":
@@ -335,83 +332,6 @@ func (r *CmdProcessor) journalCopyCommand(cmdParts []string, userID int64) []Cmd
 	return NewSingleCmdResponse(fmt.Sprintf(messages.MsgJournalCopied, cnt))
 }
 
-func (r *CmdProcessor) journalReportMealCommand(cmdParts []string, userID int64) []CmdResponse {
-	if len(cmdParts) != 2 {
-		r.logger.Error(
-			"invalid journal rm command",
-			zap.String("reason", "len parts"),
-			zap.Strings("command", cmdParts),
-			zap.Int64("userid", userID),
-		)
-		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
-	}
-
-	ts, err := r.parseTimestamp(cmdParts[0])
-	if err != nil {
-		r.logger.Error(
-			"invalid journal rm command",
-			zap.String("reason", "ts format"),
-			zap.Strings("command", cmdParts),
-			zap.Int64("userid", userID),
-			zap.Error(err),
-		)
-		return NewSingleCmdResponse(messages.MsgErrInvalidCommand)
-	}
-
-	// Get list from DB and user settings
-	ctx, cancel := context.WithTimeout(context.Background(), storage.StorageOperationTimeout*2)
-	defer cancel()
-
-	rep, err := r.stg.GetJournalMealReport(ctx, userID, ts, storage.NewMealFromString(cmdParts[1]))
-	if err != nil {
-		if errors.Is(err, storage.ErrJournalMealReportEmpty) {
-			return NewSingleCmdResponse(messages.MsgErrEmptyList)
-		}
-
-		r.logger.Error(
-			"journal rm command DB error",
-			zap.Strings("command", cmdParts),
-			zap.Int64("userid", userID),
-			zap.Error(err),
-		)
-
-		return NewSingleCmdResponse(messages.MsgErrInternal)
-	}
-
-	var us *storage.UserSettings
-	us, err = r.stg.GetUserSettings(ctx, userID)
-	if err != nil {
-		if !errors.Is(err, storage.ErrUserSettingsNotFound) {
-			r.logger.Error(
-				"journal rm command DB error for user settings",
-				zap.Strings("command", cmdParts),
-				zap.Int64("userid", userID),
-				zap.Error(err),
-			)
-
-			return NewSingleCmdResponse(messages.MsgErrInternal)
-		}
-	}
-
-	var sb strings.Builder
-	for _, item := range rep.Items {
-		foodLbl := item.FoodName
-		if item.FoodBrand != "" {
-			foodLbl += " - " + item.FoodBrand
-		}
-		sb.WriteString(fmt.Sprintf("<b>%s [%s]</b>:\n", foodLbl, item.FoodKey))
-		sb.WriteString(fmt.Sprintf("%.1f г., %.2f ккал\n", item.FoodWeight, item.Cal))
-	}
-	sb.WriteString(fmt.Sprintf("\n<b>Всего (прием пищи), ккал:</b> %.2f", rep.ConsumedMealCal))
-	if us != nil {
-		sb.WriteString(fmt.Sprintf("\n<b>Всего (день), ккал:</b> %.2f (%+.2f)", rep.ConsumedDayCal, us.CalLimit-rep.ConsumedDayCal))
-	} else {
-		sb.WriteString(fmt.Sprintf("\n<b>Всего (день), ккал:</b> %.2f", rep.ConsumedDayCal))
-	}
-
-	return NewSingleCmdResponse(sb.String(), optsHTML)
-}
-
 func (r *CmdProcessor) journalReportDayCommand(cmdParts []string, userID int64) []CmdResponse {
 	if len(cmdParts) != 1 {
 		r.logger.Error(
@@ -674,7 +594,7 @@ func (r *CmdProcessor) journalReportWeekCommand(cmdParts []string, userID int64)
 	tsEnd := tsStart.Add(6 * 24 * time.Hour)
 	tsEndStr := formatTimestamp(tsEnd)
 
-	// Get list from DB and user settings
+	// Get list from DB, user settings and activities
 	ctx, cancel := context.WithTimeout(context.Background(), storage.StorageOperationTimeout*2)
 	defer cancel()
 
@@ -684,6 +604,20 @@ func (r *CmdProcessor) journalReportWeekCommand(cmdParts []string, userID int64)
 		if !errors.Is(err, storage.ErrUserSettingsNotFound) {
 			r.logger.Error(
 				"journal rw command DB error for user settings",
+				zap.Strings("command", cmdParts),
+				zap.Int64("userid", userID),
+				zap.Error(err),
+			)
+
+			return NewSingleCmdResponse(messages.MsgErrInternal)
+		}
+	}
+
+	actList, err := r.stg.GetActivityList(ctx, userID, tsStart, tsEnd)
+	if err != nil {
+		if !errors.Is(err, storage.ErrActivityEmptyList) {
+			r.logger.Error(
+				"journal rw command DB error for user activities",
 				zap.Strings("command", cmdParts),
 				zap.Int64("userid", userID),
 				zap.Error(err),
@@ -709,9 +643,14 @@ func (r *CmdProcessor) journalReportWeekCommand(cmdParts []string, userID int64)
 		return NewSingleCmdResponse(messages.MsgErrInternal)
 	}
 
+	// Get activity map
+	mapAct := make(map[time.Time]float64, 0)
+	for _, act := range actList {
+		mapAct[act.Timestamp] = act.ActiveCal
+	}
+
 	// Stat table
 	htmlBuilder := html.NewBuilder("Статистика приема пищи")
-	accordion := html.NewAccordion("accordionStats")
 
 	// Table
 	tbl := html.NewTable([]string{
@@ -724,7 +663,7 @@ func (r *CmdProcessor) journalReportWeekCommand(cmdParts []string, userID int64)
 		tbl.AddRow(
 			html.NewTr(nil).
 				AddTd(html.NewTd(html.NewS(formatTimestamp(j.Timestamp)), nil)).
-				AddTd(html.NewTd(calDiffSnippet(us, j.TotalCal), nil)).
+				AddTd(html.NewTd(calDiffSnippet(us, mapAct[j.Timestamp], j.TotalCal), nil)).
 				AddTd(html.NewTd(html.NewS(fmt.Sprintf("%.2f", j.TotalProt)), nil)).
 				AddTd(html.NewTd(html.NewS(fmt.Sprintf("%.2f", j.TotalFat)), nil)).
 				AddTd(html.NewTd(html.NewS(fmt.Sprintf("%.2f", j.TotalCarb)), nil)))
@@ -776,47 +715,16 @@ func (r *CmdProcessor) journalReportWeekCommand(cmdParts []string, userID int64)
 					),
 					html.Attrs{"colspan": "5"})))
 
-	accordion.AddItem(
-		html.HewAccordionItem(
-			"tbl",
-			fmt.Sprintf("Статистика приема пищи за %s - %s", tsStartStr, tsEndStr),
-			tbl))
-
-	// Chart
-	chart := html.NewCanvas("chart")
-	accordion.AddItem(
-		html.HewAccordionItem(
-			"graph",
-			fmt.Sprintf("График приема пищи за %s - %s", tsStartStr, tsEndStr),
-			chart))
-
-	data := &ChardData{
-		ElemID:  "chart",
-		XLabels: tsRangeStr,
-		Data:    dataRange,
-		Label:   "ККал",
-		Type:    "bar",
-	}
-	chartSnip, err := GetChartSnippet(data)
-	if err != nil {
-		r.logger.Error(
-			"journal rw command chart error",
-			zap.Strings("command", cmdParts),
-			zap.Int64("userid", userID),
-			zap.Error(err),
-		)
-
-		return NewSingleCmdResponse(messages.MsgErrInternal)
-	}
-
 	// Doc
 	htmlBuilder.Add(
 		html.NewContainer().Add(
-			accordion,
+			html.NewH(
+				fmt.Sprintf("Статистика приема пищи за %s - %s", tsStartStr, tsEndStr),
+				5,
+				html.Attrs{"align": "center"},
+			),
+			tbl,
 		),
-		html.NewScript(_jsBootstrapURL),
-		html.NewScript(_jsChartURL),
-		html.NewS(chartSnip),
 	)
 
 	return NewSingleCmdResponse(&tele.Document{
@@ -1037,11 +945,17 @@ func (r *CmdProcessor) journalFoodAvgWeightCommand(cmdParts []string, userID int
 	return NewSingleCmdResponse(fmt.Sprintf("Средний вес прима пищи за год: %.1fг.", avgW))
 }
 
-func calDiffSnippet(us *storage.UserSettings, cal float64) html.IELement {
+func calDiffSnippet(us *storage.UserSettings, actCal float64, cal float64) html.IELement {
 	if us == nil {
 		return html.NewS(fmt.Sprintf("%.2f", cal))
 	} else {
-		diff := us.CalLimit - cal
+		var diff float64
+		if actCal == 0 {
+			diff = us.CalLimit + us.DefaultActiveCal - cal
+		} else {
+			diff = us.CalLimit + actCal - cal
+		}
+
 		switch {
 		case diff < 0 && math.Abs(diff) > 0.01:
 			return html.NewSpan(
