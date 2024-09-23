@@ -841,18 +841,24 @@ func (r *CmdProcessor) journalReportRangeCommand(cmdParts []string, userID int64
 
 	if us != nil {
 		actData := make([]float64, 0, len(lst))
-		for _, w := range lst {
+		diffData := make([]float64, 0, len(lst))
+		for i, w := range lst {
 			actCal := mapAct[w.Timestamp]
 			if actCal == 0 {
 				actCal = us.DefaultActiveCal
 			}
 			actData = append(actData, us.CalLimit+actCal)
+			diffData = append(diffData, us.CalLimit+actCal-data[i])
 		}
 
 		datasets = append(datasets, ChartDataset{
 			Data:  actData,
 			Label: "Активных ККал",
 			Color: ChartColorRed,
+		}, ChartDataset{
+			Data:  diffData,
+			Label: "Разница Ккал",
+			Color: ChartColorGreen,
 		})
 	}
 
