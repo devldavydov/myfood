@@ -56,6 +56,8 @@ func (r *CmdProcessor) Process(c tele.Context, cmd string, userID int64) error {
 		resp = r.processUserSettings(cmdParts[1:], userID)
 	case "a":
 		resp = r.processActivity(cmdParts[1:], userID)
+	case "m":
+		resp = r.processMaintenance(cmdParts[1:], userID)
 	default:
 		r.logger.Error(
 			"invalid command",

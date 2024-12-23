@@ -1174,3 +1174,115 @@ func (r *StorageSQLite) DeleteActivity(ctx context.Context, userID int64, timest
 	})
 	return err
 }
+
+//
+// Backup.
+//
+
+func (r *StorageSQLite) Backup(ctx context.Context) (*Backup, error) {
+	backup := &Backup{
+		Timestamp: time.Now().UnixMilli(),
+	}
+
+	if _, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
+		var err error
+
+		// Weight.
+		wLst, err := tx.Weight.
+			Query().
+			All(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		backup.Weight = make([]WeightBackup, 0, len(wLst))
+		for _, w := range wLst {
+			backup.Weight = append(backup.Weight, WeightBackup{
+				UserID:    w.Userid,
+				Timestamp: w.Timestamp.UnixMilli(),
+				Value:     w.Value,
+			})
+		}
+
+		// Food.
+		fLst, err := tx.Food.
+			Query().
+			All(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		backup.Food = make([]FoodBackup, 0, len(fLst))
+		for _, f := range fLst {
+			backup.Food = append(backup.Food, FoodBackup{
+				Key:     f.Key,
+				Name:    f.Name,
+				Brand:   f.Brand,
+				Cal100:  f.Cal100,
+				Prot100: f.Prot100,
+				Fat100:  f.Fat100,
+				Carb100: f.Carb100,
+				Comment: f.Comment,
+			})
+		}
+
+		// Journal.
+		jLst, err := tx.Journal.
+			Query().
+			WithFood().
+			All(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		backup.Journal = make([]JournalBackup, 0, len(jLst))
+		for _, j := range jLst {
+			backup.Journal = append(backup.Journal, JournalBackup{
+				UserID:     j.Userid,
+				Timestamp:  j.Timestamp.UnixMilli(),
+				Meal:       int64(j.Meal),
+				FoodKey:    j.Edges.Food.Key,
+				FoodWeight: j.Foodweight,
+			})
+		}
+
+		// Bundle.
+		bLst, err := tx.Bundle.
+			Query().
+			All(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		backup.Bundle = make([]BundleBackup, 0, len(bLst))
+		for _, b := range bLst {
+			backup.Bundle = append(backup.Bundle, BundleBackup{
+				UserID: b.Userid,
+				Key:    b.Key,
+				Data:   b.Data,
+			})
+		}
+
+		// User settomgs.
+		usLst, err := tx.UserSettings.
+			Query().
+			All(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		backup.UserSettings = make([]UserSettingsBackup, 0, len(usLst))
+		for _, us := range usLst {
+			backup.UserSettings = append(backup.UserSettings, UserSettingsBackup{
+				UserID:   us.Userid,
+				CalLimit: us.CalLimit,
+			})
+		}
+
+		return nil, nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return backup, nil
+}

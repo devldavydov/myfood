@@ -46,5 +46,8 @@ type Storage interface {
 	GetUserSettings(ctx context.Context, userID int64) (*UserSettings, error)
 	SetUserSettings(ctx context.Context, userID int64, settings *UserSettings) error
 
+	// Backup
+	Backup(ctx context.Context) (*Backup, error)
+
 	Close() error
 }

@@ -161,3 +161,48 @@ type Activity struct {
 func (r *Activity) Validate() bool {
 	return r.ActiveCal > 0
 }
+
+type Backup struct {
+	Timestamp    int64                `json:"timestamp"`
+	Weight       []WeightBackup       `json:"weight"`
+	Food         []FoodBackup         `json:"food"`
+	Journal      []JournalBackup      `json:"journal"`
+	Bundle       []BundleBackup       `json:"bundle"`
+	UserSettings []UserSettingsBackup `json:"user_settings"`
+}
+
+type WeightBackup struct {
+	UserID    int64   `json:"user_id"`
+	Timestamp int64   `json:"timestamp"`
+	Value     float64 `json:"value"`
+}
+
+type FoodBackup struct {
+	Key     string  `json:"key"`
+	Name    string  `json:"name"`
+	Brand   string  `json:"brand"`
+	Cal100  float64 `json:"cal100"`
+	Prot100 float64 `json:"prot100"`
+	Fat100  float64 `json:"fat100"`
+	Carb100 float64 `json:"carb100"`
+	Comment string  `json:"comment"`
+}
+
+type JournalBackup struct {
+	UserID     int64   `json:"user_id"`
+	Timestamp  int64   `json:"timestmap"`
+	Meal       int64   `json:"meal"`
+	FoodKey    string  `json:"food_key"`
+	FoodWeight float64 `json:"food_weight"`
+}
+
+type BundleBackup struct {
+	UserID int64              `json:"user_id"`
+	Key    string             `json:"key"`
+	Data   map[string]float64 `json:"data"`
+}
+
+type UserSettingsBackup struct {
+	UserID   int64   `json:"user_id"`
+	CalLimit float64 `json:"cal_limit"`
+}
