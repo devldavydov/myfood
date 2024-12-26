@@ -1184,6 +1184,11 @@ func (r *StorageSQLite) Backup(ctx context.Context) (*Backup, error) {
 		Timestamp: time.Now().UnixMilli(),
 	}
 
+	// Fix timestamp to start of day in local TZ (Europe/Moscow)
+	ts_fix := func(ts int64) int64 {
+		return ts - 10800000
+	}
+
 	if _, err := r.doTx(ctx, func(ctx context.Context, tx *ent.Tx) (any, error) {
 		var err error
 
@@ -1199,7 +1204,7 @@ func (r *StorageSQLite) Backup(ctx context.Context) (*Backup, error) {
 		for _, w := range wLst {
 			backup.Weight = append(backup.Weight, WeightBackup{
 				UserID:    w.Userid,
-				Timestamp: w.Timestamp.UnixMilli(),
+				Timestamp: ts_fix(w.Timestamp.UnixMilli()),
 				Value:     w.Value,
 			})
 		}
@@ -1239,7 +1244,7 @@ func (r *StorageSQLite) Backup(ctx context.Context) (*Backup, error) {
 		for _, j := range jLst {
 			backup.Journal = append(backup.Journal, JournalBackup{
 				UserID:     j.Userid,
-				Timestamp:  j.Timestamp.UnixMilli(),
+				Timestamp:  ts_fix(j.Timestamp.UnixMilli()),
 				Meal:       int64(j.Meal),
 				FoodKey:    j.Edges.Food.Key,
 				FoodWeight: j.Foodweight,
