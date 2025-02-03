@@ -190,7 +190,7 @@ type FoodBackup struct {
 
 type JournalBackup struct {
 	UserID     int64   `json:"user_id"`
-	Timestamp  int64   `json:"timestmap"`
+	Timestamp  int64   `json:"timestamp"`
 	Meal       int64   `json:"meal"`
 	FoodKey    string  `json:"food_key"`
 	FoodWeight float64 `json:"food_weight"`
