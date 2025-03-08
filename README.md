@@ -1,5 +1,8 @@
 # MyFood
 
+**DEPRECATED!**
+Actual project [Myhealth](https://github.com/devldavydov/myhealth)
+
 Food calories calculation project:
 
 - Bot for Telegram
